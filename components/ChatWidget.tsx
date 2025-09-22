@@ -52,7 +52,7 @@ const ChatMessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
       <div
         className={`max-w-prose rounded-2xl px-4 py-3 text-sm md:text-base ${
           isAssistant
-            ? 'bg-gray-200 text-gray-800 rounded-bl-none'
+            ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
             : 'bg-teal-600 text-white rounded-br-none'
         }`}
       >
@@ -118,52 +118,52 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
       </div>
 
       <div
-        className={`fixed bottom-0 right-0 z-50 m-0 sm:m-6 bg-white rounded-t-lg sm:rounded-lg shadow-2xl border border-gray-200 w-full h-full sm:w-[440px] sm:h-[70vh] flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed bottom-0 right-0 z-50 m-0 sm:m-6 bg-white dark:bg-gray-800 rounded-t-lg sm:rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 w-full h-full sm:w-[440px] sm:h-[70vh] flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'transform translate-y-0' : 'transform translate-y-full'
         }`}
         role="dialog"
         aria-modal="true"
         aria-hidden={!isOpen}
       >
-        <header className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+        <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-t-lg">
           <div className="flex items-center">
              <ChatBotIcon className="h-7 w-7 text-teal-600 mr-3" />
              <div>
-                <h2 className="font-bold text-lg text-gray-800">AI Cybersecurity Assistant</h2>
-                <p className="text-xs text-gray-500">Powered by Gemini</p>
+                <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">AI Cybersecurity Assistant</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini</p>
              </div>
           </div>
           <button
             onClick={onToggle}
-            className="text-gray-500 hover:text-gray-800"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100"
             aria-label="Close chat"
           >
             <CloseIcon className="h-6 w-6" />
           </button>
         </header>
 
-        <main className="flex-1 p-4 overflow-y-auto bg-gray-50">
+        <main className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-800">
           <div className="space-y-4">
             {messages.map((msg, index) => (
               <ChatMessageBubble key={index} message={msg} />
             ))}
              {isLoading && (
               <div className="flex justify-start">
-                  <div className="bg-gray-200 text-gray-800 rounded-2xl px-4 py-3 rounded-bl-none">
+                  <div className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-2xl px-4 py-3 rounded-bl-none">
                       <div className="flex items-center justify-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse [animation-delay:-0.3s]"></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse [animation-delay:-0.15s]"></div>
-                          <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse"></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.3s]"></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.15s]"></div>
+                          <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse"></div>
                       </div>
                   </div>
               </div>
             )}
-            {error && <p className="text-red-500 text-sm text-center p-2 bg-red-50 rounded-md">{error}</p>}
+            {error && <p className="text-red-500 dark:text-red-400 text-sm text-center p-2 bg-red-50 dark:bg-red-900/50 rounded-md">{error}</p>}
           </div>
           <div ref={messagesEndRef} />
         </main>
         
-        <footer className="p-3 border-t border-gray-200 bg-white">
+        <footer className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <form onSubmit={handleSubmit} className="flex items-end space-x-2">
             <textarea
               ref={textareaRef}
@@ -171,7 +171,7 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about a control..."
-              className="flex-1 p-2 border border-gray-300 rounded-md resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all max-h-32"
+              className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all max-h-32 bg-transparent dark:bg-gray-700 dark:text-gray-200"
               rows={1}
               disabled={isLoading}
               aria-label="Chat input"

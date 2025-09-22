@@ -1905,6 +1905,31 @@ export const eccData: Domain[] = [
                     version: '1.1',
                     lastUpdated: '2024-05-15'
                 },
+                {
+                    id: '5-1-5',
+                    description: 'Cybersecurity requirements for the organization\'s external web applications must be defined, documented, and implemented to protect against cyber risks.',
+                    implementationGuidelines: [
+                        'Implement a Web Application Firewall (WAF).',
+                        'Utilize a multi-tier architecture to segregate application layers.',
+                        'Enforce the use of secure protocols, such as HTTPS, for all web traffic.',
+                        'Adhere to secure application development and update standards, including regular testing.',
+                        'Define and communicate a secure user usage policy for web applications.',
+                        'Implement Multi-Factor Authentication (MFA) for user access to external applications.',
+                        'Conduct regular vulnerability assessments and penetration testing for web applications.',
+                        'Perform regular backups of web applications and data, storing them in secure locations.',
+                        'Continuously screen for and close unnecessary open ports, services, processes, and unused protocols.',
+                    ],
+                    expectedDeliverables: [
+                        'Web Application Security Policy document.',
+                        'Web Application Firewall (WAF) configuration and rule set documentation.',
+                        'Network architecture diagrams illustrating the multi-tier setup.',
+                        'Secure software development lifecycle (SDLC) documentation.',
+                        'Vulnerability assessment and penetration testing reports.',
+                        'Backup policy and evidence of successful backup and restoration tests.',
+                    ],
+                    version: '1.0',
+                    lastUpdated: '2024-07-21',
+                },
             ]
         },
         {

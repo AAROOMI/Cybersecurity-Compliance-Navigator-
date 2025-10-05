@@ -216,6 +216,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
             setUsers(prevUsers => prevUsers.map(u => {
                 if (u.id === user.id) {
                     return {
+                        ...u,
                         ...user,
                         password: user.password ? user.password : u.password,
                     };
@@ -224,11 +225,13 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
             }));
             addAuditLog('USER_UPDATED', `Updated user details for ${user.name} (${user.email}).`, user.id);
         } else {
-            // Create
-            setUsers(prevUsers => [...prevUsers, user]);
-            addAuditLog('USER_CREATED', `Created new user: ${user.name} (${user.email}).`, user.id);
-            if (!user.isVerified) {
-                addNotification(`Verification email sent to ${user.email}. The user must verify their account before logging in.`, 'info');
+            // Create a new user
+            const newUser: User = { ...user };
+            setUsers(prevUsers => [...prevUsers, newUser]);
+
+            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}).`, newUser.id);
+            if (!newUser.isVerified) {
+                addNotification(`Verification email sent to ${newUser.email}. User must verify account before logging in.`, 'info');
             }
         }
         setIsModalOpen(false);
@@ -257,7 +260,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Access Status</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Expires On</th>
                                     {canPerformActions && (
                                         <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
@@ -290,7 +293,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                                             {user.accessExpiresAt ? new Date(user.accessExpiresAt).toLocaleDateString() : 'Permanent'}
                                         </td>
                                         {canPerformActions && (
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 {canUpdate && <button onClick={() => handleEdit(user)} className="text-teal-600 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-200">{isExpired ? 'Re-activate' : 'Edit'}</button>}
                                                 {canDelete && user.id !== currentUser.id && <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete</button>}
                                             </td>

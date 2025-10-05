@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
 import { Sidebar } from './components/Sidebar';
@@ -12,6 +13,8 @@ import { CompanyProfilePage } from './components/CompanyProfilePage';
 import { LoginPage } from './components/LoginPage';
 import { AuditLogPage } from './components/AuditLogPage';
 import { CompanySetupPage } from './components/CompanySetupPage';
+import { MfaSetupPage } from './components/MfaSetupPage';
+import { MfaVerifyPage } from './components/MfaVerifyPage';
 import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon } from './components/Icons';
 import { eccData } from './data/controls';
 import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License } from './types';
@@ -120,10 +123,11 @@ const App: React.FC = () => {
 
   // PWA Install Prompt state
   const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // Subscription/License state
   const [isLicensed, setIsLicensed] = useState(true);
-
+  
   // Derived state from session
   const currentUser = session?.user;
   const currentCompanyId = session?.companyId;
@@ -135,6 +139,8 @@ const App: React.FC = () => {
 
   // PWA install prompt handler
   useEffect(() => {
+    setIsStandalone(window.matchMedia('(display-mode: standalone)').matches);
+    
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e);
@@ -397,10 +403,8 @@ const App: React.FC = () => {
             [companyId]: { users: [adminUser], documents: [], auditLog: [] },
         }));
 
-        setSession({ user: adminUser, companyId });
-        setCurrentView('companyProfile');
         setViewForNoSession('login');
-        addNotification('Company and administrator account created successfully!', 'success');
+        addNotification('Company and administrator account created successfully! You can now log in.', 'success');
     };
 
   const handleSaveCompanyProfile = (profile: CompanyProfile) => {
@@ -760,27 +764,10 @@ const App: React.FC = () => {
                 if (!user.isVerified) {
                     return { error: "Your account is not verified. Please check your email for a verification link.", code: 'unverified' };
                 }
-                
-                const newLogEntry: AuditLogEntry = {
-                    id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                    timestamp: Date.now(),
-                    userId: user.id,
-                    userName: user.name,
-                    action: 'USER_LOGIN',
-                    details: `User ${user.name} logged in successfully.`
-                };
 
-                setAllCompanyData(prevData => {
-                    const currentData = prevData[company.id] || { users: [], documents: [], auditLog: [] };
-                    const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])]; 
-                    return {
-                        ...prevData,
-                        [company.id]: { ...currentData, auditLog: newAuditLog }
-                    };
-                });
-                
                 setSession({ user, companyId: company.id });
-                setCurrentView('dashboard');
+                addAuditLog('USER_LOGIN', `User ${user.name} logged in.`);
+                
                 return null;
             }
         }
@@ -953,7 +940,8 @@ const handleResetPassword = async (token: string, newPassword: string): Promise<
     const companyUsers = allCompanyData[currentCompanyId].users;
     const newUser = companyUsers.find(u => u.id === userId);
     if (newUser) {
-        setSession(prev => prev ? { ...prev, user: newUser } : null);
+        // Switching users should also log out and force re-authentication for security
+        handleLogout();
     }
     setIsUserMenuOpen(false);
   };
@@ -1067,7 +1055,7 @@ const handleResetPassword = async (token: string, newPassword: string): Promise<
                               key={result.control.id}
                               className="cursor-default select-none relative py-2 pl-3 pr-4 text-gray-900 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-gray-700 flex items-center justify-between"
                           >
-                              <div className="flex flex-col">
+                              <div className="flex flex-col flex-1 min-w-0">
                                   <span className="font-semibold font-mono text-teal-700 dark:text-teal-400">
                                       {result.control.id}
                                   </span>
@@ -1080,22 +1068,24 @@ const handleResetPassword = async (token: string, newPassword: string): Promise<
                               </div>
                               <button
                                   onMouseDown={() => handleResultClick(result)}
-                                  className="ml-4 p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-teal-100 dark:hover:bg-gray-700 hover:text-teal-600 dark:hover:text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                                  aria-label={`Go to control ${result.control.id}`}
+                                  className="ml-4 flex-shrink-0 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
+                                  aria-label={`View details for control ${result.control.id}`}
                               >
-                                  <ArrowUpRightIcon className="w-5 h-5" />
+                                  View
+                                  <ArrowUpRightIcon className="w-4 h-4 ml-1.5" />
                               </button>
                           </li>
                       ))}
                   </ul>
               )}
           </div>
-           {installPrompt && (
+           {!isStandalone && (
               <button
                 onClick={handleInstallClick}
-                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800"
+                disabled={!installPrompt}
+                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Install to Desktop"
-                title="Install to Desktop"
+                title={installPrompt ? 'Install to Desktop' : 'Installation is not available at this time'}
               >
                 <DownloadIcon className="w-6 h-6" />
               </button>
@@ -1118,7 +1108,7 @@ const handleResetPassword = async (token: string, newPassword: string): Promise<
                                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{currentUser.email}</p>
                             </div>
                             <div className="py-2">
-                                <p className="px-2 pb-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Switch User</p>
+                                <p className="px-2 pb-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Switch User (Requires re-login)</p>
                                 {activeUsers.map(user => (
                                     <button
                                         key={user.id}

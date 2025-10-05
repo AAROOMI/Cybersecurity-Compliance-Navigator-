@@ -98,9 +98,6 @@ export interface User {
   isVerified: boolean;
   passwordResetToken?: string;
   passwordResetExpires?: number;
-  // FIX: Add mfaSecret and isMfaEnabled for multi-factor authentication
-  mfaSecret?: string;
-  isMfaEnabled?: boolean;
 }
 
 export const rolePermissions: Record<UserRole, Permission[]> = {

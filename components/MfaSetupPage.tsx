@@ -8,7 +8,7 @@ declare const QRCode: any;
 interface MfaSetupPageProps {
   user: User;
   companyName: string;
-  onVerified: (userId: string, verificationCode: string) => void;
+  onVerified: (userId: string, verificationCode: string) => Promise<{ success: boolean; message?: string }>;
   onCancel: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -19,6 +19,8 @@ export const MfaSetupPage: React.FC<MfaSetupPageProps> = ({ user, companyName, o
   const [isCopied, setIsCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [isLoadingQr, setIsLoadingQr] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (user.mfaSecret && typeof QRCode !== 'undefined') {
@@ -41,9 +43,15 @@ export const MfaSetupPage: React.FC<MfaSetupPageProps> = ({ user, companyName, o
     }
   }, [user.mfaSecret, user.email, companyName]);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onVerified(user.id, verificationCode);
+    setIsVerifying(true);
+    setError(null);
+    const result = await onVerified(user.id, verificationCode);
+    if (!result.success) {
+        setError(result.message || 'Verification failed. Please try again.');
+        setIsVerifying(false);
+    }
   };
 
   const handleCopy = () => {
@@ -66,7 +74,7 @@ export const MfaSetupPage: React.FC<MfaSetupPageProps> = ({ user, companyName, o
                 {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
             </button>
             <button onClick={onCancel} className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-teal-600">
-                Cancel
+                Cancel Setup
             </button>
         </div>
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -124,14 +132,15 @@ export const MfaSetupPage: React.FC<MfaSetupPageProps> = ({ user, companyName, o
                             <span className="text-gray-600 dark:text-gray-400 font-normal">Enter the 6-digit code from your authenticator app to complete setup.</span>
                         </label>
                         <div className="mt-2">
-                            <input id="code" name="code" type="text" inputMode="numeric" pattern="\d{6}" autoComplete="one-time-code" required
+                            <input id="code" name="code" type="text" inputMode="numeric" pattern="\\d{6}" autoComplete="one-time-code" required
                                 value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)}
                                 className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 text-center tracking-[0.5em]" />
                         </div>
                     </div>
+                    {error && <p className="text-sm text-center text-red-500 dark:text-red-400">{error}</p>}
                     <div>
-                        <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                            Verify & Enable MFA
+                        <button type="submit" disabled={isVerifying} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:bg-gray-400">
+                            {isVerifying ? 'Verifying...' : 'Verify & Enable MFA'}
                         </button>
                     </div>
                 </form>

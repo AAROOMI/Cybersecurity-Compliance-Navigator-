@@ -1,42 +1,19 @@
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon } from './Icons';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, SparklesIcon } from './Icons';
 import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
   domains: Domain[];
   selectedDomain: Domain;
   onSelectDomain: (domain: Domain) => void;
-  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog';
-  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog') => void;
+  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent';
+  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent') => void;
   permissions: Set<Permission>;
 }
-
-// Base64 encoded image for the AI assistant
-const agentImageUrl = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEhUTExMWFhUXGBgYGBgYGBgYGBgYGBgYFxgYGBgYHSggGBolHRgYITEhJSkrLi4uGB8zODMtNygtLisBCgoKDg0OGxAQGy0lICUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAOEA4QMBIgACEQEDEQH/xAAcAAABBQEBAQAAAAAAAAAAAAADAAECBAUGBwj/xAA9EAABAwIDBgQDBgQGAgMAAAABAAIRAyEEEjEFQVFhInGBkQYyobETQsHR8FLhByNSYnKS8RVTstIkg6LC/8QAGQEAAwEBAQAAAAAAAAAAAAAAAAECAwQF/8QAIxEAAgIDAAICAwEBAAAAAAAAAAECEQMSITEEE0FRIjJhcQT/2gAMAwEAAhEDEQH/APcIuS4BclwvOOkLkuAXJcICFwS4JcICFwS4JcICFwS4JcICFwS4JcICFwS4JcIBFyXALkuEBC5LgFyXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhcEuCXCAhclwC5LhAQuS4BclwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXBLglwgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgELkuAXJcICFwS4JcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcICEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgEIQgIXJcAuS4QELkuAXJcIBCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQCEIQH/9/9k=";
 
 export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSelectDomain, currentView, onSetView, permissions }) => {
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 p-4 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:flex md:flex-col">
-      <div className="pb-4 mb-4 border-b border-gray-200 dark:border-gray-700 flex flex-col items-center">
-        <button
-            onClick={() => (window as any).openDIDAgent && (window as any).openDIDAgent()}
-            className="group relative"
-            aria-label="Talk to AI Assistant Sarah Johnson"
-        >
-            <img
-                src={agentImageUrl}
-                alt="AI Assistant Sarah Johnson"
-                className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-600 group-hover:border-teal-500 transition-all duration-300 shadow-md"
-            />
-            <div className="absolute inset-0 bg-teal-600 bg-opacity-0 group-hover:bg-opacity-50 rounded-full flex items-center justify-center transition-opacity duration-300">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 2C15.968 2 20 6.032 20 11s-4.032 9-9 9-9-4.032-9-9 4.032-9 9-9zm4.331 6.223a.998.998 0 00-1.217-.229l-3.351 1.771a.86.86 0 01-.634 0L6.778 8.006a.998.998 0 10-.996 1.73l3.351 1.77a.86.86 0 010 1.49l-3.351 1.77a.998.998 0 10.996 1.73l3.351-1.771a.86.86 0 01.634 0l3.351 1.771a.998.998 0 10.996-1.73l-3.351-1.77a.86.86 0 010-1.49l3.351-1.77a.998.998 0 00.221-1.501z"/>
-                </svg>
-            </div>
-        </button>
-        <h3 className="mt-3 text-md font-semibold text-gray-800 dark:text-gray-200">Sarah Johnson</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">AI Voice Assistant</p>
-    </div>
       <nav className="mb-6">
         <ul>
           {permissions.has('dashboard:read') && (
@@ -69,18 +46,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
-          {permissions.has('documents:read') && (
+          {permissions.has('userProfile:read') && (
             <li className="mt-2">
               <button
-                  onClick={() => onSetView('documents')}
+                  onClick={() => onSetView('userProfile')}
                   className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
-                    currentView === 'documents'
+                    currentView === 'userProfile'
                       ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                 >
-                  <DocumentIcon className="w-5 h-5 mr-3" />
-                  <span>Document Management</span>
+                  <IdentificationIcon className="w-5 h-5 mr-3" />
+                  <span>My Profile</span>
                 </button>
             </li>
           )}
@@ -99,6 +76,96 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
+          {permissions.has('complianceAgent:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('complianceAgent')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'complianceAgent'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <SparklesIcon className="w-5 h-5 mr-3" />
+                  <span>Compliance Agent</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('documents:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('documents')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'documents'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <DocumentIcon className="w-5 h-5 mr-3" />
+                  <span>Document Management</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('training:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('training')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'training'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <GraduationCapIcon className="w-5 h-5 mr-3" />
+                  <span>Training & Awareness</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('assessment:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('assessment')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'assessment'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <ClipboardCheckIcon className="w-5 h-5 mr-3" />
+                  <span>NCA ECC Assessment</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('pdplAssessment:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('pdplAssessment')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'pdplAssessment'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <ShieldKeyholeIcon className="w-5 h-5 mr-3" />
+                  <span>PDPL Assessment</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('samaCsfAssessment:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('samaCsfAssessment')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'samaCsfAssessment'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <LandmarkIcon className="w-5 h-5 mr-3" />
+                  <span>SAMA CSF Assessment</span>
+                </button>
+            </li>
+          )}
           {permissions.has('audit:read') && (
             <li className="mt-2">
               <button
@@ -114,23 +181,45 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
+          {permissions.has('help:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('help')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'help'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <QuestionMarkCircleIcon className="w-5 h-5 mr-3" />
+                  <span>Help & Support</span>
+                </button>
+            </li>
+          )}
         </ul>
       </nav>
 
-      {permissions.has('documents:read') && (
-        <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-2 uppercase tracking-wider">AI Studio Apps</h2>
-             <a
-                href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZkvfniZtOCM"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
-              >
-                <BeakerIcon className="w-5 h-5 mr-3" />
-                <span>AI Document Analyzer</span>
-              </a>
-        </div>
-      )}
+      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-2 uppercase tracking-wider">AI Studio Apps</h2>
+           <a
+              href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZkvfniZtOCM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              <BeakerIcon className="w-5 h-5 mr-3" />
+              <span>PDPL AI Assessment</span>
+            </a>
+            <a
+              href="https://ai.studio/apps/drive/1NDRZHA_ZIFWUF3BncasM3oWw7zDGYsLf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              <BeakerIcon className="w-5 h-5 mr-3" />
+              <span>Risk Assessment</span>
+            </a>
+      </div>
 
       {permissions.has('navigator:read') && (
         <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">

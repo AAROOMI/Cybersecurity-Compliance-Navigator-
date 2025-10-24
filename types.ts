@@ -55,7 +55,10 @@ export type AuditAction =
   | 'COMPANY_PROFILE_UPDATED'
   | 'PASSWORD_RESET_REQUESTED'
   | 'PASSWORD_RESET_COMPLETED'
-  | 'LICENSE_UPDATED';
+  | 'LICENSE_UPDATED'
+  | 'PASSWORD_CHANGED'
+  | 'MFA_ENABLED'
+  | 'MFA_DISABLED';
 
 export interface AuditLogEntry {
   id: string;
@@ -86,7 +89,20 @@ export type Permission =
   | 'navigator:read'
   | 'company:read'
   | 'company:update'
-  | 'audit:read';
+  | 'audit:read'
+  | 'assessment:read'
+  | 'assessment:update'
+  | 'pdplAssessment:read'
+  | 'pdplAssessment:update'
+  | 'samaCsfAssessment:read'
+  | 'samaCsfAssessment:update'
+  | 'userProfile:read'
+  | 'userProfile:update'
+  | 'help:read'
+  | 'training:read'
+  | 'complianceAgent:read'
+  | 'complianceAgent:run';
+
 
 export interface User {
   id: string;
@@ -98,6 +114,8 @@ export interface User {
   isVerified: boolean;
   passwordResetToken?: string;
   passwordResetExpires?: number;
+  mfaSecret?: string;
+  mfaEnabled?: boolean;
 }
 
 export const rolePermissions: Record<UserRole, Permission[]> = {
@@ -116,6 +134,18 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'company:read',
     'company:update',
     'audit:read',
+    'assessment:read',
+    'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'userProfile:read',
+    'userProfile:update',
+    'help:read',
+    'training:read',
+    'complianceAgent:read',
+    'complianceAgent:run',
   ],
   CISO: [
     'dashboard:read',
@@ -126,10 +156,22 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'templates:apply',
     'navigator:read',
     'company:read',
+    'assessment:read',
+    'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'userProfile:read',
+    'userProfile:update',
+    'help:read',
+    'training:read',
+    'complianceAgent:read',
+    'complianceAgent:run',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -137,8 +179,19 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'templates:apply',
     'navigator:read',
     'company:read',
+    'assessment:read',
+    'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'userProfile:read',
+    'userProfile:update',
+    'help:read',
+    'training:read',
+    'complianceAgent:read',
   ],
-  Employee: ['navigator:read', 'company:read'],
+  Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
 };
 
 
@@ -176,6 +229,7 @@ export interface PolicyDocument {
   approvalHistory: ApprovalStep[];
   createdAt: number;
   updatedAt: number;
+  generatedBy?: 'user' | 'AI Agent';
 }
 
 export interface PrebuiltPolicyTemplate {
@@ -203,4 +257,90 @@ export interface CompanyProfile {
   cisoName: string;
   ctoName: string;
   license?: License;
+}
+
+// --- NEW: NCA ECC Assessment ---
+export type ControlStatus = 'Implemented' | 'Partially Implemented' | 'Not Implemented' | 'Not Applicable';
+
+export interface AssessmentItem {
+  domainCode: string;
+  domainName: string;
+  subDomainCode: string;
+  subdomainName: string;
+  controlCode: string;
+  controlName: string;
+  currentStatusDescription: string;
+  controlStatus: ControlStatus;
+  recommendation: string;
+  managementResponse: string;
+  targetDate: string;
+  evidence?: {
+    fileName: string;
+    dataUrl: string; // base64 data URL
+  };
+}
+
+// --- NEW: Training Module ---
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number; // index of the correct option
+}
+
+export interface Quiz {
+  title: string;
+  questions: QuizQuestion[];
+}
+
+export interface Lesson {
+  id: string;
+  title: string;
+  content: string; // Markdown content
+  quiz?: Quiz;
+}
+
+export interface TrainingCourse {
+  id:string;
+  title: string;
+  description: string;
+  standard: 'NCA ECC' | 'PDPL' | 'SAMA CSF' | 'ISO 27001';
+  lessons: Lesson[];
+  badgeId: string;
+}
+
+export interface UserTrainingProgress {
+  [courseId: string]: {
+    completedLessons: string[];
+    score?: number;
+    badgeEarned: boolean;
+    badgeId: string;
+  };
+}
+
+// --- NEW: Task Management ---
+export type TaskStatus = 'To Do' | 'In Progress' | 'Done';
+
+export interface Task {
+  id: string;
+  title: string;
+  controlId?: string;
+  status: TaskStatus;
+  createdAt: number;
+}
+
+
+// --- NEW: Compliance Agent ---
+export interface AgentLogEntry {
+  id: string;
+  timestamp: number;
+  message: string;
+  status: 'info' | 'success' | 'working' | 'error';
+}
+
+export interface ComplianceGap {
+    controlCode: string;
+    controlName: string;
+    domainName: string;
+    assessedStatus: ControlStatus;
+    framework: string;
 }

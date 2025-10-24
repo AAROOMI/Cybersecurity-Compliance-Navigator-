@@ -2,7 +2,6 @@
   "name": "Cybersecurity Controls Navigator",
   "description": "An interactive web application to browse, search, and understand the National Cybersecurity Authority's Essential Cybersecurity Controls (ECC) and their implementation guidelines.",
   "requestFramePermissions": [
-    "camera",
     "microphone"
   ]
 }

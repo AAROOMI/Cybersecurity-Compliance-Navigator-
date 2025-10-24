@@ -159,7 +159,7 @@ interface ControlDetailProps {
   isActive: boolean;
   domain: Domain;
   subdomain: Subdomain;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent') => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
 }
@@ -280,7 +280,7 @@ const ControlDetail = React.forwardRef<HTMLDivElement, ControlDetailProps>(
         });
         
         const parsedResponse = JSON.parse(response.text);
-        onAddDocument(control, subdomain, domain, parsedResponse);
+        onAddDocument(control, subdomain, domain, parsedResponse, 'user');
         setGeneratedDocs(parsedResponse); // Keep showing generated docs locally for a bit
 
       } catch (e) {
@@ -448,7 +448,7 @@ interface SubdomainAccordionProps {
   subdomain: Subdomain;
   activeControlId: string | null;
   setActiveControlId: (id: string | null) => void;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent') => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
 }

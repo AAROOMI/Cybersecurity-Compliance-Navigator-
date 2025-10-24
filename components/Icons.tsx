@@ -356,7 +356,7 @@ export const ShieldCheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) 
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
         <title>Compliance</title>
         <path d="M12 2.25c-5.185 0-9.449 4.028-9.733 9.102.26-1.12 1.056-2.02 2.216-2.02h.117A7.502 7.502 0 0112 4.5h.001c4.142 0 7.5 3.358 7.5 7.5 0 1.896-.704 3.63-1.882 4.985a9.712 9.712 0 002.55-2.986A9.75 9.75 0 0012 2.25z" />
-        <path d="M12 21.75c-5.185 0-9.449-4.028-9.733-9.102.26 1.12 1.056 2.02 2.216 2.02h.117A7.502 7.502 0 0112 19.5h.001c4.142 0 7.5-3.358 7.5-7.5 0-1.896-.704-3.63-1.882-4.985a9.712 9.712 0 002.55 2.986A9.75 9.75 0 0012 21.75zm-3.22-6.53a.75.75 0 00-1.06 1.06l2.5 2.5a.75.75 0 001.137-.089l4.5-5.5a.75.75 0 00-1.214-.882l-3.93 4.79-1.933-1.933z" clipRule="evenodd" />
+        <path d="M12 21.75c-5.185 0-9.449-4.028-9.733-9.102.26 1.12 1.056 2.02 2.216-2.02h.117A7.502 7.502 0 0112 19.5h.001c4.142 0 7.5-3.358 7.5-7.5 0-1.896-.704-3.63-1.882-4.985a9.712 9.712 0 002.55 2.986A9.75 9.75 0 0012 21.75zm-3.22-6.53a.75.75 0 00-1.06 1.06l2.5 2.5a.75.75 0 001.137-.089l4.5-5.5a.75.75 0 00-1.214-.882l-3.93 4.79-1.933-1.933z" clipRule="evenodd" />
     </svg>
 );
 
@@ -421,6 +421,14 @@ export const DownloadIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => 
     </svg>
 );
 
+export const UploadIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <title>Import from CSV</title>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+    </svg>
+);
+
+
 export const LockClosedIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
         <title>Subscription Expired</title>
@@ -441,5 +449,177 @@ export const BeakerIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     >
         <title>AI Studio Apps</title>
         <path d="M4.5 3h15M6.5 3v1.886a2 2 0 00.943 1.696l5.114 3.409A2 2 0 0113.5 11.614V21M6.5 21h7" />
+    </svg>
+);
+
+export const ClipboardCheckIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg 
+        {...props}
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+    >
+        <title>NCA Assessment</title>
+        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        <path d="m9 14 2 2 4-4" />
+    </svg>
+);
+
+export const ShieldKeyholeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <title>PDPL Assessment</title>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <circle cx="12" cy="12" r="2" />
+        <path d="M12 14v2" />
+    </svg>
+);
+
+export const LandmarkIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg 
+        {...props} 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round"
+    >
+        <title>SAMA CSF Assessment</title>
+        <line x1="3" y1="22" x2="21" y2="22"></line>
+        <line x1="6" y1="18" x2="6" y2="11"></line>
+        <line x1="10" y1="18" x2="10" y2="11"></line>
+        <line x1="14" y1="18" x2="14" y2="11"></line>
+        <line x1="18" y1="18" x2="18" y2="11"></line>
+        <polygon points="12 2 20 7 4 7"></polygon>
+    </svg>
+);
+
+// Fix: Add IdentificationIcon for Sidebar
+export const IdentificationIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <title>My Profile</title>
+        <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+        <circle cx="9" cy="10" r="2"></circle>
+        <line x1="13" y1="8" x2="17" y2="8"></line>
+        <line x1="13" y1="12" x2="17" y2="12"></line>
+        <line x1="8" y1="16" x2="17" y2="16"></line>
+    </svg>
+);
+
+// Fix: Add MicrophoneIcon for Assessment pages
+export const MicrophoneIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg
+        {...props}
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+    >
+        <title>Voice Assistant</title>
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="23"></line>
+        <line x1="8" y1="23" x2="16" y2="23"></line>
+    </svg>
+);
+
+export const QuestionMarkCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <title>Help & Support</title>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+    </svg>
+);
+
+export const GraduationCapIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <title>Training & Awareness</title>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-2.072-1.036A59.922 59.922 0 0112 2.25c4.132 0 8.133 1.103 11.628 3.118l-2.072 1.036m-15.482 0A50.57 50.57 0 0112 13.489a50.57 50.57 0 017.74-3.342M12 21.75v-5.556" />
+    </svg>
+);
+
+export const FundamentalsBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Cybersecurity Fundamentals</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zM8 12.9v-1.8h8v1.8H8zm0-3.3V7.8h8v1.8H8zm0 6.6v-1.8h8v1.8H8z" />
+    </svg>
+);
+
+export const PhishingBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Phishing & Social Engineering</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zM12.5 7A2.5 2.5 0 0 1 15 9.5c0 .77-.38 1.46-.97 1.9l-2.03.9V14h-1v-2.34l-2.06-.92c-.59-.26-1-.8-1-1.44A2.5 2.5 0 0 1 10.5 7h2m0 1h-2a1.5 1.5 0 0 0-1.5 1.5c0 .39.2.74.52.97l2.12.95.86.38v2.2h-1V15h2v-2.5a2.5 2.5 0 0 1-1.5-2.29V10h1v-.5A1.5 1.5 0 0 0 12.5 8z" />
+    </svg>
+);
+
+export const MalwareBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Malware Awareness</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zM16 15.4L14.6 14 12 16.6 9.4 14 8 15.4l2.6 2.6L8 20.6 9.4 22l2.6-2.6 2.6 2.6L16 20.6l-2.6-2.6L16 15.4zM13.5 7c0 .83-.67 1.5-1.5 1.5S10.5 7.83 10.5 7s.67-1.5 1.5-1.5 1.5.67 1.5 1.5z" />
+    </svg>
+);
+
+export const PasswordBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Password & Account Security</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zm-1 6h2v2h-2V8zm0 3h2v5h-2v-5zM12.5 11.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z" />
+    </svg>
+);
+
+export const SafeBrowsingBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Safe Internet & Email Usage</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zM12 10.9c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm3.6 5.5l-4.1-4.1-1.1 1.1 3 3-1.6 1.6 1.1 1.1 2.7-2.7z" />
+    </svg>
+);
+
+export const RemoteWorkBadgeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <title>Physical & Remote Work Security</title>
+        <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3zM12 7l4 4v6h-2v-4h-4v4H8v-6l4-4z" />
+    </svg>
+);
+
+export const ExclamationTriangleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <title>Warning</title>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+    </svg>
+);
+
+export const PaperClipIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <title>Attachment</title>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3.375 3.375 0 1119.5 7.372L8.552 18.32m.009-.01l-.01.01m5.699-9.941l-7.81 7.81a1.5 1.5 0 002.122 2.122l7.81-7.81" />
     </svg>
 );

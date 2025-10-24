@@ -1,11 +1,13 @@
 
 
+
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { Sidebar } from './components/Sidebar';
 import { ContentView } from './components/ContentView';
 import { ContentViewSkeleton } from './components/ContentViewSkeleton';
-import { ChatWidget } from './components/ChatWidget';
+import { LiveAssistantWidget } from './components/LiveAssistantWidget';
 import { DocumentsPage } from './components/DocumentsPage';
 import { DashboardPage } from './components/Dashboard';
 import { UserManagementPage } from './components/UserManagementPage';
@@ -15,9 +17,19 @@ import { AuditLogPage } from './components/AuditLogPage';
 import { CompanySetupPage } from './components/CompanySetupPage';
 import { MfaSetupPage } from './components/MfaSetupPage';
 import { MfaVerifyPage } from './components/MfaVerifyPage';
-import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon } from './components/Icons';
+import { AssessmentPage } from './components/AssessmentPage';
+import { PDPLAssessmentPage } from './components/PDPLAssessmentPage';
+import { SamaCsfAssessmentPage } from './components/SamaCsfAssessmentPage';
+import { UserProfilePage } from './components/UserProfilePage';
+import { HelpSupportPage } from './components/HelpSupportPage';
+import { TrainingPage } from './components/TrainingPage';
+import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon, ExclamationTriangleIcon } from './components/Icons';
 import { eccData } from './data/controls';
-import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License } from './types';
+import { assessmentData as initialAssessmentData } from './data/assessmentData';
+import { pdplAssessmentData as initialPdplAssessmentData } from './data/pdplAssessmentData';
+import { samaCsfAssessmentData as initialSamaCsfAssessmentData } from './data/samaCsfAssessmentData';
+import { trainingCourses } from './data/trainingData';
+import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task } from './types';
 import { rolePermissions } from './types';
 
 // Mock user data for the new RBAC system
@@ -35,6 +47,12 @@ type CompanyData = {
   users: User[];
   documents: PolicyDocument[];
   auditLog: AuditLogEntry[];
+  eccAssessment?: AssessmentItem[];
+  pdplAssessment?: AssessmentItem[];
+  samaCsfAssessment?: AssessmentItem[];
+  assessmentStatuses?: AssessmentStatuses;
+  trainingProgress?: UserTrainingProgress;
+  tasks?: Task[];
 };
 
 interface Notification {
@@ -46,6 +64,12 @@ interface Notification {
 interface Session {
   user: User;
   companyId: string;
+}
+
+interface AssessmentStatuses {
+    ecc: 'idle' | 'in-progress';
+    pdpl: 'idle' | 'in-progress';
+    sama: 'idle' | 'in-progress';
 }
 
 // --- Inactivity Timeout Constants ---
@@ -85,7 +109,11 @@ const LicenseWall: React.FC<{
   );
 };
 
-const App: React.FC = () => {
+type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training';
+
+
+// FIX: Export App component to be used in index.tsx
+export const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<Domain>(eccData[0]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -105,7 +133,7 @@ const App: React.FC = () => {
     }
     return 'light';
   });
-  const [currentView, setCurrentView] = useState<'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog'>('dashboard');
+  const [currentView, setCurrentView] = useState<View>('dashboard');
 
   // Multi-tenancy state
   const [companies, setCompanies] = useState<CompanyProfile[]>([]);
@@ -128,6 +156,17 @@ const App: React.FC = () => {
   // Subscription/License state
   const [isLicensed, setIsLicensed] = useState(true);
   
+  // MFA setup state
+  const [mfaSetupUser, setMfaSetupUser] = useState<User | null>(null);
+  const [mfaUserToVerify, setMfaUserToVerify] = useState<User | null>(null);
+  
+  // Live Assistant state
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+  
+  // Assessment confirmation modal state
+  const [showInitiateConfirmModal, setShowInitiateConfirmModal] = useState<keyof AssessmentStatuses | null>(null);
+
+
   // Derived state from session
   const currentUser = session?.user;
   const currentCompanyId = session?.companyId;
@@ -136,6 +175,13 @@ const App: React.FC = () => {
   const users = useMemo(() => allCompanyData[currentCompanyId || '']?.users || [], [allCompanyData, currentCompanyId]);
   const documentRepository = useMemo(() => allCompanyData[currentCompanyId || '']?.documents || [], [allCompanyData, currentCompanyId]);
   const auditLog = useMemo(() => allCompanyData[currentCompanyId || '']?.auditLog || [], [allCompanyData, currentCompanyId]);
+  const eccAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.eccAssessment || initialAssessmentData, [allCompanyData, currentCompanyId]);
+  const pdplAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.pdplAssessment || initialPdplAssessmentData, [allCompanyData, currentCompanyId]);
+  const samaCsfAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.samaCsfAssessment || initialSamaCsfAssessmentData, [allCompanyData, currentCompanyId]);
+  const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }, [allCompanyData, currentCompanyId]);
+  const trainingProgress = useMemo(() => allCompanyData[currentCompanyId || '']?.trainingProgress || {}, [allCompanyData, currentCompanyId]);
+  const tasks = useMemo(() => allCompanyData[currentCompanyId || '']?.tasks || [], [allCompanyData, currentCompanyId]);
+
 
   // PWA install prompt handler
   useEffect(() => {
@@ -182,7 +228,7 @@ const App: React.FC = () => {
       };
 
       setAllCompanyData(prevData => {
-          const currentData = prevData[companyIdForLog] || { users: [], documents: [], auditLog: [] };
+          const currentData = prevData[companyIdForLog] || { users: [], documents: [], auditLog: [], tasks: [] };
           // Prepend new log to the beginning of the array
           const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])]; 
           return {
@@ -195,7 +241,7 @@ const App: React.FC = () => {
   const setUsersForCurrentCompany = (updater: React.SetStateAction<User[]>) => {
     if (!currentCompanyId) return;
     setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [] };
+      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
       const newUsers = typeof updater === 'function' ? updater(currentData.users) : updater;
       
       // Update session if the current user's data has changed
@@ -216,7 +262,7 @@ const App: React.FC = () => {
   const setDocumentRepositoryForCurrentCompany = (updater: React.SetStateAction<PolicyDocument[]>) => {
     if (!currentCompanyId) return;
     setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [] };
+      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
       const newDocuments = typeof updater === 'function' ? updater(currentData.documents) : updater;
       return {
         ...prevData,
@@ -224,6 +270,18 @@ const App: React.FC = () => {
       };
     });
   };
+
+    const setTasksForCurrentCompany = (updater: React.SetStateAction<Task[]>) => {
+        if (!currentCompanyId) return;
+        setAllCompanyData(prevData => {
+            const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
+            const newTasks = typeof updater === 'function' ? updater(currentData.tasks || []) : updater;
+            return {
+                ...prevData,
+                [currentCompanyId]: { ...currentData, tasks: newTasks }
+            };
+        });
+    };
 
   const removeNotification = (id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -295,7 +353,13 @@ const App: React.FC = () => {
             const defaultCompanyData: CompanyData = {
                 users: initialUsers,
                 documents: [],
-                auditLog: []
+                auditLog: [],
+                eccAssessment: initialAssessmentData,
+                pdplAssessment: initialPdplAssessmentData,
+                samaCsfAssessment: initialSamaCsfAssessmentData,
+                assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+                trainingProgress: {},
+                tasks: [],
             };
 
             setCompanies([defaultCompany]);
@@ -324,7 +388,17 @@ const App: React.FC = () => {
             const loadedCompanyData: Record<string, CompanyData> = {};
             for (const company of hydratedCompanies) {
                 const data = window.localStorage.getItem(`companyData-${company.id}`);
-                loadedCompanyData[company.id] = data ? JSON.parse(data) : { users: [], documents: [], auditLog: [] };
+                const parsedData = data ? JSON.parse(data) : { users: [], documents: [], auditLog: [], tasks: [] };
+                // Ensure assessment data is present
+                loadedCompanyData[company.id] = {
+                    ...parsedData,
+                    eccAssessment: parsedData.eccAssessment || initialAssessmentData,
+                    pdplAssessment: parsedData.pdplAssessment || initialPdplAssessmentData,
+                    samaCsfAssessment: parsedData.samaCsfAssessment || initialSamaCsfAssessmentData,
+                    assessmentStatuses: parsedData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+                    trainingProgress: parsedData.trainingProgress || {},
+                    tasks: parsedData.tasks || [],
+                };
             }
             setAllCompanyData(loadedCompanyData);
         }
@@ -368,6 +442,173 @@ const App: React.FC = () => {
     }
   }, [allCompanyData, currentCompanyId]);
 
+    const handleInitiateAssessment = (type: keyof AssessmentStatuses) => {
+        if (!currentCompanyId) return;
+        setShowInitiateConfirmModal(type);
+    };
+
+    const executeInitiateAssessment = (type: keyof AssessmentStatuses) => {
+        if (!currentCompanyId) return;
+        setShowInitiateConfirmModal(null);
+
+        let sourceData: AssessmentItem[];
+        switch (type) {
+            case 'ecc': sourceData = initialAssessmentData; break;
+            case 'pdpl': sourceData = initialPdplAssessmentData; break;
+            case 'sama': sourceData = initialSamaCsfAssessmentData; break;
+            default: return;
+        }
+
+        // Create a fresh copy of the data to avoid mutating the original source
+        const resetData = JSON.parse(JSON.stringify(sourceData)).map((item: AssessmentItem) => ({
+            ...item,
+            currentStatusDescription: '',
+            controlStatus: 'Not Implemented' as 'Not Implemented',
+            recommendation: '',
+            managementResponse: '',
+            targetDate: ''
+        }));
+        
+        setAllCompanyData(prev => {
+            const currentData = prev[currentCompanyId!];
+            if (!currentData) return prev;
+            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+            return {
+                ...prev,
+                [currentCompanyId!]: {
+                    ...currentData,
+                    [key]: resetData,
+                    assessmentStatuses: { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }), [type]: 'in-progress' }
+                }
+            };
+        });
+        addNotification(`${type.toUpperCase()} assessment has been initiated.`, 'success');
+    };
+
+    const handleCompleteAssessment = async (type: keyof AssessmentStatuses) => {
+        if (!currentCompanyId) return;
+
+        const currentData = allCompanyData[currentCompanyId];
+        if (!currentData) return;
+
+        const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+        const assessmentToReport = currentData[key];
+        const assessmentName = type.toUpperCase();
+
+        try {
+            if (!process.env.API_KEY) throw new Error("API_KEY not set");
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const prompt = `You are an expert cybersecurity auditor. Based on the following JSON data from a ${assessmentName} assessment, generate a formal executive summary report in Markdown format.
+            The report must include:
+            1. An 'Overall Summary' section with the total number of controls, the number implemented, partially implemented, and not implemented, and the overall compliance percentage (calculated from implemented controls out of all applicable controls).
+            2. A 'Key Findings' section highlighting up to 5 of the most critical 'Not Implemented' or 'Partially Implemented' controls.
+            3. A 'Compliance by Domain' section, listing each domain and its specific status or compliance percentage.
+            4. A 'Recommendations Summary' section with a high-level summary of the next steps suggested in the assessment recommendations.
+            The tone should be professional and formal.
+            Here is the assessment data: ${JSON.stringify(assessmentToReport)}`;
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: prompt,
+            });
+
+            const reportContent = response.text;
+            const now = Date.now();
+            const reportDocument: PolicyDocument = {
+                id: `report-${type}-${now}`,
+                controlId: `REPORT-${assessmentName}`,
+                domainName: "Assessment Reports",
+                subdomainTitle: `${assessmentName} Assessment Report`,
+                controlDescription: `Executive summary report generated on ${new Date(now).toLocaleDateString()}.`,
+                status: 'Approved',
+                content: { policy: reportContent, procedure: '', guideline: '' },
+                approvalHistory: [],
+                createdAt: now,
+                updatedAt: now,
+            };
+
+            setDocumentRepositoryForCurrentCompany(prevRepo => [reportDocument, ...prevRepo]);
+            addNotification(`${assessmentName} assessment report generated and saved to Document Management.`, 'success');
+
+        } catch (e) {
+            console.error("Failed to generate assessment report:", e);
+            addNotification("Failed to generate assessment report. Please check the API key and try again.", 'info');
+        }
+
+        setAllCompanyData(prev => {
+            const updatedCurrentData = prev[currentCompanyId];
+            if (!updatedCurrentData) return prev;
+            return {
+                ...prev,
+                [currentCompanyId]: {
+                    ...updatedCurrentData,
+                    assessmentStatuses: { ...(updatedCurrentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }), [type]: 'idle' }
+                }
+            };
+        });
+    };
+
+    const handleUpdateAssessmentItem = (type: keyof AssessmentStatuses, controlCode: string, updatedItem: AssessmentItem) => {
+        if (!currentCompanyId) return;
+        
+        setAllCompanyData(prev => {
+            const currentData = prev[currentCompanyId];
+            // FIX: Add a guard to prevent spreading an undefined `currentData` object.
+            if (!currentData) return prev;
+            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+            const currentAssessmentData = currentData[key] || [];
+
+            const newData = currentAssessmentData.map(item => 
+                item.controlCode === controlCode ? updatedItem : item
+            );
+
+            return {
+                ...prev,
+                [currentCompanyId]: {
+                    ...currentData,
+                    [key]: newData
+                }
+            };
+        });
+    };
+    
+    const handleUpdateTrainingProgress = (courseId: string, lessonId: string, score?: number) => {
+        if (!currentCompanyId) return;
+        
+        setAllCompanyData(prev => {
+            const companyData = prev[currentCompanyId];
+            if (!companyData) return prev;
+
+            const progress = companyData.trainingProgress || {};
+            const courseProgress = progress[courseId] || { completedLessons: [], badgeEarned: false, badgeId: '' };
+
+            if (!courseProgress.completedLessons.includes(lessonId)) {
+                courseProgress.completedLessons.push(lessonId);
+            }
+            
+            // Check for badge
+            const course = trainingCourses.find(c => c.id === courseId);
+            if (course && course.lessons.every(l => courseProgress.completedLessons.includes(l.id))) {
+                if (!courseProgress.badgeEarned) {
+                     addNotification(`Congratulations! You've earned the ${course.title} badge!`, 'success');
+                }
+                courseProgress.badgeEarned = true;
+                courseProgress.badgeId = course.badgeId;
+            }
+
+            return {
+                ...prev,
+                [currentCompanyId]: {
+                    ...companyData,
+                    trainingProgress: {
+                        ...progress,
+                        [courseId]: courseProgress,
+                    }
+                }
+            };
+        });
+    };
+
   const allControls = useMemo((): SearchResult[] => {
     return eccData.flatMap(domain =>
       domain.subdomains.flatMap(subdomain =>
@@ -400,7 +641,17 @@ const App: React.FC = () => {
         setCompanies(prev => [...prev, newCompany]);
         setAllCompanyData(prev => ({
             ...prev,
-            [companyId]: { users: [adminUser], documents: [], auditLog: [] },
+            [companyId]: { 
+              users: [adminUser], 
+              documents: [], 
+              auditLog: [],
+              eccAssessment: initialAssessmentData,
+              pdplAssessment: initialPdplAssessmentData,
+              samaCsfAssessment: initialSamaCsfAssessmentData,
+              assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+              trainingProgress: {},
+              tasks: [],
+            },
         }));
 
         setViewForNoSession('login');
@@ -411,11 +662,24 @@ const App: React.FC = () => {
       const existing = companies.find(c => c.id === profile.id);
       
       if (existing) {
+          // License change logging
           if (JSON.stringify(existing.license) !== JSON.stringify(profile.license) && profile.license) {
                addAuditLog('LICENSE_UPDATED', `Company license updated to ${profile.license.tier} plan, expires ${new Date(profile.license.expiresAt).toLocaleDateString()}`, profile.id);
-          } else {
-              addAuditLog('COMPANY_PROFILE_UPDATED', `Company profile for ${profile.name} was updated.`, profile.id);
+          } 
+          
+          // Profile fields change logging
+          const changes: string[] = [];
+          if (existing.name !== profile.name) changes.push(`Name changed to "${profile.name}"`);
+          if (existing.ceoName !== profile.ceoName) changes.push(`CEO Name changed to "${profile.ceoName}"`);
+          if (existing.cioName !== profile.cioName) changes.push(`CIO Name changed to "${profile.cioName}"`);
+          if (existing.cisoName !== profile.cisoName) changes.push(`CISO Name changed to "${profile.cisoName}"`);
+          if (existing.ctoName !== profile.ctoName) changes.push(`CTO Name changed to "${profile.ctoName}"`);
+          if (existing.logo !== profile.logo) changes.push(`Company logo was updated`);
+  
+          if (changes.length > 0) {
+              addAuditLog('COMPANY_PROFILE_UPDATED', `Company profile updated: ${changes.join('; ')}.`, profile.id);
           }
+  
           setCompanies(prev => prev.map(c => (c.id === profile.id ? profile : c)));
       }
       addNotification('Company profile saved successfully.', 'success');
@@ -516,13 +780,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Chat state
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-  const chatSession = useRef<Chat | null>(null);
-
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -614,640 +871,567 @@ const App: React.FC = () => {
     );
   };
 
-  const initializeChat = () => {
-    if (!process.env.API_KEY) {
-      setChatError("API_KEY environment variable not set. Cannot initialize chat.");
-      return;
+  const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    if (!currentUser || !currentCompanyId) {
+        return { success: false, message: "No active session." };
     }
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    const controlsContext = JSON.stringify(eccData);
-    chatSession.current = ai.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: `You are an expert AI assistant for the National Cybersecurity Authority's Essential Cybersecurity Controls (ECC). You must answer questions *strictly* and *only* based on the information contained in the following JSON data, which represents the complete ECC framework: ${controlsContext}. Do not use any external knowledge. If a user's question cannot be answered using the provided data, you must explicitly state that the information is not available in the controls document. Your answers should be concise, helpful, and formatted for clear readability.`,
-      },
-    });
-    setChatMessages([
-      { role: 'assistant', content: "Hello! I'm your AI assistant. How can I help you navigate the Essential Cybersecurity Controls today?" }
-    ]);
+    if (currentUser.password !== currentPassword) {
+        return { success: false, message: "Current password does not match." };
+    }
+    
+    setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+        u.id === currentUser.id ? { ...u, password: newPassword } : u
+    ));
+    
+    addAuditLog('PASSWORD_CHANGED', `User ${currentUser.name} changed their password.`);
+    addNotification('Password changed successfully.', 'success');
+    return { success: true, message: "Password changed successfully." };
   };
 
-  useEffect(() => {
-    if (isChatOpen && !chatSession.current) {
-      initializeChat();
-    }
-  }, [isChatOpen]);
+  const handleEnableMfaRequest = () => {
+      if (!currentUser || !currentCompanyId) return;
 
-  const handleSendMessage = async (message: string) => {
-    if (!chatSession.current) {
-      setChatError("Chat is not initialized. Please try again.");
-      return;
-    }
-    
-    setChatError(null);
-    setIsChatLoading(true);
-    
-    const userMessage: ChatMessage = { role: 'user', content: message };
-    setChatMessages(prev => [...prev, userMessage]);
-
-    try {
-      const stream = await chatSession.current.sendMessageStream({ message });
+      // Simulate generating a TOTP secret
+      const secret = 'MFRGGZDFMZTWQ2LKNNWG23TPOBYXEYLTMUXWGY3MMUXGG33NM1TGGZBTMFRGY2DF'; // A sample base32 secret for demo
       
-      let assistantResponse = '';
-      setChatMessages(prev => [...prev, { role: 'assistant', content: assistantResponse }]);
+      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+          u.id === currentUser.id ? { ...u, mfaSecret: secret, mfaEnabled: false } : u // set secret but not enabled yet
+      ));
+      
+      const updatedUserForMfa = { ...currentUser, mfaSecret: secret, mfaEnabled: false };
+      setMfaSetupUser(updatedUserForMfa);
+      setCurrentView('mfaSetup');
+  };
 
-      for await (const chunk of stream) {
-        assistantResponse += chunk.text;
-        setChatMessages(prev => {
-          const newMessages = [...prev];
-          newMessages[newMessages.length - 1] = { role: 'assistant', content: assistantResponse };
-          return newMessages;
-        });
+  const handleVerifyMfaSetup = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
+      if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
+        return { success: false, message: 'Invalid code format. Please enter a 6-digit code.' };
       }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage = "Sorry, I encountered an error. Please check the API key and try again.";
-      setChatError(errorMessage);
-      setChatMessages(prev => [...prev, { role: 'assistant', content: errorMessage }]);
-    } finally {
-      setIsChatLoading(false);
-    }
+      // In a real app, you would verify the code against the secret. Here we simulate success for any 6-digit code.
+      
+      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+          u.id === userId ? { ...u, mfaEnabled: true } : u
+      ));
+      
+      addAuditLog('MFA_ENABLED', `User ${currentUser?.name} enabled MFA.`);
+      addNotification('Multi-Factor Authentication enabled successfully!', 'success');
+      
+      // Exit MFA setup flow
+      setMfaSetupUser(null);
+      setCurrentView('userProfile');
+      return { success: true };
   };
 
-  const renderMainContent = () => {
-    if (!currentCompany && currentView !== 'companyProfile') {
-        return (
-            <div className="text-center p-8">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200">Welcome!</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">Please set up your company profile to begin.</p>
-                <button
-                    onClick={() => setCurrentView('companyProfile')}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700"
-                >
-                    Go to Profile Setup
-                </button>
-            </div>
-        );
-    }
+  const handleDisableMfa = async (password: string): Promise<{ success: boolean; message: string }> => {
+      if (!currentUser || currentUser.password !== password) {
+          return { success: false, message: 'Incorrect password.' };
+      }
+      
+      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+          u.id === currentUser.id ? { ...u, mfaEnabled: false, mfaSecret: undefined } : u
+      ));
 
-    switch (currentView) {
-      case 'dashboard':
-        return currentUserPermissions.has('dashboard:read') ? (
-          <DashboardPage
-            repository={documentRepository}
-            currentUser={currentUser!}
-            allControls={allControls}
-            domains={eccData}
-            onSetView={setCurrentView}
-          />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to view the dashboard.</p>;
-      case 'navigator':
-        return currentUserPermissions.has('navigator:read') ? (
-          isContentViewLoading ? <ContentViewSkeleton /> :
-          <ContentView
-            domain={selectedDomain}
-            activeControlId={activeControlId}
-            setActiveControlId={setActiveControlId}
-            onAddDocument={handleAddDocumentToRepo}
-            documentRepository={documentRepository}
-            permissions={currentUserPermissions}
-          />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to view the controls navigator.</p>;
-      case 'documents':
-        return currentUserPermissions.has('documents:read') ? (
-          <DocumentsPage
-            repository={documentRepository}
-            currentUser={currentUser!}
-            onApprovalAction={handleApprovalAction}
-            onAddDocument={handleAddDocumentToRepo}
-            permissions={currentUserPermissions}
-            company={currentCompany!}
-          />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to view document management.</p>;
-      case 'users':
-        return currentUserPermissions.has('users:read') ? (
-          <UserManagementPage
-            users={users}
-            setUsers={setUsersForCurrentCompany}
-            currentUser={currentUser!}
-            addNotification={addNotification}
-            addAuditLog={addAuditLog}
-          />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to manage users.</p>;
-      case 'companyProfile':
-        return currentUserPermissions.has('company:read') ? (
-            <CompanyProfilePage
-                company={currentCompany}
-                onSave={handleSaveCompanyProfile}
-                canEdit={!currentCompany || currentUserPermissions.has('company:update')}
-                addNotification={addNotification}
-            />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to view the company profile.</p>;
-      case 'auditLog':
-        return currentUserPermissions.has('audit:read') ? (
-            <AuditLogPage auditLog={auditLog} />
-        ) : <p className="text-center text-lg text-gray-500 dark:text-gray-400 mt-10">You do not have permission to view the audit log.</p>;
-      default:
-        return null;
-    }
-  };
-  
-  const handleLogin = async (email: string, password: string): Promise<{error: string, code?: string} | null> => {
-    for (const company of companies) {
-        const companyData = allCompanyData[company.id];
-        if (companyData) {
-            const user = companyData.users.find(u => u.email === email && u.password === password);
-            if (user) {
-                if (user.accessExpiresAt && user.accessExpiresAt < Date.now()) {
-                    return { error: "Your access has expired. Please contact an administrator." };
-                }
-                if (!user.isVerified) {
-                    return { error: "Your account is not verified. Please check your email for a verification link.", code: 'unverified' };
-                }
-
-                setSession({ user, companyId: company.id });
-                addAuditLog('USER_LOGIN', `User ${user.name} logged in.`);
-                
-                return null;
-            }
-        }
-    }
-    return { error: "Invalid email or password." };
+      addAuditLog('MFA_DISABLED', `User ${currentUser.name} disabled MFA.`);
+      addNotification('Multi-Factor Authentication has been disabled.', 'success');
+      return { success: true, message: 'MFA disabled.' };
   };
 
-  const handleVerifyUser = (email: string): boolean => {
-    let userFoundAndVerified = false;
-    let companyIdOfUser: string | null = null;
-    let userToVerify: User | null = null;
-
-    for (const company of companies) {
-        const companyData = allCompanyData[company.id];
-        if (companyData) {
-            const user = companyData.users.find(u => u.email === email && !u.isVerified);
-            if (user) {
-                companyIdOfUser = company.id;
-                userToVerify = user;
-                break;
-            }
-        }
-    }
-
-    if (companyIdOfUser && userToVerify) {
-        setAllCompanyData(prevData => {
-            const newCompanyData = {
-                ...prevData[companyIdOfUser!],
-                users: prevData[companyIdOfUser!].users.map(u => 
-                    u.id === userToVerify!.id ? { ...u, isVerified: true } : u
-                )
-            };
-            return {
-                ...prevData,
-                [companyIdOfUser!]: newCompanyData
-            };
-        });
-        userFoundAndVerified = true;
-    }
-
-    if (userFoundAndVerified) {
-        addNotification(`Email ${email} verified successfully. You can now log in.`, 'success');
-    }
-    
-    return userFoundAndVerified;
-  };
-
-  const handleForgotPasswordRequest = async (email: string): Promise<{ success: boolean; message: string; token?: string }> => {
-    let userToUpdate: User | null = null;
-    let companyIdOfUser: string | null = null;
-
-    for (const company of companies) {
-        const companyData = allCompanyData[company.id];
-        if (companyData) {
-            const user = companyData.users.find(u => u.email === email);
-            if (user) {
-                userToUpdate = user;
-                companyIdOfUser = company.id;
-                break;
-            }
-        }
-    }
-
-    if (!userToUpdate || !companyIdOfUser) {
-        return { success: true, message: "If an account with that email exists, password reset instructions have been sent." };
-    }
-
-    const resetToken = crypto.randomUUID();
-    const expires = Date.now() + 3600000; // 1 hour
-
-    const tempSessionForAudit = { user: userToUpdate, companyId: companyIdOfUser };
-    const addAuditLogForReset = (action: AuditAction, details: string, targetId?: string) => {
-        const newLogEntry: AuditLogEntry = {
-            id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            timestamp: Date.now(),
-            userId: tempSessionForAudit.user.id,
-            userName: tempSessionForAudit.user.name,
-            action,
-            details,
-            targetId
-        };
-        setAllCompanyData(prevData => {
-            const currentData = prevData[companyIdOfUser!] || { users: [], documents: [], auditLog: [] };
-            const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])];
-            const updatedUsers = currentData.users.map(u => u.id === userToUpdate!.id ? { ...u, passwordResetToken: resetToken, passwordResetExpires: expires } : u);
-            return {
-                ...prevData,
-                [companyIdOfUser!]: { ...currentData, users: updatedUsers, auditLog: newAuditLog }
-            };
-        });
-    };
-    
-    addAuditLogForReset('PASSWORD_RESET_REQUESTED', `Password reset requested for user ${userToUpdate.name}.`, userToUpdate.id);
-
-    return { 
-        success: true, 
-        message: `For this demo, your password reset token is provided below. In a real application, this would be sent to your email.`,
-        token: resetToken 
-    };
-};
-
-const handleResetPassword = async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    let userToUpdate: User | null = null;
-    let companyIdOfUser: string | null = null;
-
-    for (const company of companies) {
-        const companyData = allCompanyData[company.id];
-        if (companyData) {
-            const user = companyData.users.find(u => u.passwordResetToken === token);
-            if (user) {
-                userToUpdate = user;
-                companyIdOfUser = company.id;
-                break;
-            }
-        }
-    }
-
-    if (!userToUpdate || !companyIdOfUser) {
-        return { success: false, message: "Invalid or expired password reset token." };
-    }
-
-    if (userToUpdate.passwordResetExpires && userToUpdate.passwordResetExpires < Date.now()) {
-        return { success: false, message: "Invalid or expired password reset token." };
-    }
-
-    const tempSessionForAudit = { user: userToUpdate, companyId: companyIdOfUser };
-    const addAuditLogForCompletion = (action: AuditAction, details: string, targetId?: string) => {
-        const newLogEntry: AuditLogEntry = {
-            id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            timestamp: Date.now(),
-            userId: tempSessionForAudit.user.id,
-            userName: tempSessionForAudit.user.name,
-            action,
-            details,
-            targetId
-        };
-         setAllCompanyData(prevData => {
-            const currentData = prevData[companyIdOfUser!] || { users: [], documents: [], auditLog: [] };
-            const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])];
-            const updatedUsers = currentData.users.map(u => u.id === userToUpdate!.id ? { ...u, password: newPassword, passwordResetToken: undefined, passwordResetExpires: undefined } : u);
-            return {
-                ...prevData,
-                [companyIdOfUser!]: { ...currentData, users: updatedUsers, auditLog: newAuditLog }
-            };
-        });
-    };
-
-    addAuditLogForCompletion('PASSWORD_RESET_COMPLETED', `Password reset completed for user ${userToUpdate.name}.`, userToUpdate.id);
-    addNotification(`Password for ${userToUpdate.email} has been reset successfully.`, 'success');
-
-    return { success: true, message: "Password has been reset successfully. You can now sign in." };
-};
-  
   const handleLogout = useCallback(() => {
+    if (session) {
+        addAuditLog('USER_LOGOUT', `User ${session.user.name} logged out.`);
+    }
+    setSession(null);
+    setMfaUserToVerify(null);
+    setIsIdleWarningVisible(false); // Reset warning on logout
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
     if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-    if(session) {
-      addAuditLog('USER_LOGOUT', `User ${session.user.name} logged out.`);
-    }
-    setIsIdleWarningVisible(false);
-    setSession(null);
-    setViewForNoSession('login');
   }, [session, addAuditLog]);
 
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  
-  const handleSwitchUser = (userId: string) => {
-    if (!currentCompanyId) return;
-    const companyUsers = allCompanyData[currentCompanyId].users;
-    const newUser = companyUsers.find(u => u.id === userId);
-    if (newUser) {
-        // Switching users should also log out and force re-authentication for security
-        handleLogout();
-    }
-    setIsUserMenuOpen(false);
-  };
-  
-  // --- Inactivity Logic ---
-
+    // Inactivity timeout logic
   const resetIdleTimers = useCallback(() => {
     if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
     if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
 
-    warningTimerRef.current = window.setTimeout(() => {
-        setIsIdleWarningVisible(true);
-    }, IDLE_TIMEOUT_MS - WARNING_DURATION_MS);
+    if (session) {
+        warningTimerRef.current = window.setTimeout(() => {
+            setIsIdleWarningVisible(true);
+        }, IDLE_TIMEOUT_MS - WARNING_DURATION_MS);
 
-    logoutTimerRef.current = window.setTimeout(() => {
-        handleLogout();
-    }, IDLE_TIMEOUT_MS);
-  }, [handleLogout]);
+        logoutTimerRef.current = window.setTimeout(() => {
+            handleLogout();
+        }, IDLE_TIMEOUT_MS);
+    }
+  }, [session, handleLogout]);
 
-  const handleStayLoggedIn = () => {
-      setIsIdleWarningVisible(false);
-      resetIdleTimers();
+  useEffect(() => {
+    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
+    const reset = () => resetIdleTimers();
+    events.forEach(event => window.addEventListener(event, reset));
+    resetIdleTimers();
+
+    return () => {
+        events.forEach(event => window.removeEventListener(event, reset));
+        if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+        if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+    };
+  }, [resetIdleTimers]);
+
+  useEffect(() => {
+    let interval: number | null = null;
+    if (isIdleWarningVisible) {
+        setCountdown(WARNING_DURATION_MS / 1000);
+        interval = window.setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    if (interval) clearInterval(interval);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }
+    return () => {
+        if (interval) clearInterval(interval);
+    };
+  }, [isIdleWarningVisible]);
+
+  // Authentication Handlers
+  const handleLogin = async (email: string, password: string): Promise<{error: string, code?: string} | null> => {
+    let user: User | undefined;
+    let companyId: string | undefined;
+
+    for (const cid of Object.keys(allCompanyData)) {
+        const companyUsers = allCompanyData[cid].users;
+        const foundUser = companyUsers.find(u => u.email === email);
+        if (foundUser) {
+            user = foundUser;
+            companyId = cid;
+            break;
+        }
+    }
+
+    if (user && user.password === password) {
+        if (!user.isVerified) {
+            return { error: 'Your account has not been verified. Please check your email.', code: 'unverified' };
+        }
+        
+        const isExpired = user.accessExpiresAt && user.accessExpiresAt < Date.now();
+        if (isExpired) {
+             return { error: 'Your access has expired. Please contact an administrator.' };
+        }
+
+        if (user.mfaEnabled) {
+            setMfaUserToVerify(user);
+            return null; // Proceed to MFA verification
+        }
+
+        if (companyId) {
+            setSession({ user, companyId });
+            addAuditLog('USER_LOGIN', `User ${user.name} logged in successfully.`);
+            return null;
+        }
+    }
+    return { error: 'Invalid email or password.' };
+  };
+  
+  const handleMfaLoginVerify = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
+    // In a real app, you'd verify the TOTP code. Here we'll just simulate success for any 6-digit code.
+    if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
+         return { success: false, message: 'Invalid code format. Please enter a 6-digit code.' };
+    }
+    
+    const user = mfaUserToVerify;
+    if (user && user.id === userId) {
+        let companyId: string | undefined;
+        for (const cid of Object.keys(allCompanyData)) {
+            if (allCompanyData[cid].users.some(u => u.id === userId)) {
+                companyId = cid;
+                break;
+            }
+        }
+        if (companyId) {
+            setSession({ user, companyId });
+            // Cannot call addAuditLog here as session is not set yet for it. It will be called after session is set.
+            // Let's modify addAuditLog to not depend on session state directly but passed arguments
+            
+            const newLogEntry: AuditLogEntry = {
+              id: `log-${Date.now()}`,
+              timestamp: Date.now(),
+              userId: user.id,
+              userName: user.name,
+              action: 'USER_LOGIN',
+              details: `User ${user.name} logged in successfully via MFA.`
+            };
+            setAllCompanyData(prev => ({
+              ...prev,
+              [companyId!]: {
+                ...prev[companyId!],
+                auditLog: [newLogEntry, ...(prev[companyId!]?.auditLog || [])]
+              }
+            }));
+
+            setMfaUserToVerify(null);
+            return { success: true };
+        }
+    }
+    return { success: false, message: 'Verification failed.' };
+  };
+  
+  const handleVerifyUser = (email: string): boolean => {
+    let userFound = false;
+    setAllCompanyData(prevData => {
+      const newData = { ...prevData };
+      for (const companyId in newData) {
+        const users = newData[companyId].users;
+        const userIndex = users.findIndex(u => u.email === email && !u.isVerified);
+        if (userIndex !== -1) {
+          users[userIndex] = { ...users[userIndex], isVerified: true };
+          newData[companyId] = { ...newData[companyId], users: [...users] };
+          userFound = true;
+          break; 
+        }
+      }
+      return newData;
+    });
+    if (userFound) {
+      addNotification('Your account has been verified! You can now log in.', 'success');
+    }
+    return userFound;
+  };
+  
+  const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string; token?: string }> => {
+    let user: User | undefined;
+    let userCompanyId: string | undefined;
+
+    for (const companyId of Object.keys(allCompanyData)) {
+         const foundUser = allCompanyData[companyId].users.find(u => u.email === email);
+         if (foundUser) {
+             user = foundUser;
+             userCompanyId = companyId;
+             break;
+         }
+    }
+
+    if (user && userCompanyId) {
+        const token = `reset-${Date.now()}`; // Mock token
+        const expires = Date.now() + 3600000; // 1 hour
+        
+        setAllCompanyData(prev => ({
+            ...prev,
+            [userCompanyId!]: {
+                ...prev[userCompanyId!],
+                users: prev[userCompanyId!].users.map(u => u.id === user!.id ? {...u, passwordResetToken: token, passwordResetExpires: expires} : u)
+            }
+        }));
+
+        // Cannot call addAuditLog here.
+        return { success: true, message: "For demonstration, your reset token is provided below. In a real app, this would be emailed.", token };
+    }
+    return { success: false, message: "No account found with that email address." };
   };
 
-  useEffect(() => {
-    if (session) {
-        const activityEvents = ['mousemove', 'keydown', 'click', 'scroll'];
-        const reset = () => {
-            if (!isIdleWarningVisible) {
-                resetIdleTimers();
-            }
-        };
-        
-        activityEvents.forEach(event => window.addEventListener(event, reset));
-        resetIdleTimers(); // Start the timer initially
+  const handleResetPassword = async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    let user: User | undefined;
+    let userCompanyId: string | undefined;
 
-        return () => {
-            activityEvents.forEach(event => window.removeEventListener(event, reset));
-            if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-            if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-        };
+    for (const companyId of Object.keys(allCompanyData)) {
+         const foundUser = allCompanyData[companyId].users.find(u => u.passwordResetToken === token && u.passwordResetExpires && u.passwordResetExpires > Date.now());
+         if (foundUser) {
+             user = foundUser;
+             userCompanyId = companyId;
+             break;
+         }
     }
-  }, [session, resetIdleTimers, isIdleWarningVisible]);
+    
+    if (user && userCompanyId) {
+         setAllCompanyData(prev => ({
+            ...prev,
+            [userCompanyId!]: {
+                ...prev[userCompanyId!],
+                users: prev[userCompanyId!].users.map(u => u.id === user!.id ? {...u, password: newPassword, passwordResetToken: undefined, passwordResetExpires: undefined} : u)
+            }
+        }));
+        // Cannot call addAuditLog here.
+        return { success: true, message: "Password reset successfully! You can now log in." };
+    }
 
-  // Countdown timer for the warning modal
-  useEffect(() => {
-      let interval: number | undefined;
-      if (isIdleWarningVisible) {
-          setCountdown(WARNING_DURATION_MS / 1000); // Reset countdown
-          interval = window.setInterval(() => {
-              setCountdown(prev => (prev > 0 ? prev - 1 : 0));
-          }, 1000);
+    return { success: false, message: "Invalid or expired reset token." };
+  };
+
+
+  const renderMainContent = () => {
+    if (!session) {
+      if (mfaUserToVerify) {
+        return (
+          <MfaVerifyPage
+            user={mfaUserToVerify}
+            onVerify={handleMfaLoginVerify}
+            onCancel={handleLogout}
+            theme={theme}
+            toggleTheme={toggleTheme}
+          />
+        );
       }
-      return () => {
-          if (interval) clearInterval(interval);
-      };
-  }, [isIdleWarningVisible]);
-  
-  // --- End Inactivity Logic ---
 
+      if (viewForNoSession === 'login') {
+        return (
+          <LoginPage
+            onLogin={handleLogin}
+            theme={theme}
+            toggleTheme={toggleTheme}
+            onSetupCompany={() => setViewForNoSession('setup')}
+            onVerify={handleVerifyUser}
+            onForgotPassword={handleForgotPassword}
+            onResetPassword={handleResetPassword}
+          />
+        );
+      } else { // 'setup'
+        return (
+          <CompanySetupPage
+            onSetup={handleCompanySetup}
+            onCancel={() => setViewForNoSession('login')}
+            theme={theme}
+            toggleTheme={toggleTheme}
+          />
+        );
+      }
+    }
+    
+    // Logged-in view
+    const mainContent = () => {
+        if (!isLicensed && currentView !== 'companyProfile') {
+            return (
+                 <LicenseWall 
+                    currentUser={currentUser}
+                    onGoToProfile={() => setCurrentView('companyProfile')}
+                    permissions={currentUserPermissions}
+                />
+            );
+        }
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-        if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-            setIsUserMenuOpen(false);
+        if (isContentViewLoading) return <ContentViewSkeleton />;
+
+        switch (currentView) {
+            case 'dashboard':
+                return <DashboardPage
+                    repository={documentRepository}
+                    currentUser={currentUser!}
+                    allControls={allControls}
+                    domains={eccData}
+                    onSetView={setCurrentView}
+                    trainingProgress={trainingProgress}
+                    eccAssessment={eccAssessment}
+                    pdplAssessment={pdplAssessment}
+                    samaCsfAssessment={samaCsfAssessment}
+                    tasks={tasks}
+                    setTasks={setTasksForCurrentCompany}
+                />;
+            case 'navigator':
+                return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={setCurrentView} />;
+            case 'documents':
+                 return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
+            case 'users':
+                return <UserManagementPage users={users} setUsers={setUsersForCurrentCompany} currentUser={currentUser!} addNotification={addNotification} addAuditLog={addAuditLog} />;
+            case 'companyProfile':
+                return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} />;
+            case 'auditLog':
+                 return <AuditLogPage auditLog={auditLog} />;
+            case 'assessment':
+                return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('ecc', code, item)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={setCurrentView} />;
+            case 'pdplAssessment':
+                 return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('pdpl', code, item)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} />;
+            case 'samaCsfAssessment':
+                return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('sama', code, item)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} />;
+            case 'userProfile':
+                return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfaRequest} onDisableMfa={handleDisableMfa} />;
+            case 'mfaSetup':
+                 if (!mfaSetupUser) {
+                    setCurrentView('userProfile'); // Should not happen, redirect
+                    return null;
+                }
+                return <MfaSetupPage user={mfaSetupUser} companyName={currentCompany?.name || 'Your Company'} onVerified={handleVerifyMfaSetup} onCancel={() => { setMfaSetupUser(null); setCurrentView('userProfile'); }} theme={theme} toggleTheme={toggleTheme} />;
+            case 'help':
+                return <HelpSupportPage />;
+            case 'training':
+                return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
+            default:
+                return <div>Not Found</div>;
         }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
-  if (!session) {
-    if (viewForNoSession === 'setup') {
-      return <CompanySetupPage onSetup={handleCompanySetup} onCancel={() => setViewForNoSession('login')} theme={theme} toggleTheme={toggleTheme} />;
-    }
-    return <LoginPage onLogin={handleLogin} theme={theme} toggleTheme={toggleTheme} onSetupCompany={() => setViewForNoSession('setup')} onVerify={handleVerifyUser} onForgotPassword={handleForgotPasswordRequest} onResetPassword={handleResetPassword} />;
-  }
-  
-  const activeUsers = users.filter(u => !(u.accessExpiresAt && u.accessExpiresAt < Date.now()));
-
-  return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 font-sans">
-      <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-20">
-        <div className="flex items-center space-x-4">
-          <LogoIcon className="h-12 w-12 text-teal-600" />
-          <div>
-            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-100">{currentCompany?.name || 'Cybersecurity Controls'}</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Essential Cybersecurity Controls (ECC) Navigator</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          <div className="relative w-full max-w-md hidden sm:block">
-              <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <SearchIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                      type="text"
-                      placeholder="Search controls..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onFocus={() => setIsSearchFocused(true)}
-                      onBlur={() => setTimeout(() => setIsSearchFocused(false), 150)} // Delay to allow click
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm"
-                  />
-              </div>
-              {isSearchFocused && searchResults.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-96 rounded-md py-1 text-base ring-1 ring-black dark:ring-white ring-opacity-5 dark:ring-opacity-10 overflow-auto focus:outline-none sm:text-sm">
-                      {searchResults.map((result) => (
-                          <li
-                              key={result.control.id}
-                              className="cursor-default select-none relative py-2 pl-3 pr-4 text-gray-900 dark:text-gray-200 hover:bg-teal-50 dark:hover:bg-gray-700 flex items-center justify-between"
-                          >
-                              <div className="flex flex-col flex-1 min-w-0">
-                                  <span className="font-semibold font-mono text-teal-700 dark:text-teal-400">
-                                      {result.control.id}
-                                  </span>
-                                  <span className="text-sm text-gray-600 dark:text-gray-300 truncate">
-                                      {highlightText(result.control.description, debouncedSearchQuery)}
-                                  </span>
-                                  <span className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                      {result.domain.name} &gt; {result.subdomain.title}
-                                  </span>
-                              </div>
-                              <button
-                                  onMouseDown={() => handleResultClick(result)}
-                                  className="ml-4 flex-shrink-0 inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                                  aria-label={`View details for control ${result.control.id}`}
-                              >
-                                  View
-                                  <ArrowUpRightIcon className="w-4 h-4 ml-1.5" />
-                              </button>
-                          </li>
-                      ))}
-                  </ul>
-              )}
-          </div>
-           {!isStandalone && (
-              <button
-                onClick={handleInstallClick}
-                disabled={!installPrompt}
-                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Install to Desktop"
-                title={installPrompt ? 'Install to Desktop' : 'Installation is not available at this time'}
-              >
-                <DownloadIcon className="w-6 h-6" />
-              </button>
-           )}
-           {currentUser && (
-            <div className="relative" ref={userMenuRef}>
-                <button
-                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-2 p-1.5 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                >
-                      <UserCircleIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200 hidden sm:inline">{currentUser.name}</span>
-                      <ChevronDownIcon className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 z-30">
-                        <div className="p-2">
-                            <div className="px-2 py-2 border-b border-gray-200 dark:border-gray-700">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">Signed in as</p>
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{currentUser.email}</p>
-                            </div>
-                            <div className="py-2">
-                                <p className="px-2 pb-1 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Switch User (Requires re-login)</p>
-                                {activeUsers.map(user => (
-                                    <button
-                                        key={user.id}
-                                        onClick={() => handleSwitchUser(user.id)}
-                                        className={`w-full text-left px-2 py-1.5 text-sm rounded-md flex items-center ${
-                                            user.id === currentUser.id
-                                            ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-200'
-                                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                        }`}
-                                    >
-                                        {user.name} ({user.role})
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
-                                <button
-                                    onClick={handleLogout}
-                                    className="w-full text-left px-2 py-1.5 text-sm rounded-md flex items-center text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                >
-                                    <LogoutIcon className="w-5 h-5 mr-2" />
-                                    Sign out
-                                </button>
+    
+    return (
+        <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+            <Sidebar
+                domains={eccData}
+                selectedDomain={selectedDomain}
+                onSelectDomain={handleSelectDomain}
+                currentView={currentView}
+                onSetView={setCurrentView}
+                permissions={currentUserPermissions}
+            />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <header className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between p-4">
+                        <div className="flex items-center flex-1 min-w-0">
+                            <div className="relative w-full max-w-xl">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <SearchIcon className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Search for controls (e.g., 1.5.1)"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => setIsSearchFocused(true)}
+                                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                                />
+                                {isSearchFocused && searchResults.length > 0 && (
+                                    <div className="absolute mt-2 w-full rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-600 ring-opacity-5 z-10">
+                                        <ul>
+                                            {searchResults.map((result) => (
+                                                <li key={result.control.id} onMouseDown={() => handleResultClick(result)} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
+                                                    <div className="flex justify-between items-start">
+                                                        <div className="flex-1">
+                                                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{result.control.id}</p>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{highlightText(result.control.description, debouncedSearchQuery)}</p>
+                                                        </div>
+                                                        <ArrowUpRightIcon className="w-5 h-5 text-gray-400 ml-4" />
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         </div>
+                        <div className="flex items-center ml-6">
+                            {installPrompt && !isStandalone && (
+                                <button
+                                  onClick={handleInstallClick}
+                                  className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                                  title="Install to Desktop"
+                                >
+                                  <DownloadIcon className="w-6 h-6" />
+                                </button>
+                            )}
+                            <button
+                                onClick={toggleTheme}
+                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                                aria-label="Toggle theme"
+                            >
+                                {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
+                            </button>
+                             <div className="ml-4 flex items-center">
+                                <UserCircleIcon className="w-6 h-6 text-gray-500" />
+                                <div className="ml-2 text-sm">
+                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{currentUser?.name}</p>
+                                    <p className="text-gray-600 dark:text-gray-400">{currentUser?.role}</p>
+                                </div>
+                            </div>
+                             <button onClick={handleLogout} className="ml-4 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none" aria-label="Sign Out">
+                                <LogoutIcon className="w-6 h-6" />
+                            </button>
+                        </div>
                     </div>
-                )}
+                </header>
+                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                    {mainContent()}
+                </main>
             </div>
-           )}
-          <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800"
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? (
-                <MoonIcon className="w-6 h-6" />
-              ) : (
-                <SunIcon className="w-6 h-6" />
-              )}
-            </button>
+             <LiveAssistantWidget isOpen={isAssistantOpen} onToggle={() => setIsAssistantOpen(!isAssistantOpen)} onNavigate={(view) => { setCurrentView(view); setIsAssistantOpen(false); }} />
         </div>
-      </header>
-      <div className="flex flex-1 overflow-hidden">
-        {isLicensed || (currentView === 'companyProfile' && currentUserPermissions.has('company:update')) ? (
-          <>
-            <Sidebar
-              domains={eccData}
-              selectedDomain={selectedDomain}
-              onSelectDomain={handleSelectDomain}
-              currentView={currentView}
-              onSetView={setCurrentView}
-              permissions={currentUserPermissions}
-            />
-            <main className="flex-1 overflow-y-auto p-4 md:p-8">
-              {renderMainContent()}
-            </main>
-          </>
-        ) : (
-          <LicenseWall currentUser={currentUser} onGoToProfile={() => setCurrentView('companyProfile')} permissions={currentUserPermissions} />
-        )}
-      </div>
-      {/* Inactivity Warning Modal */}
-      {isIdleWarningVisible && (
-          <div className="fixed inset-0 bg-black bg-opacity-60 z-[200] flex items-center justify-center p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl p-8 max-w-md w-full text-center">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Are you still there?</h2>
-                  <p className="mt-4 text-gray-600 dark:text-gray-400">
-                      For your security, you will be automatically logged out due to inactivity in...
-                  </p>
-                  <div className="my-6 text-6xl font-bold text-teal-600 dark:text-teal-400">
-                      {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, '0')}
-                  </div>
-                  <div className="flex justify-center gap-4">
-                      <button
-                          onClick={handleLogout}
-                          className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                      >
-                          Sign Out
-                      </button>
-                      <button
-                          onClick={handleStayLoggedIn}
-                          className="px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                      >
-                          Stay Signed In
-                      </button>
-                  </div>
-              </div>
-          </div>
-      )}
-      {/* Notification Container */}
-      <div aria-live="assertive" className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start z-[100]">
-          <div className="w-full flex flex-col items-center space-y-4 sm:items-end">
-              {notifications.map((notification) => (
-                  <div
-                      key={notification.id}
-                      className="max-w-sm w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 overflow-hidden"
-                  >
-                      <div className="p-4">
-                          <div className="flex items-start">
-                              <div className="flex-shrink-0">
-                                  {notification.type === 'success' ? (
-                                      <CheckCircleIcon className="h-6 w-6 text-green-400" aria-hidden="true" />
-                                  ) : (
-                                      <InformationCircleIcon className="h-6 w-6 text-blue-400" aria-hidden="true" />
-                                  )}
-                              </div>
-                              <div className="ml-3 w-0 flex-1 pt-0.5">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                      Notification
-                                  </p>
-                                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                      {notification.message}
-                                  </p>
-                              </div>
-                              <div className="ml-4 flex-shrink-0 flex">
-                                  <button
-                                      type="button"
-                                      className="bg-white dark:bg-gray-800 rounded-md inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                                      onClick={() => removeNotification(notification.id)}
-                                  >
-                                      <span className="sr-only">Close</span>
-                                      <CloseIcon className="h-5 w-5" aria-hidden="true" />
-                                  </button>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              ))}
-          </div>
-      </div>
-       <ChatWidget
-        isOpen={isChatOpen}
-        onToggle={() => setIsChatOpen(!isChatOpen)}
-        messages={chatMessages}
-        onSendMessage={handleSendMessage}
-        isLoading={isChatLoading}
-        error={chatError}
-      />
-    </div>
-  );
-};
+    );
+  };
+  
+    return (
+        <>
+            {/* Notification container */}
+            <div aria-live="assertive" className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start z-[100]">
+                <div className="w-full flex flex-col items-center space-y-4 sm:items-end">
+                    {notifications.map(notification => (
+                        <div key={notification.id} className="max-w-sm w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border border-gray-200 dark:border-gray-700">
+                            <div className="p-4">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0">
+                                        {notification.type === 'success' ? (
+                                            <CheckCircleIcon className="h-6 w-6 text-green-400" />
+                                        ) : (
+                                            <InformationCircleIcon className="h-6 w-6 text-blue-400" />
+                                        )}
+                                    </div>
+                                    <div className="ml-3 w-0 flex-1 pt-0.5">
+                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{notification.message}</p>
+                                    </div>
+                                    <div className="ml-4 flex-shrink-0 flex">
+                                        <button onClick={() => removeNotification(notification.id)} className="inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300">
+                                            <span className="sr-only">Close</span>
+                                            <CloseIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-export default App;
+            {isIdleWarningVisible && (
+                <div className="fixed inset-0 bg-black bg-opacity-75 z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-sm w-full text-center">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Session Timeout Warning</h2>
+                        <p className="mt-2 text-gray-600 dark:text-gray-400">
+                            You have been inactive. For your security, you will be logged out in...
+                        </p>
+                        <p className="text-5xl font-bold text-teal-600 dark:text-teal-400 my-4">{countdown}</p>
+                        <button
+                            onClick={() => {
+                                setIsIdleWarningVisible(false);
+                                resetIdleTimers();
+                            }}
+                            className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
+                        >
+                            Stay Logged In
+                        </button>
+                    </div>
+                </div>
+            )}
+            
+            {showInitiateConfirmModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-[200] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md transform transition-all" role="dialog" aria-modal="true" aria-labelledby="modal-headline">
+                        <div className="p-6 text-center">
+                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50">
+                                <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+                            </div>
+                            <h3 className="mt-5 text-lg font-semibold text-gray-900 dark:text-gray-100" id="modal-headline">Initiate New Assessment?</h3>
+                            <div className="mt-2">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    Are you sure you want to start a new {showInitiateConfirmModal.toUpperCase()} assessment? All current progress for this assessment type will be permanently deleted. This action cannot be undone.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg">
+                            <button
+                                type="button"
+                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={() => executeInitiateAssessment(showInitiateConfirmModal)}
+                            >
+                                Initiate
+                            </button>
+                            <button
+                                type="button"
+                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                onClick={() => setShowInitiateConfirmModal(null)}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {renderMainContent()}
+        </>
+    );
+};

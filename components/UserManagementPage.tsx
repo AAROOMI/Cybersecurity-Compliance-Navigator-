@@ -212,7 +212,29 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
 
     const handleSaveUser = (user: User) => {
         if (editingUser) {
-            // Update: Preserve old password if new one isn't provided
+            // Update
+            const changes: string[] = [];
+            if (editingUser.name !== user.name) {
+                changes.push(`Name changed from "${editingUser.name}" to "${user.name}"`);
+            }
+            if (editingUser.email !== user.email) {
+                changes.push(`Email changed from "${editingUser.email}" to "${user.email}"`);
+            }
+            if (editingUser.role !== user.role) {
+                changes.push(`Role changed from "${editingUser.role}" to "${user.role}"`);
+            }
+            if (user.password) {
+                changes.push("Password was changed");
+            }
+            const oldExpires = editingUser.accessExpiresAt ? new Date(editingUser.accessExpiresAt).toLocaleDateString() : 'Permanent';
+            const newExpires = user.accessExpiresAt ? new Date(user.accessExpiresAt).toLocaleDateString() : 'Permanent';
+            if (oldExpires !== newExpires) {
+                changes.push(`Access expiration changed from ${oldExpires} to ${newExpires}`);
+            }
+    
+            const details = changes.length > 0 ? changes.join('; ') : 'No changes were made.';
+            addAuditLog('USER_UPDATED', `Updated user ${user.name}: ${details}`, user.id);
+    
             setUsers(prevUsers => prevUsers.map(u => {
                 if (u.id === user.id) {
                     return {
@@ -223,13 +245,14 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                 }
                 return u;
             }));
-            addAuditLog('USER_UPDATED', `Updated user details for ${user.name} (${user.email}).`, user.id);
         } else {
             // Create a new user
             const newUser: User = { ...user };
             setUsers(prevUsers => [...prevUsers, newUser]);
-
-            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}).`, newUser.id);
+            
+            const expires = newUser.accessExpiresAt ? ` until ${new Date(newUser.accessExpiresAt).toLocaleDateString()}` : '';
+            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}) with role ${newUser.role}. Access is ${newUser.accessExpiresAt ? 'temporary' : 'permanent'}${expires}.`, newUser.id);
+    
             if (!newUser.isVerified) {
                 addNotification(`Verification email sent to ${newUser.email}. User must verify account before logging in.`, 'info');
             }

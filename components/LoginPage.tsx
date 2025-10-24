@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { LogoIcon, ShieldCheckIcon, DocumentTextIcon, UserGroupIcon, ChartPieIcon, SunIcon, MoonIcon, CheckIcon, ClipboardIcon } from './Icons';
+import { LogoIcon, ShieldCheckIcon, UserGroupIcon, ChartPieIcon, SunIcon, MoonIcon, CheckIcon, ClipboardIcon, ChatBotIcon } from './Icons';
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<{error: string, code?: string} | null>;
@@ -297,8 +297,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleThem
                      <FeatureCard title="Interactive Controls" icon={<ShieldCheckIcon className="w-8 h-8"/>}>
                         Easily browse, search, and understand the complete ECC framework with all implementation guidelines.
                     </FeatureCard>
-                    <FeatureCard title="AI-Powered Documentation" icon={<DocumentTextIcon className="w-8 h-8"/>}>
-                        Automatically generate policies, procedures, and guidelines for any control, saving countless hours.
+                    <FeatureCard title="AI-Powered Assistance" icon={<ChatBotIcon className="w-8 h-8"/>}>
+                        Engage with Noora, your AI assistant, for automated documentation, live voice assessments, and expert guidance.
                     </FeatureCard>
                     <FeatureCard title="Role-Based Access" icon={<UserGroupIcon className="w-8 h-8"/>}>
                         Manage user permissions with a robust RBAC system, ensuring users only see what they need to.

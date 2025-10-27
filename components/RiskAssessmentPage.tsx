@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { TrashIcon } from './Icons';
 
 type Risk = {
@@ -159,8 +159,83 @@ const RiskCategory: React.FC<{
     );
 };
 
+const RiskMatrix: React.FC<{ allRisks: Risk[] }> = ({ allRisks }) => {
+  const matrix: Risk[][][] = useMemo(() => {
+    const m: Risk[][][] = Array(5).fill(0).map(() => Array(5).fill(0).map(() => []));
+    allRisks.forEach(risk => {
+      if (risk.likelihood >= 1 && risk.likelihood <= 5 && risk.impact >= 1 && risk.impact <= 5) {
+        m[risk.likelihood - 1][risk.impact - 1].push(risk);
+      }
+    });
+    return m;
+  }, [allRisks]);
+
+  const getCellColor = (likelihood: number, impact: number): string => {
+    const score = likelihood * impact;
+    if (score <= 5) return 'bg-green-500/80 hover:bg-green-500';
+    if (score <= 10) return 'bg-yellow-400/80 hover:bg-yellow-400 dark:text-gray-800';
+    if (score <= 15) return 'bg-orange-500/80 hover:bg-orange-500';
+    if (score <= 20) return 'bg-red-500/80 hover:bg-red-500';
+    return 'bg-red-700/80 hover:bg-red-700';
+  };
+  
+  return (
+    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">Risk Heatmap</h2>
+      <div className="flex justify-center items-start gap-4">
+        <div className="flex flex-col items-center justify-center pt-8 self-stretch">
+            <div className="transform -rotate-90 whitespace-nowrap font-bold text-gray-600 dark:text-gray-300 tracking-wider">LIKELIHOOD</div>
+        </div>
+        <div className="flex-1 max-w-2xl">
+          <div className="grid grid-cols-[auto_1fr] gap-x-2">
+              <div className="flex flex-col-reverse justify-around text-right text-sm font-semibold text-gray-500 dark:text-gray-400">
+                  {likelihoodOptions.map(opt => (
+                      <div key={opt.value} className="h-16 flex items-center pr-2">{opt.label}</div>
+                  ))}
+              </div>
+              <div className="grid grid-cols-5 grid-rows-5 gap-1.5">
+                  {likelihoodOptions.slice().reverse().flatMap(l_opt => 
+                      impactOptions.map(i_opt => {
+                          const likelihood = l_opt.value;
+                          const impact = i_opt.value;
+                          const cellRisks = matrix[likelihood - 1]?.[impact - 1] ?? [];
+                          const hasRisks = cellRisks.length > 0;
+                          
+                          return (
+                              <div key={`${likelihood}-${impact}`} className="relative group h-16 flex items-center justify-center">
+                                  <div className={`w-full h-full rounded-md flex items-center justify-center text-white font-bold text-2xl transition-all duration-200 ${getCellColor(likelihood, impact)} ${hasRisks ? 'cursor-pointer' : ''}`}>
+                                      {hasRisks ? cellRisks.length : ''}
+                                  </div>
+                                  {hasRisks && (
+                                      <div className="absolute bottom-full mb-3 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-10 dark:bg-gray-700">
+                                          <h4 className="font-bold border-b border-gray-600 pb-1 mb-2">Risks ({cellRisks.length})</h4>
+                                          <ul className="list-disc list-inside space-y-1 max-h-48 overflow-y-auto">
+                                              {cellRisks.map(risk => <li key={risk.id}>{risk.description}</li>)}
+                                          </ul>
+                                          <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-8 border-x-transparent border-t-8 border-t-gray-900 dark:border-t-gray-700"></div>
+                                      </div>
+                                  )}
+                              </div>
+                          );
+                      })
+                  )}
+              </div>
+          </div>
+          <div className="grid grid-cols-5 gap-2 text-center text-sm font-semibold text-gray-500 dark:text-gray-400 mt-2 ml-[52px]">
+              {impactOptions.map(opt => <div key={opt.value}>{opt.label}</div>)}
+          </div>
+           <div className="text-center mt-2 font-bold text-gray-600 dark:text-gray-300 ml-[52px]">IMPACT</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 export const RiskAssessmentPage: React.FC = () => {
     const [risks, setRisks] = useState<Record<string, Risk[]>>(initialRiskData);
+
+    const allRisks = useMemo(() => Object.values(risks).flat(), [risks]);
 
     const handleAddRisk = (category: string, risk: Omit<Risk, 'id'>) => {
         const newRisk = { ...risk, id: `${category.slice(0, 2).toLowerCase()}${Date.now()}` };
@@ -190,6 +265,8 @@ export const RiskAssessmentPage: React.FC = () => {
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Risk Assessment Register</h1>
                 <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Identify, analyze, and manage organizational risks in a centralized register.</p>
             </div>
+            
+            <RiskMatrix allRisks={allRisks} />
 
             <div className="space-y-8">
                 {Object.entries(risks).map(([category, riskItems]) => (

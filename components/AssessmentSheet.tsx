@@ -1,12 +1,13 @@
 
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
 import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';
 
 const allStatuses: ControlStatus[] = ['Implemented', 'Partially Implemented', 'Not Implemented', 'Not Applicable'];
 
-// A component for a single editable control row.
-const EditableControlRow: React.FC<{
+interface EditableControlRowProps {
     item: AssessmentItem;
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     isEditable: boolean;
@@ -16,7 +17,11 @@ const EditableControlRow: React.FC<{
     isActiveControl?: boolean;
     activeField?: string | null;
     isEvidenceRequested?: boolean;
-}> = ({ item, onUpdateItem, isEditable, canUpdate, index, isAiAssessing, isActiveControl, activeField, isEvidenceRequested }) => {
+    isGenerating?: boolean;
+}
+
+// A component for a single editable control row.
+const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isAiAssessing, isActiveControl, activeField, isEvidenceRequested, isGenerating }) => {
     const [localItem, setLocalItem] = useState(item);
     const [isSaving, setIsSaving] = useState(false);
     const timeoutRef = useRef<number | null>(null);
@@ -183,12 +188,12 @@ const EditableControlRow: React.FC<{
                             <textarea
                                 id={`recommendation-${item.controlCode}`}
                                 name="recommendation"
-                                value={localItem.recommendation}
+                                value={isGenerating ? 'Generating AI recommendation...' : localItem.recommendation}
                                 onChange={handleChange}
                                 onBlur={handleBlur}
-                                disabled={isDisabled}
+                                disabled={isDisabled || isGenerating}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('recommendation') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('recommendation') ? activeFieldClasses : ''} ${isGenerating ? 'animate-pulse' : ''}`}
                             />
                         </div>
                         <div>
@@ -254,9 +259,10 @@ interface AssessmentSheetProps {
     activeControlCode?: string | null;
     activeField?: string | null;
     isEvidenceRequestedForControl?: string | null;
+    generatingRecommendationFor?: string | null;
 }
 
-export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, isAiAssessing, activeControlCode, activeField, isEvidenceRequestedForControl }) => {
+export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, isAiAssessing, activeControlCode, activeField, isEvidenceRequestedForControl, generatingRecommendationFor }) => {
     
     let controlCounter = 0;
 
@@ -282,6 +288,7 @@ export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomain
                                     isActiveControl={isAiAssessing && activeControlCode === item.controlCode}
                                     activeField={isAiAssessing && activeControlCode === item.controlCode ? activeField : null}
                                     isEvidenceRequested={isEvidenceRequestedForControl === item.controlCode}
+                                    isGenerating={generatingRecommendationFor === item.controlCode}
                                 />
                             ))}
                         </div>

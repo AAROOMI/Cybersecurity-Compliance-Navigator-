@@ -1,5 +1,8 @@
 
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
 import { PDPLDomainComplianceBarChart } from './PDPLComplianceBarChart';
@@ -105,6 +108,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
     const [currentAiControlIndex, setCurrentAiControlIndex] = useState(0);
     const [activeField, setActiveField] = useState<{ controlCode: string; field: string | null } | null>(null);
     const [isEvidenceRequestedForControl, setEvidenceRequestedForControl] = useState<string | null>(null);
+    const [generatingRecommendationFor, setGeneratingRecommendationFor] = useState<string | null>(null);
 
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('pdplAssessment:update');
@@ -294,6 +298,58 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
         reader.readAsText(file);
         if (event.target) event.target.value = ''; // Reset file input
     };
+    
+    const handlePdplItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
+        // Update state immediately for responsiveness
+        onUpdateItem(controlCode, updatedItem);
+
+        const shouldGenerate = (updatedItem.controlStatus === 'Not Implemented' || updatedItem.controlStatus === 'Partially Implemented') && !updatedItem.recommendation;
+
+        if (shouldGenerate && canUpdate) {
+            setGeneratingRecommendationFor(controlCode);
+            try {
+                if (!process.env.API_KEY) throw new Error("API_KEY not set");
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                
+                const prompt = `You are a cybersecurity and data privacy compliance expert specializing in the Saudi Arabian Personal Data Protection Law (PDPL).
+
+                An assessment of the following control has been marked as '${updatedItem.controlStatus}':
+                - Control Code: ${updatedItem.controlCode}
+                - Control Description: ${updatedItem.controlName}
+
+                The 'Recommendation' field for this control is currently empty. Your task is to generate a concise recommendation that includes:
+                1. A brief summary of potential risks associated with this non-compliance (mention regulatory fines under PDPL and reputational damage).
+                2. A few high-level, actionable remediation steps to address the gap.
+
+                Format the output as a single string suitable for a textarea, using Markdown-style bullet points (*). For example:
+                **Potential Risks:**
+                * Risk of regulatory fines and penalties under PDPL.
+                * Reputational damage and loss of data subject trust.
+
+                **Remediation Steps:**
+                * Develop and document a formal process for [relevant action].
+                * Assign ownership of the process to a specific role or department.
+                * Train relevant personnel on the new process and their responsibilities.`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                });
+                
+                const recommendationText = response.text;
+                
+                // Final update with the generated recommendation
+                onUpdateItem(controlCode, { ...updatedItem, recommendation: recommendationText });
+
+            } catch (e) {
+                console.error("Failed to generate AI recommendation:", e);
+                // Optionally, add a notification to the user
+            } finally {
+                setGeneratingRecommendationFor(null);
+            }
+        }
+    };
+
 
     return (
         <div className="space-y-8">
@@ -402,13 +458,14 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
 
             <AssessmentSheet
                 filteredDomains={filteredDomains}
-                onUpdateItem={onUpdateItem}
+                onUpdateItem={handlePdplItemUpdate}
                 isEditable={isEditable && canUpdate}
                 canUpdate={canUpdate}
                 isAiAssessing={isAiAssessing}
                 activeControlCode={activeField?.controlCode}
                 activeField={activeField?.field}
                 isEvidenceRequestedForControl={isEvidenceRequestedForControl}
+                generatingRecommendationFor={generatingRecommendationFor}
             />
              {isAiAssessing && (
                 <NooraAssistant

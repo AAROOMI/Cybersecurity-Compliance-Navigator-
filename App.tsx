@@ -2,6 +2,7 @@
 
 
 
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { Sidebar } from './components/Sidebar';
@@ -26,7 +27,7 @@ import { TrainingPage } from './components/TrainingPage';
 import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon, ExclamationTriangleIcon } from './components/Icons';
 import { eccData } from './data/controls';
 import { assessmentData as initialAssessmentData } from './data/assessmentData';
-import { pdplAssessmentData as initialPdplAssessmentData } from './data/pdplAssessmentData';
+import { initialPdplAssessmentData } from './data/pdplAssessmentData';
 import { samaCsfAssessmentData as initialSamaCsfAssessmentData } from './data/samaCsfAssessmentData';
 import { trainingCourses } from './data/trainingData';
 import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task } from './types';

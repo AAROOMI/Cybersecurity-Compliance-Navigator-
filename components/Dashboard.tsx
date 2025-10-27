@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
 import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon } from './Icons';
@@ -262,45 +264,90 @@ const BadgeIcon: React.FC<{ badgeId: string }> = ({ badgeId }) => {
     );
 }
 
-const AssessmentProgressWidget: React.FC<{
+const FrameworkMeter: React.FC<{
     title: string;
-    data: AssessmentItem[];
-    onNavigate: () => void;
-}> = ({ title, data, onNavigate }) => {
-    const stats = useMemo(() => {
-        const total = data.length;
-        if (total === 0) return { compliance: 0, implemented: 0, partially: 0, notImplemented: 0 };
-        
-        const applicable = data.filter(i => i.controlStatus !== 'Not Applicable').length;
-        const implemented = data.filter(i => i.controlStatus === 'Implemented').length;
-        const partially = data.filter(i => i.controlStatus === 'Partially Implemented').length;
-        const notImplemented = data.filter(i => i.controlStatus === 'Not Implemented').length;
-        const compliance = applicable > 0 ? (implemented / applicable) * 100 : 0;
+    percentage: number;
+    onNavigate?: () => void;
+    disabled?: boolean;
+}> = ({ title, percentage, onNavigate, disabled = false }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const chartRef = useRef<any>(null);
 
-        return { compliance, implemented, partially, notImplemented };
-    }, [data]);
+    useEffect(() => {
+        if (!canvasRef.current || !Chart) return;
+
+        const isDark = document.documentElement.classList.contains('dark');
+        const trackColor = isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(229, 231, 235, 1)';
+        
+        const getColor = (value: number) => {
+            if (disabled) return `rgba(156, 163, 175, 1)`; // gray-400
+            if (value < 50) return `rgba(239, 68, 68, 1)`; // red-500
+            if (value < 80) return `rgba(245, 158, 11, 1)`; // amber-500
+            return `rgba(16, 185, 129, 1)`; // green-500
+        };
+
+        const filledColor = getColor(percentage);
+
+        const ctx = canvasRef.current.getContext('2d');
+        if (!ctx) return;
+        
+        if (chartRef.current) {
+            chartRef.current.destroy();
+        }
+
+        chartRef.current = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [percentage, 100 - percentage],
+                    backgroundColor: [filledColor, trackColor],
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    circumference: 270,
+                    rotation: -135,
+                    cutout: '80%',
+                    borderRadius: 8,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false },
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true
+                },
+            }
+        });
+        
+        return () => chartRef.current?.destroy();
+
+    }, [percentage, disabled]);
 
     return (
-        <Card className="flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">{title}</h3>
-            <div className="my-4 flex-grow">
-                <div className="flex justify-between items-baseline">
-                    <span className="font-bold text-3xl text-gray-900 dark:text-gray-100">{stats.compliance.toFixed(1)}%</span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Compliance</span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
-                    <div className="bg-teal-600 h-2.5 rounded-full" style={{ width: `${stats.compliance}%` }}></div>
-                </div>
-                <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Implemented:</span><span className="font-semibold text-gray-800 dark:text-gray-200">{stats.implemented}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Partially Implemented:</span><span className="font-semibold text-gray-800 dark:text-gray-200">{stats.partially}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600 dark:text-gray-400">Not Implemented:</span><span className="font-semibold text-gray-800 dark:text-gray-200">{stats.notImplemented}</span></div>
+        <div className={`bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center justify-between ${disabled ? 'opacity-60' : ''}`}>
+            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-200 text-center">{title}</h3>
+            <div className="relative w-32 h-32 my-4">
+                <canvas ref={canvasRef}></canvas>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <span className={`text-3xl font-bold text-gray-900 dark:text-gray-100 ${disabled ? 'text-gray-500' : ''}`}>
+                        {disabled ? 'N/A' : `${percentage.toFixed(0)}%`}
+                    </span>
                 </div>
             </div>
-            <button onClick={onNavigate} className="mt-auto w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                Go to Assessment
-            </button>
-        </Card>
+            {onNavigate && !disabled ? (
+                 <button onClick={onNavigate} className="w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
+                    View Details
+                </button>
+            ) : (
+                 <button disabled className="w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 dark:bg-gray-600 cursor-not-allowed">
+                    {disabled ? 'Not Implemented' : 'View Details'}
+                </button>
+            )}
+        </div>
     );
 };
 
@@ -462,6 +509,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
             .map(p => p.badgeId);
     }, [trainingProgress]);
 
+    const calculateCompliance = (data: AssessmentItem[]) => {
+        if (!data || data.length === 0) return 0;
+        const applicable = data.filter(i => i.controlStatus !== 'Not Applicable').length;
+        const implemented = data.filter(i => i.controlStatus === 'Implemented').length;
+        return applicable > 0 ? (implemented / applicable) * 100 : 0;
+    };
+
+    const eccCompliance = useMemo(() => calculateCompliance(eccAssessment), [eccAssessment]);
+    const pdplCompliance = useMemo(() => calculateCompliance(pdplAssessment), [pdplAssessment]);
+    const samaCsfCompliance = useMemo(() => calculateCompliance(samaCsfAssessment), [samaCsfAssessment]);
+
     return (
         <div className="space-y-8">
             <div>
@@ -474,6 +532,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                 <StatCard title="Control Coverage" value={`${stats.coverage.toFixed(0)}%`} description={`${repository.length} of ${stats.totalControls} controls have documents.`} />
                 <StatCard title="Approved Policies" value={stats.approvedCount} description="Fully implemented controls." />
                 <StatCard title="Pending Approvals" value={stats.pendingCount} description="Documents waiting for review." />
+            </div>
+
+            <div className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Frameworks Compliance</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <FrameworkMeter 
+                        title="NCA ECC" 
+                        percentage={eccCompliance} 
+                        onNavigate={() => onSetView('assessment')}
+                    />
+                    <FrameworkMeter 
+                        title="PDPL" 
+                        percentage={pdplCompliance} 
+                        onNavigate={() => onSetView('pdplAssessment')}
+                    />
+                    <FrameworkMeter 
+                        title="SAMA CSF" 
+                        percentage={samaCsfCompliance} 
+                        onNavigate={() => onSetView('samaCsfAssessment')}
+                    />
+                    <FrameworkMeter 
+                        title="CMA" 
+                        percentage={0} 
+                        disabled={true}
+                    />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -502,27 +586,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                 </Card>
             </div>
             
-            <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Assessment Progress</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <AssessmentProgressWidget 
-                        title="NCA ECC Assessment" 
-                        data={eccAssessment} 
-                        onNavigate={() => onSetView('assessment')}
-                    />
-                    <AssessmentProgressWidget 
-                        title="PDPL Assessment" 
-                        data={pdplAssessment} 
-                        onNavigate={() => onSetView('pdplAssessment')}
-                    />
-                    <AssessmentProgressWidget 
-                        title="SAMA CSF Assessment" 
-                        data={samaCsfAssessment} 
-                        onNavigate={() => onSetView('samaCsfAssessment')}
-                    />
-                </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <div className="lg:col-span-3">
                     <DomainComplianceChart data={domainCompliance} />

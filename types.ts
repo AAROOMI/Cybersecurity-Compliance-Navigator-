@@ -280,23 +280,67 @@ export interface AssessmentItem {
   };
 }
 
-// --- NEW: Training Module ---
-export interface QuizQuestion {
+// --- UPDATED: Training Module ---
+export type ChallengeType = 'multiple-choice' | 'categorization' | 'spot-the-phish' | 'ordering';
+
+export interface MultipleChoiceChallenge {
+  type: 'multiple-choice';
   question: string;
   options: string[];
-  correctAnswer: number; // index of the correct option
+  correctAnswer: number; // index
 }
 
-export interface Quiz {
+export interface CategorizationItem {
+  id: string;
+  text: string;
+  correctCategory: string;
+}
+
+export interface CategorizationChallenge {
+  type: 'categorization';
+  prompt: string;
+  categories: string[];
+  items: CategorizationItem[];
+}
+
+export interface Hotspot {
+  x: number; // percentage
+  y: number; // percentage
+  width: number; // percentage
+  height: number; // percentage
+  feedback: string;
+}
+
+export interface SpotThePhishChallenge {
+  type: 'spot-the-phish';
+  prompt: string;
+  imageUrl: string;
+  hotspots: Hotspot[];
+}
+
+export interface OrderingItem {
+  id: string;
+  text: string;
+}
+
+export interface OrderingChallenge {
+  type: 'ordering';
+  prompt: string;
+  items: OrderingItem[]; // Must be provided in the correct order
+}
+
+export type Challenge = MultipleChoiceChallenge | CategorizationChallenge | SpotThePhishChallenge | OrderingChallenge;
+
+export interface InteractiveChallenge {
   title: string;
-  questions: QuizQuestion[];
+  items: Challenge[];
 }
 
 export interface Lesson {
   id: string;
   title: string;
   content: string; // Markdown content
-  quiz?: Quiz;
+  challenge?: InteractiveChallenge;
 }
 
 export interface TrainingCourse {
@@ -316,6 +360,7 @@ export interface UserTrainingProgress {
     badgeId: string;
   };
 }
+
 
 // --- NEW: Task Management ---
 export type TaskStatus = 'To Do' | 'In Progress' | 'Done';

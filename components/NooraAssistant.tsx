@@ -1,12 +1,10 @@
 
-
-
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type, FunctionDeclaration } from '@google/genai';
 import type { AssessmentItem, ControlStatus } from '../types';
 import { CloseIcon, MicrophoneIcon } from './Icons';
 
-const nooraAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeYAAAHxCAYAAABa23SIAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAP+lSURBVHhe7J0FWFzVtwdwAgIggoAIIoACIiAoKAhIsiAoKChIkqCCoiiwgggoiAqIoCAgIIoggoCCCIIgKAgICAgICAgICAgICCIIgn901929Xj9n5s2beTN/T3dPd09V1VVPVfX2mXGGMQxjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQ-all';
+const nooraAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeYAAAHxCAYAAABa23SIAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAP+lSURBVHhe7J0FWFzVtwdwAgIggoAIIoACIiAoKAhIsiAoKChIkqCCoiiwgggoiAqIoCAgIIoggoCCCIIgKAgICAgICAgICAgICCIIgn901929Xj9n5s2beTN/T3dPd09V1VVPVfX2mXGGMQxjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQ-all';
 
 // Audio utility functions
 function encode(bytes: Uint8Array) {
@@ -93,6 +91,21 @@ const initiateNewAssessmentDeclaration: FunctionDeclaration = {
   },
 };
 
+const requestEvidenceUploadDeclaration: FunctionDeclaration = {
+    name: 'request_evidence_upload',
+    description: 'Prompts the user to upload evidence for a specific control when they mention providing a file or document.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            controlCode: {
+                type: Type.STRING,
+                description: 'The control code for which evidence is being requested.'
+            }
+        },
+        required: ['controlCode']
+    }
+};
+
 interface NooraAssistantProps {
     isAssessing: boolean;
     onClose: () => void;
@@ -112,6 +125,10 @@ let nextStartTime = 0;
 export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onClose, assessmentData, onUpdateItem, currentControlIndex, onNextControl, assessmentType, onInitiate, onActiveFieldChange, onRequestEvidenceUpload }) => {
     const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
     const [error, setError] = useState<string | null>(null);
+    const [conversation, setConversation] = useState<{ speaker: 'user' | 'assistant', text: string, id: string }[]>([]);
+    const conversationRef = useRef<{ speaker: 'user' | 'assistant', text: string, id: string }[]>([]);
+    const currentTurnId = useRef<string | null>(null);
+
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
@@ -131,7 +148,7 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
             scriptProcessorRef.current = null;
         }
         if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
-            inputAudioContextRef.current.close();
+            inputAudioContextRef.current.close().catch(console.error);
         }
     }, []);
 
@@ -140,7 +157,7 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
         stopMicrophone();
         onActiveFieldChange(null, null);
         if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-            outputAudioContextRef.current.close();
+            outputAudioContextRef.current.close().catch(console.error);
         }
         sessionPromise.current = null;
     }, [stopMicrophone, onActiveFieldChange]);
@@ -156,6 +173,8 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
                     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                         throw new Error("Your browser does not support audio recording.");
                     }
+                    setConversation([]);
+                    conversationRef.current = [];
 
                     inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
                     outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -163,23 +182,23 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
                     streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
 
                     const currentControl = assessmentData[currentControlIndex];
-                    const systemInstruction = `You are Noora, a risk assessment agent specializing in the ${assessmentType} framework. Your role is to conduct a risk assessment by guiding the user through each control via a voice conversation, asking questions, and recording their feedback in a structured format by updating the assessment form.
-When the session starts, greet the user and introduce the current control by reading its code and name: "${currentControl.controlCode}: ${currentControl.controlName}".
-Then, ask the user to provide their assessment for the following fields:
-1. A description of the current status.
-2. The control's implementation status ('Implemented', 'Partially Implemented', 'Not Implemented', or 'Not Applicable').
-3. Any recommendations for improvement.
-4. The management's response to the finding.
-5. A target date for remediation, if applicable.
-Listen carefully to the user's free-form response.
+                    const systemInstruction = `You are Noora, an agentic AI consultant conducting a ${assessmentType} assessment. You will guide the user through each control via a voice conversation. Your primary goal is to gather feedback and immediately update the assessment sheet using the provided functions.
 
-Your workflow for each user response is:
-1.  **Verbal Feedback:** First, provide clear verbal feedback confirming you understood their input (e.g., "Okay, I've noted that the current status is...").
-2.  **Compliance Assessment & Written Feedback:** Based on their response, assess it against compliance best practices. If the control is not fully implemented, suggest what a good management response or recommendation would be. For example, if a plan is needed, you might say, "For the management response, we should probably note that the CISO needs to approve the remediation plan by Q3." Generate a concise written summary of this feedback.
-3.  **Update the System:** Use the 'update_assessment_control' function to populate the assessment sheet. The 'controlCode' MUST be '${currentControl.controlCode}'. You must infer the 'controlStatus' from the user's language (e.g., "we are fully compliant" means 'Implemented'). All other fields are optional but should be filled if the user provides the information. If the user mentions providing a document or screenshot, verbally prompt them that you are ready for the upload and call the 'request_evidence_upload' function.
-4.  **Confirmation and Next Step:** After calling the function and receiving the 'OK' confirmation, verbally confirm to the user that you've updated the assessment sheet. If the control is not 'Implemented', identify the necessary approver for the remediation plan (usually the CISO or department head) and suggest a follow-up action. For instance: "The sheet is updated. For this control, we'll need to track the CISO's approval for the remediation plan." Then, ask them to say 'next' or click the 'Next Control' button when they are ready to proceed.
+**Your Process for Each Control:**
+1.  **Introduce:** Start by greeting the user and clearly stating the current control you are assessing. Read its code and name: "**${currentControl.controlCode}: ${currentControl.controlName}**".
+2.  **Question:** Ask the user for their assessment of this control. Prompt them for details on the current status, implementation level, recommendations, and management response.
+3.  **Listen & Narrate:** As the user speaks, listen carefully. Before you call a function to update the sheet, you **MUST** provide explicit verbal narration of the action you are about to take. This is critical for transparency.
+    *   *Example Narration:* "Okay, thank you. I'm now updating the 'Current Status Description' to reflect that 'a basic email system is in place but lacks tracking'."
+    *   *Example Narration:* "Understood. I'll set the 'Control Status' to 'Partially Implemented'."
+4.  **Function Call:** Immediately after narrating, call the \`update_assessment_control\` function to record the data. The \`controlCode\` for this control is **'${currentControl.controlCode}'**. You must infer the \`controlStatus\` from the user's language (e.g., "we're fully compliant" means 'Implemented').
+5.  **Evidence Prompt:** If the user mentions providing a document, file, or screenshot as evidence, you must verbally confirm and then call the \`request_evidence_upload\` function.
+    *   *Example Narration:* "Okay, you mentioned a policy document. I'll prompt you to upload that now." Then, call the function.
+6.  **Confirmation & Transition:** After the function call is confirmed, verbally state that the sheet has been updated. Then, smoothly transition to the next step. Say, "The sheet is updated. When you're ready for the next control, just say 'next' or click the 'Next Control' button."
 
-You can also initiate a new assessment if the user asks you to start over or begin a new assessment. Use the 'initiate_new_assessment' function for this. Be conversational, professional, and encouraging throughout the process.`;
+**Other Functions:**
+*   If the user wants to start over, use the \`initiate_new_assessment\` function.
+
+Be conversational, professional, and efficient. Your primary function is to act as a scribe, visibly and audibly recording the user's assessment in real-time.`;
 
                     sessionPromise.current = ai.live.connect({
                         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
@@ -204,18 +223,48 @@ You can also initiate a new assessment if the user asks you to start over or beg
                                 scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
                             },
                             onmessage: async (message: LiveServerMessage) => {
+                                 if (message.serverContent?.inputTranscription) {
+                                    const text = message.serverContent.inputTranscription.text;
+                                    if (!currentTurnId.current || !currentTurnId.current.endsWith('user')) {
+                                        currentTurnId.current = `turn-${Date.now()}-user`;
+                                        conversationRef.current = [...conversationRef.current, { speaker: 'user', text, id: currentTurnId.current }];
+                                    } else {
+                                        conversationRef.current = conversationRef.current.map(turn => 
+                                            turn.id === currentTurnId.current ? { ...turn, text: turn.text + text } : turn
+                                        );
+                                    }
+                                    setConversation([...conversationRef.current]);
+                                }
+
+                                if (message.serverContent?.outputTranscription) {
+                                    const text = message.serverContent.outputTranscription.text;
+                                    if (!currentTurnId.current || !currentTurnId.current.endsWith('assistant')) {
+                                        currentTurnId.current = `turn-${Date.now()}-assistant`;
+                                        conversationRef.current = [...conversationRef.current, { speaker: 'assistant', text, id: currentTurnId.current }];
+                                    } else {
+                                        conversationRef.current = conversationRef.current.map(turn => 
+                                            turn.id === currentTurnId.current ? { ...turn, text: turn.text + text } : turn
+                                        );
+                                    }
+                                    setConversation([...conversationRef.current]);
+                                }
+                                
+                                if (message.serverContent?.turnComplete) {
+                                    currentTurnId.current = null;
+                                }
+
                                 if (message.toolCall?.functionCalls) {
                                     setStatus('thinking');
                                     for (const fc of message.toolCall.functionCalls) {
                                         if (fc.name === 'update_assessment_control') {
-                                            const args = fc.args;
-                                            onActiveFieldChange(args.controlCode, null); // Clear field highlight after update
+                                            const args = fc.args as Partial<AssessmentItem> & { controlCode: string };
+                                            onActiveFieldChange(args.controlCode, null);
                                             const originalItem = assessmentData.find(item => item.controlCode === args.controlCode);
                                             if (originalItem) {
                                                 const updatedItem: AssessmentItem = { ...originalItem };
                                                 for (const key in args) {
-                                                    if (args[key] !== undefined && args[key] !== null) {
-                                                        (updatedItem as any)[key] = args[key];
+                                                    if (args[key as keyof typeof args] !== undefined && args[key as keyof typeof args] !== null) {
+                                                        (updatedItem as any)[key] = args[key as keyof typeof args];
                                                         onActiveFieldChange(args.controlCode, key as keyof AssessmentItem);
                                                     }
                                                 }
@@ -250,36 +299,46 @@ You can also initiate a new assessment if the user asks you to start over or beg
                                 const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                                 if (base64Audio) {
                                     setStatus('speaking');
-                                    nextStartTime = Math.max(nextStartTime, outputAudioContextRef.current!.currentTime);
-                                    const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
-                                    const sourceNode = outputAudioContextRef.current!.createBufferSource();
-                                    sourceNode.buffer = audioBuffer;
-                                    sourceNode.connect(outputAudioContextRef.current!.destination);
-                                    sourceNode.addEventListener('ended', () => {
-                                        sources.current.delete(sourceNode);
-                                        if (sources.current.size === 0) {
-                                            setStatus('listening');
-                                        }
-                                    });
-                                    sourceNode.start(nextStartTime);
-                                    nextStartTime += audioBuffer.duration;
-                                    sources.current.add(sourceNode);
+                                    const audioCtx = outputAudioContextRef.current;
+                                    if(audioCtx) {
+                                        nextStartTime = Math.max(nextStartTime, audioCtx.currentTime);
+                                        const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+                                        const sourceNode = audioCtx.createBufferSource();
+                                        sourceNode.buffer = audioBuffer;
+                                        sourceNode.connect(audioCtx.destination);
+                                        sourceNode.addEventListener('ended', () => {
+                                            sources.current.delete(sourceNode);
+                                            if (sources.current.size === 0) {
+                                                setStatus('listening');
+                                            }
+                                        });
+                                        sourceNode.start(nextStartTime);
+                                        nextStartTime += audioBuffer.duration;
+                                        sources.current.add(sourceNode);
+                                    }
+                                } else if (status === 'speaking' && sources.current.size === 0) {
+                                    setStatus('listening');
                                 }
+
+                                if (message.serverContent?.interrupted) {
+                                    for (const source of sources.current.values()) {
+                                        source.stop();
+                                        sources.current.delete(source);
+                                    }
+                                    nextStartTime = 0;
+                                }
+
                             },
-                            onerror: (e: ErrorEvent) => {
-                                console.error('Live session error:', e);
-                                setError('A connection error occurred.');
-                                cleanup();
-                            },
-                            onclose: () => {
-                                cleanup();
-                            },
+                            onerror: (e) => { console.error('Live session error:', e); setError('A connection error occurred.'); cleanup(); },
+                            onclose: () => { cleanup(); },
                         },
                         config: {
                             responseModalities: [Modality.AUDIO],
+                            inputAudioTranscription: {},
+                            outputAudioTranscription: {},
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
                             systemInstruction: systemInstruction,
-                            tools: [{ functionDeclarations: [updateFunctionDeclaration, initiateNewAssessmentDeclaration] }],
+                            tools: [{ functionDeclarations: [updateFunctionDeclaration, initiateNewAssessmentDeclaration, requestEvidenceUploadDeclaration] }],
                         },
                     });
                 } catch (err: any) {
@@ -289,60 +348,91 @@ You can also initiate a new assessment if the user asks you to start over or beg
                 }
             };
             startSession();
-
+            
             return () => {
-                if(sessionPromise.current) {
-                    sessionPromise.current.then(session => session.close());
-                }
+                sessionPromise.current?.then(session => session.close());
                 cleanup();
             };
         }
-    }, [isAssessing, assessmentData, currentControlIndex, onUpdateItem, cleanup, assessmentType, updateFunctionDeclaration, onInitiate, onActiveFieldChange, onRequestEvidenceUpload]);
+    }, [isAssessing, currentControlIndex, onUpdateItem, onInitiate, cleanup, assessmentType, assessmentData, onActiveFieldChange, updateFunctionDeclaration, onRequestEvidenceUpload]);
+
+
+    const handleClose = () => {
+        sessionPromise.current?.then(session => session.close());
+        cleanup();
+        onClose();
+    };
     
     const currentControl = assessmentData[currentControlIndex];
 
-    if (!isAssessing) return null;
-
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg flex flex-col" style={{height: '70vh'}}>
-                <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="fixed inset-0 bg-black bg-opacity-70 z-[110] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col" style={{height: '85vh', maxHeight: '800px'}}>
+                 <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                      <div className="flex items-center">
-                        <img src={nooraAvatar} alt="Noora AI Assistant" className="h-10 w-10 rounded-full mr-3" />
+                        <img src={nooraAvatar} alt="Noora" className="w-10 h-10 rounded-full mr-3" />
                         <div>
-                            <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">Noora - Voice Assessment</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini Live</p>
+                            <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">Noora: AI Voice Assessment</h2>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Assessing: {assessmentType}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                         <CloseIcon className="w-6 h-6 text-gray-500" />
                     </button>
                 </header>
-                <main className="flex-1 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-                    <div className="relative mb-6">
-                        <img src={nooraAvatar} alt="Noora" className="w-32 h-32 rounded-full shadow-lg" />
-                        <div className={`absolute -inset-2 rounded-full border-4 animate-pulse
-                            ${status === 'listening' ? 'border-blue-400' : ''}
-                            ${status === 'speaking' ? 'border-teal-400' : ''}
-                            ${status === 'thinking' ? 'border-purple-400' : ''}
-                        `}></div>
-                    </div>
-                    <p className="text-lg font-semibold text-gray-600 dark:text-gray-400 capitalize">{status}</p>
 
-                    <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg w-full">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Control</p>
-                        <p className="text-md font-bold text-gray-900 dark:text-gray-100 mt-1">{currentControl.controlCode}</p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{currentControl.controlName}</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Current Control:</p>
+                    <p className="font-mono text-teal-600 dark:text-teal-400">{currentControl.controlCode}: <span className="font-sans text-gray-800 dark:text-gray-200 font-normal">{currentControl.controlName}</span></p>
+                </div>
+                 
+                 <main className="flex-1 flex flex-col p-4 overflow-y-auto">
+                    <div className="flex-grow space-y-3 overflow-y-auto pr-2">
+                        {conversation.map((turn) => (
+                             <div key={turn.id} className={`flex items-start gap-2.5 ${turn.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                {turn.speaker === 'assistant' && <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full" />}
+                                <div className={`max-w-prose rounded-2xl px-4 py-2 text-sm ${turn.speaker === 'user' ? 'bg-teal-600 text-white rounded-br-none' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
+                                    {turn.text}
+                                </div>
+                            </div>
+                        ))}
+                         {status === 'thinking' && (
+                             <div className="flex items-start gap-2.5 justify-start">
+                                 <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full" />
+                                <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl px-4 py-3 rounded-bl-none">
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.3s]"></div>
+                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.15s]"></div>
+                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+                        <div className="relative inline-block mb-2">
+                             <div className={`w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center`}>
+                                <MicrophoneIcon className={`w-8 h-8 transition-colors ${status === 'listening' ? 'text-blue-500' : status === 'speaking' ? 'text-teal-500' : 'text-gray-400'}`} />
+                            </div>
+                            <div className={`absolute -inset-1 rounded-full border-2 animate-pulse
+                                ${status === 'listening' ? 'border-blue-400' : ''}
+                                ${status === 'speaking' ? 'border-teal-400' : ''}
+                                ${status === 'thinking' ? 'border-purple-400' : ''}
+                            `}></div>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 capitalize">{status}</p>
+                        {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+                    </div>
                 </main>
-                 <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end items-center gap-4">
-                    <button onClick={onClose} className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        End Session
-                    </button>
-                    <button onClick={onNextControl} className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">
-                        Next Control
+                
+                 <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button 
+                        onClick={onNextControl}
+                        disabled={currentControlIndex >= assessmentData.length - 1}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400"
+                    >
+                        Next Control &rarr;
                     </button>
                 </footer>
             </div>

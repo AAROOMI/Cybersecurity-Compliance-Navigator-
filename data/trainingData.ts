@@ -35,20 +35,24 @@ Welcome to Cybersecurity Fundamentals! The foundation of all information securit
 *   **Example:** You should be able to log in to the company's email system during work hours. Our public website must be accessible to customers.
 *   **How we protect it:** Using backups, disaster recovery plans, redundant systems (like backup power generators), and protecting against Denial-of-Service (DoS) attacks.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
           title: 'CIA Triad Quick Check',
-          questions: [
+          items: [
             {
+              type: 'multiple-choice',
               question: 'Encrypting a hard drive primarily supports which principle?',
               options: ['Confidentiality', 'Integrity', 'Availability'],
               correctAnswer: 0,
             },
             {
+              type: 'multiple-choice',
               question: 'Using a digital signature to ensure a document has not been altered relates to which principle?',
               options: ['Confidentiality', 'Integrity', 'Availability'],
               correctAnswer: 1,
             },
              {
+              type: 'multiple-choice',
               question: 'Having a backup server that takes over if the primary server fails supports which principle?',
               options: ['Confidentiality', 'Integrity', 'Availability'],
               correctAnswer: 2,
@@ -83,10 +87,12 @@ Phishing is the most common form of social engineering.
 - **Scarcity/Greed:** Luring you with an offer that seems too good to be true, like winning a lottery you never entered.
 - **Helpfulness:** Posing as a help desk technician and asking for your password to "fix a problem."
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
           title: 'Social Engineering Tactics',
-          questions: [
+          items: [
             {
+              type: 'multiple-choice',
               question: 'An attacker pretending to be from the IT help desk and asking for your password is using what tactic?',
               options: ['Urgency', 'Authority', 'Helpfulness'],
               correctAnswer: 2,
@@ -116,15 +122,18 @@ Phishing is a fraudulent attempt to trick you into revealing sensitive informati
 - **Smishing (SMS Phishing):** Phishing attacks sent via text message.
 - **Vishing (Voice Phishing):** Phishing attacks conducted over the phone.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
           title: 'Phishing Recognition Quiz',
-          questions: [
+          items: [
             {
+              type: 'multiple-choice',
               question: 'You receive a text message from an unknown number saying "Your package has a customs fee. Click here to pay: [link]". What is this called?',
               options: ['Whaling', 'Smishing', 'Vishing'],
               correctAnswer: 1,
             },
             {
+              type: 'multiple-choice',
               question: 'You hover over a link in an email from "Microsoft" and the URL is <code>http://microsft-login.com</code>. What should you do?',
               options: ['Click it to see where it goes', 'Trust it, it looks close enough', 'Delete the email and report it as phishing'],
               correctAnswer: 2,
@@ -157,10 +166,12 @@ Phishing is a fraudulent attempt to trick you into revealing sensitive informati
 - **Spyware:** Secretly observes your activities without permission and reports it to the software's author. It can capture keystrokes, screenshots, and login credentials.
 - **Adware:** Software that automatically delivers advertisements. While not always malicious, it can be intrusive and sometimes contains spyware.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
             title: 'Malware Types Quiz',
-            questions: [
+            items: [
                 {
+                    type: 'multiple-choice',
                     question: 'A piece of malware that spreads by itself across the network is called a:',
                     options: ['Virus', 'Trojan', 'Worm'],
                     correctAnswer: 2,
@@ -188,15 +199,18 @@ Phishing is a fraudulent attempt to trick you into revealing sensitive informati
 
 The best defense is prevention: **keep regular backups**, keep your systems patched, use antivirus software, and be extremely cautious of suspicious emails.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
             title: 'Ransomware Response Quiz',
-            questions: [
+            items: [
                 {
+                    type: 'multiple-choice',
                     question: 'You see a message on your screen saying your files are encrypted and you must pay to get them back. What is the very FIRST thing you should do?',
                     options: ['Pay the ransom quickly', 'Try to restore from a backup', 'Disconnect the computer from the network', 'Call a colleague for help'],
                     correctAnswer: 2,
                 },
                 {
+                    type: 'multiple-choice',
                     question: 'Why is it a bad idea to pay the ransom?',
                     options: ['The attacker might ask for more money', 'There is no guarantee you will get your data back', 'It encourages criminals to continue these attacks', 'All of the above'],
                     correctAnswer: 3,
@@ -239,15 +253,18 @@ It's impossible to remember dozens of unique, strong passwords. That's why you s
 *   You only need to remember one strong master password to unlock your vault.
 *   Examples include Bitwarden, 1Password, and LastPass.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
             title: 'Password Strength Quiz',
-            questions: [
+            items: [
                 {
+                    type: 'multiple-choice',
                     question: 'What is the single most important factor for a strong password?',
                     options: ['Using a special character', 'Length', 'Starting with a capital letter', 'Containing your birth year'],
                     correctAnswer: 1,
                 },
                 {
+                    type: 'multiple-choice',
                     question: 'Why is it a bad idea to reuse the same password on multiple websites?',
                     options: ["It's hard to remember which site uses which password", "If one site is breached, attackers can access your other accounts", "It makes the password weaker", "Most websites don't allow it"],
                     correctAnswer: 1,
@@ -288,15 +305,18 @@ Public Wi-Fi networks (in cafes, airports, hotels) are inherently insecure. They
 - **Do not download software from untrusted websites.** Stick to official app stores and vendor websites. Pirated software is a common source of malware.
 - **Be wary of shortened URLs** (like from bit.ly or t.co), as you can't see the destination. Use a URL expander tool if you are unsure.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
             title: 'Safe Browsing Quiz',
-            questions: [
+            items: [
                 {
+                    type: 'multiple-choice',
                     question: 'You are at a coffee shop and need to check your bank account. What is the most secure method?',
                     options: ['Connect to the free public Wi-Fi and log in', 'Use your phone as a mobile hotspot instead of the public Wi-Fi', 'Ask the barista if the Wi-Fi is secure', 'It is safe as long as the bank website is HTTPS'],
                     correctAnswer: 1,
                 },
                 {
+                    type: 'multiple-choice',
                     question: 'A website offers a free download of expensive software. What is the main risk?',
                     options: ['The download might be slow', 'The software might be an older version', 'The software is likely bundled with malware', 'It might not be compatible with your computer'],
                     correctAnswer: 2,
@@ -337,15 +357,18 @@ Cybersecurity isn't just about what happens online. Protecting physical access t
 - **Be Mindful of "Shoulder Surfing":** Be aware of your surroundings when working in public places like cafes or airports. Position yourself so that others cannot see your screen. Consider using a privacy screen filter.
 - **Secure Storage:** When not in use, store your work laptop and any documents in a secure, locked location at home.
 `,
-        quiz: {
+        // FIX: Replaced 'quiz' with 'challenge' and 'questions' with 'items' and added 'type'.
+        challenge: {
             title: 'Workspace Security Quiz',
-            questions: [
+            items: [
                 {
+                    type: 'multiple-choice',
                     question: "What should you do every time you leave your computer, even for a minute?",
                     options: ['Close all your programs', 'Turn off the monitor', 'Log off completely', 'Lock the screen'],
                     correctAnswer: 3,
                 },
                 {
+                    type: 'multiple-choice',
                     question: 'When working from home, what is the most important tool for securing your connection to the office?',
                     options: ['A fast internet connection', 'A company-approved VPN', 'A new computer', 'Antivirus software'],
                     correctAnswer: 1,

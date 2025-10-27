@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
@@ -161,6 +159,26 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
             })
             .filter(domain => domain.items.length > 0);
     }, [domains, searchTerm, statusFilter, domainFilter]);
+
+    const handleActiveFieldChange = (controlCode: string | null, field: keyof AssessmentItem | null) => {
+        if (controlCode && field) {
+            setActiveField({ controlCode, field });
+            // Highlight for 2.5 seconds
+            setTimeout(() => {
+                setActiveField(prev => (prev?.controlCode === controlCode && prev?.field === field ? null : prev));
+            }, 2500);
+        } else {
+            setActiveField(null);
+        }
+    };
+
+    const handleRequestEvidenceUpload = (controlCode: string) => {
+        setEvidenceRequestedForControl(controlCode);
+         // Highlight for 10 seconds, giving user time to find file
+        setTimeout(() => {
+            setEvidenceRequestedForControl(prev => (prev === controlCode ? null : prev));
+        }, 10000);
+    };
 
     const handleExportCSV = () => {
         const dataToExport = filteredDomains.flatMap(domain => domain.items);
@@ -402,8 +420,8 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                     onNextControl={() => setCurrentAiControlIndex(prev => Math.min(prev + 1, assessmentData.length - 1))}
                     assessmentType="PDPL"
                     onInitiate={onInitiate}
-                    onActiveFieldChange={(controlCode, field) => setActiveField(controlCode && field ? { controlCode, field } : null)}
-                    onRequestEvidenceUpload={(controlCode) => setEvidenceRequestedForControl(controlCode)}
+                    onActiveFieldChange={handleActiveFieldChange}
+                    onRequestEvidenceUpload={handleRequestEvidenceUpload}
                 />
             )}
         </div>

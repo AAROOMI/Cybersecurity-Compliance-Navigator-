@@ -24,6 +24,8 @@ const URLS_TO_CACHE = [
   '/components/AssessmentSheet.tsx',
   '/components/HelpSupportPage.tsx',
   '/components/TrainingPage.tsx',
+  '/components/CourseDetailPage.tsx',
+  '/components/LessonPlayer.tsx',
   '/components/LiveAssistantWidget.tsx',
   '/components/NooraAssistant.tsx',
   '/components/ComplianceAgentPage.tsx',

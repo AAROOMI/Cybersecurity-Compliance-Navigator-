@@ -174,7 +174,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave }) 
 
 interface UserManagementPageProps {
     users: User[];
-    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+    setUsers: (updater: React.SetStateAction<User[]>) => void;
     currentUser: User;
     addNotification: (message: string, type?: 'success' | 'info') => void;
     addAuditLog: (action: AuditAction, details: string, targetId?: string) => void;
@@ -265,7 +265,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">User Management Console</h1>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">User Management</h1>
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Create, edit, and manage user roles and time-based permissions.</p>
                 </div>
                 {canCreate && (

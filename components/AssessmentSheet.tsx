@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
 import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';
@@ -99,7 +100,7 @@ const EditableControlRow: React.FC<{
     const isDisabled = !isEditable || !canUpdate;
     const isFieldActive = (fieldName: keyof AssessmentItem) => isActiveControl && activeField === fieldName;
     
-    const activeFieldClasses = "ai-active-field ring-2 ring-teal-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800";
+    const activeFieldClasses = "ai-active-field";
 
 
     return (
@@ -128,7 +129,7 @@ const EditableControlRow: React.FC<{
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 ${isFieldActive('currentStatusDescription') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('currentStatusDescription') ? activeFieldClasses : ''}`}
                             />
                         </div>
                         <div>
@@ -139,7 +140,7 @@ const EditableControlRow: React.FC<{
                                 value={localItem.controlStatus}
                                 onChange={handleStatusChange}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 ${isFieldActive('controlStatus') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('controlStatus') ? activeFieldClasses : ''}`}
                             >
                                 {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                             </select>
@@ -163,7 +164,7 @@ const EditableControlRow: React.FC<{
                                     <div className="text-sm text-gray-400 italic py-2">No evidence uploaded.</div>
                                 )}
                                 {isEditable && canUpdate && (
-                                     <button type="button" onClick={() => fileInputRef.current?.click()} className={`mt-2 text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center p-1 rounded-md ${isEvidenceRequested && isActiveControl ? 'ai-active-field' : ''}`}>
+                                     <button type="button" onClick={() => fileInputRef.current?.click()} className={`mt-2 text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center p-1 rounded-md transition-shadow ${isEvidenceRequested && isActiveControl ? activeFieldClasses : ''}`}>
                                         <UploadIcon className="w-4 h-4 mr-1"/>
                                         {localItem.evidence ? 'Replace Evidence' : 'Upload Evidence'}
                                      </button>
@@ -187,7 +188,7 @@ const EditableControlRow: React.FC<{
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 ${isFieldActive('recommendation') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('recommendation') ? activeFieldClasses : ''}`}
                             />
                         </div>
                         <div>
@@ -200,7 +201,7 @@ const EditableControlRow: React.FC<{
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 ${isFieldActive('managementResponse') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('managementResponse') ? activeFieldClasses : ''}`}
                             />
                         </div>
                         <div>
@@ -213,7 +214,7 @@ const EditableControlRow: React.FC<{
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 ${isFieldActive('targetDate') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('targetDate') ? activeFieldClasses : ''}`}
                             />
                         </div>
                     </div>
@@ -228,13 +229,16 @@ const EditableControlRow: React.FC<{
                 .animate-fade-out {
                     animation: fade-out 2s ease-out forwards;
                 }
-                @keyframes pulse-glow {
-                  0% { box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.4); }
-                  50% { box-shadow: 0 0 0 5px rgba(13, 148, 136, 0.2); }
-                  100% { box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.4); }
+                 @keyframes pulse-glow {
+                  0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7); }
+                  70% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
+                  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
                 }
                 .ai-active-field {
-                  animation: pulse-glow 2s infinite;
+                  animation: pulse-glow 2s ease-out;
+                  border-color: #0d9488 !important; /* teal-600 */
+                  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.4);
+                  border-radius: 6px;
                 }
             `}</style>
         </div>

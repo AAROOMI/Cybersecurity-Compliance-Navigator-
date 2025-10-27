@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ComplianceGap, AgentLogEntry, Permission } from '../types';
-import { SparklesIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon } from './Icons';
+import { SparklesIcon } from './Icons';
 
 interface ComplianceAgentPageProps {
     onRunAnalysis: () => ComplianceGap[];

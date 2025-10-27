@@ -50,14 +50,14 @@ const navigateToViewDeclaration: FunctionDeclaration = {
     properties: {
       view: {
         type: Type.STRING,
-        description: "The name of the view to navigate to. Must be one of: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', 'training'.",
+        description: "The name of the view to navigate to. Must be one of: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', 'training', 'riskAssessment'.",
       },
     },
     required: ['view'],
   },
 };
 
-type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training';
+type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'riskAssessment';
 
 interface LiveAssistantWidgetProps {
   isOpen: boolean;
@@ -184,7 +184,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                             inputAudioTranscription: {},
                             outputAudioTranscription: {},
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                            systemInstruction: "You are Gemini, a helpful voice assistant integrated into the Cybersecurity Controls Navigator application. Your goal is to help users by answering their questions and performing actions within the app. You can navigate between different sections. Use the `navigate_to_view` function to switch pages when the user asks. Available views are: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', and 'training'. Start the conversation by saying 'Hello, how can I help you navigate your cybersecurity compliance today?'.",
+                            systemInstruction: "You are Gemini, a helpful voice assistant integrated into the Cybersecurity Controls Navigator application. Your goal is to help users by answering their questions and performing actions within the app. You can navigate between different sections. Use the `navigate_to_view` function to switch pages when the user asks. Available views are: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', 'training', and 'riskAssessment'. Start the conversation by saying 'Hello, how can I help you navigate your cybersecurity compliance today?'.",
                             tools: [{ functionDeclarations: [navigateToViewDeclaration] }],
                         },
                     });
@@ -211,7 +211,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
 
     return (
         <>
-            <div className={`fixed bottom-0 right-0 m-6 z-40 transition-transform duration-300 ease-in-out ${isOpen ? 'transform scale-0 opacity-0' : 'transform scale-100 opacity-100'}`}>
+            <div id="live-assistant-widget-button" className={`fixed bottom-0 right-0 m-6 z-40 transition-transform duration-300 ease-in-out ${isOpen ? 'transform scale-0 opacity-0' : 'transform scale-100 opacity-100'}`}>
                 <button
                     onClick={onToggle}
                     className="bg-teal-600 text-white rounded-full p-4 shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"

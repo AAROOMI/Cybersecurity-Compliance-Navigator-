@@ -101,7 +101,9 @@ export type Permission =
   | 'help:read'
   | 'training:read'
   | 'complianceAgent:read'
-  | 'complianceAgent:run';
+  | 'complianceAgent:run'
+  | 'riskAssessment:read'
+  | 'riskAssessment:update';
 
 
 export interface User {
@@ -146,6 +148,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'complianceAgent:read',
     'complianceAgent:run',
+    'riskAssessment:read',
+    'riskAssessment:update',
   ],
   CISO: [
     'dashboard:read',
@@ -168,6 +172,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'complianceAgent:read',
     'complianceAgent:run',
+    'riskAssessment:read',
+    'riskAssessment:update',
   ],
   CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
   CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
@@ -190,6 +196,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'help:read',
     'training:read',
     'complianceAgent:read',
+    'riskAssessment:read',
+    'riskAssessment:update',
   ],
   Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
 };

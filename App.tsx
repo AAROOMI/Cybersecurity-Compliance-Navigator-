@@ -1,10 +1,5 @@
-
-
-
-
-
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 import { Sidebar } from './components/Sidebar';
 import { ContentView } from './components/ContentView';
 import { ContentViewSkeleton } from './components/ContentViewSkeleton';
@@ -24,13 +19,16 @@ import { SamaCsfAssessmentPage } from './components/SamaCsfAssessmentPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { HelpSupportPage } from './components/HelpSupportPage';
 import { TrainingPage } from './components/TrainingPage';
+import { RiskAssessmentPage } from './components/RiskAssessmentPage';
+import { ComplianceAgentPage } from './components/ComplianceAgentPage';
+import { TourGuide } from './components/TourGuide';
 import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon, ExclamationTriangleIcon } from './components/Icons';
 import { eccData } from './data/controls';
 import { assessmentData as initialAssessmentData } from './data/assessmentData';
 import { initialPdplAssessmentData } from './data/pdplAssessmentData';
 import { samaCsfAssessmentData as initialSamaCsfAssessmentData } from './data/samaCsfAssessmentData';
 import { trainingCourses } from './data/trainingData';
-import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task } from './types';
+import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, AgentLogEntry, ComplianceGap } from './types';
 import { rolePermissions } from './types';
 
 // Mock user data for the new RBAC system
@@ -54,6 +52,7 @@ type CompanyData = {
   assessmentStatuses?: AssessmentStatuses;
   trainingProgress?: UserTrainingProgress;
   tasks?: Task[];
+  agentLog?: AgentLogEntry[];
 };
 
 interface Notification {
@@ -76,6 +75,62 @@ interface AssessmentStatuses {
 // --- Inactivity Timeout Constants ---
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const WARNING_DURATION_MS = 1 * 60 * 1000; // 1 minute
+
+const tourSteps = [
+  {
+    target: 'body', // special case for centered modal
+    title: 'Welcome to the Guided Tour!',
+    content: "Let's take a quick walk-through of the key features of the Cybersecurity Controls Navigator. Click \"Next\" to begin.",
+  },
+  {
+    target: '#sidebar-dashboard',
+    title: 'The Dashboard',
+    content: 'This is your mission control. It provides a high-level overview of your compliance posture, recent activities, and pending tasks.',
+    position: 'right',
+  },
+  {
+    target: '#sidebar-navigator-header',
+    title: 'Control Navigator',
+    content: 'Here you can browse the entire NCA ECC framework, domain by domain. Click on a domain to explore its subdomains and controls in detail.',
+    position: 'right',
+  },
+  {
+    target: '#header-search-input',
+    title: 'Universal Search',
+    content: 'Quickly find any control by its ID or description. The search is fast and will take you directly to the relevant control.',
+    position: 'bottom',
+  },
+  {
+    target: '#sidebar-documents',
+    title: 'Document Management',
+    content: 'This is where all generated policy documents are stored. You can manage their approval lifecycle, view history, and export them.',
+    position: 'right',
+  },
+  {
+    target: '#sidebar-assessment',
+    title: 'Compliance Assessments',
+    content: 'Conduct detailed assessments against various frameworks like NCA ECC, PDPL, and SAMA CSF. You can track status, provide evidence, and generate reports.',
+    position: 'right',
+  },
+  {
+    target: '#sidebar-complianceAgent',
+    title: 'The Compliance Agent',
+    content: 'Meet Noora, your AI agent. She can automatically analyze your assessments for gaps and generate the necessary documentation for you.',
+    position: 'right',
+  },
+  {
+    target: '#live-assistant-widget-button',
+    title: 'Live Voice Assistant',
+    content: "Need help navigating or want to perform an assessment hands-free? Click here to start a voice conversation with our Gemini-powered assistant.",
+    position: 'top',
+  },
+  {
+    target: 'body',
+    title: 'Tour Complete!',
+    content: "You've seen the main features. You can restart this tour anytime from the Help & Support page. Now you're ready to take control of your compliance!",
+  }
+];
+
 
 const LicenseWall: React.FC<{
   currentUser: User | undefined;
@@ -110,7 +165,7 @@ const LicenseWall: React.FC<{
   );
 };
 
-type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training';
+type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
 
 
 // FIX: Export App component to be used in index.tsx
@@ -167,6 +222,9 @@ export const App: React.FC = () => {
   // Assessment confirmation modal state
   const [showInitiateConfirmModal, setShowInitiateConfirmModal] = useState<keyof AssessmentStatuses | null>(null);
 
+  // AI Guide Tour state
+  const [isTourOpen, setIsTourOpen] = useState(false);
+
 
   // Derived state from session
   const currentUser = session?.user;
@@ -182,6 +240,7 @@ export const App: React.FC = () => {
   const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }, [allCompanyData, currentCompanyId]);
   const trainingProgress = useMemo(() => allCompanyData[currentCompanyId || '']?.trainingProgress || {}, [allCompanyData, currentCompanyId]);
   const tasks = useMemo(() => allCompanyData[currentCompanyId || '']?.tasks || [], [allCompanyData, currentCompanyId]);
+  const agentLog = useMemo(() => allCompanyData[currentCompanyId || '']?.agentLog || [], [allCompanyData, currentCompanyId]);
 
 
   // PWA install prompt handler
@@ -229,7 +288,7 @@ export const App: React.FC = () => {
       };
 
       setAllCompanyData(prevData => {
-          const currentData = prevData[companyIdForLog] || { users: [], documents: [], auditLog: [], tasks: [] };
+          const currentData = prevData[companyIdForLog] || { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
           // Prepend new log to the beginning of the array
           const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])]; 
           return {
@@ -242,7 +301,7 @@ export const App: React.FC = () => {
   const setUsersForCurrentCompany = (updater: React.SetStateAction<User[]>) => {
     if (!currentCompanyId) return;
     setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
+      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
       const newUsers = typeof updater === 'function' ? updater(currentData.users) : updater;
       
       // Update session if the current user's data has changed
@@ -263,7 +322,7 @@ export const App: React.FC = () => {
   const setDocumentRepositoryForCurrentCompany = (updater: React.SetStateAction<PolicyDocument[]>) => {
     if (!currentCompanyId) return;
     setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
+      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
       const newDocuments = typeof updater === 'function' ? updater(currentData.documents) : updater;
       return {
         ...prevData,
@@ -275,11 +334,23 @@ export const App: React.FC = () => {
     const setTasksForCurrentCompany = (updater: React.SetStateAction<Task[]>) => {
         if (!currentCompanyId) return;
         setAllCompanyData(prevData => {
-            const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
+            const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
             const newTasks = typeof updater === 'function' ? updater(currentData.tasks || []) : updater;
             return {
                 ...prevData,
                 [currentCompanyId]: { ...currentData, tasks: newTasks }
+            };
+        });
+    };
+
+    const setAgentLogForCurrentCompany = (updater: React.SetStateAction<AgentLogEntry[]>) => {
+        if (!currentCompanyId) return;
+        setAllCompanyData(prevData => {
+            const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
+            const newLog = typeof updater === 'function' ? updater(currentData.agentLog || []) : updater;
+            return {
+                ...prevData,
+                [currentCompanyId]: { ...currentData, agentLog: newLog }
             };
         });
     };
@@ -361,6 +432,7 @@ export const App: React.FC = () => {
                 assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
                 trainingProgress: {},
                 tasks: [],
+                agentLog: [],
             };
 
             setCompanies([defaultCompany]);
@@ -389,7 +461,7 @@ export const App: React.FC = () => {
             const loadedCompanyData: Record<string, CompanyData> = {};
             for (const company of hydratedCompanies) {
                 const data = window.localStorage.getItem(`companyData-${company.id}`);
-                const parsedData = data ? JSON.parse(data) : { users: [], documents: [], auditLog: [], tasks: [] };
+                const parsedData = data ? JSON.parse(data) : { users: [], documents: [], auditLog: [], tasks: [], agentLog: [] };
                 // Ensure assessment data is present
                 loadedCompanyData[company.id] = {
                     ...parsedData,
@@ -399,6 +471,7 @@ export const App: React.FC = () => {
                     assessmentStatuses: parsedData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
                     trainingProgress: parsedData.trainingProgress || {},
                     tasks: parsedData.tasks || [],
+                    agentLog: parsedData.agentLog || [],
                 };
             }
             setAllCompanyData(loadedCompanyData);
@@ -652,6 +725,7 @@ export const App: React.FC = () => {
               assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
               trainingProgress: {},
               tasks: [],
+              agentLog: [],
             },
         }));
 
@@ -780,6 +854,116 @@ export const App: React.FC = () => {
         }
     }
   };
+
+    // --- Compliance Agent Handlers ---
+    const addAgentLogEntry = (message: string, status: AgentLogEntry['status']) => {
+        const newEntry: AgentLogEntry = {
+            id: `agent-log-${Date.now()}`,
+            timestamp: Date.now(),
+            message,
+            status,
+        };
+        setAgentLogForCurrentCompany(prev => [newEntry, ...prev]);
+    };
+
+    const handleRunAnalysis = (): ComplianceGap[] => {
+        addAgentLogEntry("Starting compliance gap analysis...", 'working');
+        const allAssessments: { framework: string, data: AssessmentItem[] }[] = [
+            { framework: 'NCA ECC', data: eccAssessment },
+            { framework: 'PDPL', data: pdplAssessment },
+            { framework: 'SAMA CSF', data: samaCsfAssessment },
+        ];
+        
+        const gaps: ComplianceGap[] = [];
+        const documentedControlIds = new Set(documentRepository.map(doc => doc.controlId));
+
+        for (const assessment of allAssessments) {
+            if (assessment.data) {
+                for (const item of assessment.data) {
+                    if ((item.controlStatus === 'Not Implemented' || item.controlStatus === 'Partially Implemented') && !documentedControlIds.has(item.controlCode)) {
+                        gaps.push({
+                            controlCode: item.controlCode,
+                            controlName: item.controlName,
+                            domainName: item.domainName,
+                            assessedStatus: item.controlStatus,
+                            framework: assessment.framework,
+                        });
+                    }
+                }
+            }
+        }
+        
+        addAgentLogEntry(`Analysis complete. Found ${gaps.length} compliance gaps.`, gaps.length > 0 ? 'info' : 'success');
+        return gaps;
+    };
+
+    const handleGenerateDocuments = async (gaps: ComplianceGap[]) => {
+        addAgentLogEntry(`Starting document generation for ${gaps.length} gaps...`, 'working');
+        if (!process.env.API_KEY) {
+            addAgentLogEntry("API_KEY not set. Cannot generate documents.", 'error');
+            return;
+        }
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        for (const gap of gaps) {
+            addAgentLogEntry(`Generating document for control ${gap.controlCode}...`, 'working');
+            try {
+                const prompt = `
+                You are an expert cybersecurity policy writer. Generate compliance documentation for a control identified as a gap.
+                - **Framework:** ${gap.framework}
+                - **Domain:** ${gap.domainName}
+                - **Control ID:** ${gap.controlCode}
+                - **Control Description:** ${gap.controlName}
+                - **Assessed Status:** ${gap.assessedStatus}
+
+                Generate three documents: Policy, Procedure, and Guideline, based on the control description. Return a single valid JSON object with keys "policy", "procedure", and "guideline", with Markdown-formatted strings as values.
+                `;
+
+                const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        policy: { type: Type.STRING },
+                        procedure: { type: Type.STRING },
+                        guideline: { type: Type.STRING }
+                    },
+                    required: ["policy", "procedure", "guideline"]
+                    }
+                }
+                });
+                
+                const generatedContent = JSON.parse(response.text);
+
+                const now = Date.now();
+                const newDocument: PolicyDocument = {
+                id: `policy-${gap.controlCode}-${now}`,
+                controlId: gap.controlCode,
+                domainName: gap.domainName,
+                subdomainTitle: `${gap.framework} Framework`, // Generic subdomain
+                controlDescription: gap.controlName,
+                status: 'Pending CISO Approval',
+                content: generatedContent,
+                approvalHistory: [],
+                createdAt: now,
+                updatedAt: now,
+                generatedBy: 'AI Agent'
+                };
+                
+                setDocumentRepositoryForCurrentCompany(prevRepo => [newDocument, ...prevRepo]);
+                addAgentLogEntry(`Successfully generated and saved document for ${gap.controlCode}.`, 'success');
+
+            } catch(e) {
+                console.error(e);
+                addAgentLogEntry(`Failed to generate document for ${gap.controlCode}.`, 'error');
+            }
+        }
+        addAgentLogEntry("Document generation process complete.", 'success');
+    };
+
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -1237,6 +1421,8 @@ export const App: React.FC = () => {
                 return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} />;
             case 'auditLog':
                  return <AuditLogPage auditLog={auditLog} />;
+            case 'riskAssessment':
+                return <RiskAssessmentPage />;
             case 'assessment':
                 return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('ecc', code, item)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={setCurrentView} />;
             case 'pdplAssessment':
@@ -1252,9 +1438,11 @@ export const App: React.FC = () => {
                 }
                 return <MfaSetupPage user={mfaSetupUser} companyName={currentCompany?.name || 'Your Company'} onVerified={handleVerifyMfaSetup} onCancel={() => { setMfaSetupUser(null); setCurrentView('userProfile'); }} theme={theme} toggleTheme={toggleTheme} />;
             case 'help':
-                return <HelpSupportPage />;
+                return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
             case 'training':
                 return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
+            case 'complianceAgent':
+                return <ComplianceAgentPage onRunAnalysis={handleRunAnalysis} onGenerateDocuments={handleGenerateDocuments} agentLog={agentLog} permissions={currentUserPermissions} />;
             default:
                 return <div>Not Found</div>;
         }
@@ -1279,6 +1467,7 @@ export const App: React.FC = () => {
                                     <SearchIcon className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
+                                    id="header-search-input"
                                     type="text"
                                     placeholder="Search for controls (e.g., 1.5.1)"
                                     value={searchQuery}
@@ -1347,6 +1536,7 @@ export const App: React.FC = () => {
   
     return (
         <>
+            {session && <TourGuide steps={tourSteps} isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />}
             {/* Notification container */}
             <div aria-live="assertive" className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start z-[100]">
                 <div className="w-full flex flex-col items-center space-y-4 sm:items-end">

@@ -1,13 +1,13 @@
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, SparklesIcon } from './Icons';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, SparklesIcon, ExclamationTriangleIcon } from './Icons';
 import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
   domains: Domain[];
   selectedDomain: Domain;
   onSelectDomain: (domain: Domain) => void;
-  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent';
-  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent') => void;
+  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
+  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment') => void;
   permissions: Set<Permission>;
 }
 
@@ -19,6 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
           {permissions.has('dashboard:read') && (
             <li>
               <button
+                  id="sidebar-dashboard"
                   onClick={() => onSetView('dashboard')}
                   className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
                     currentView === 'dashboard'
@@ -79,6 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
           {permissions.has('complianceAgent:read') && (
             <li className="mt-2">
               <button
+                  id="sidebar-complianceAgent"
                   onClick={() => onSetView('complianceAgent')}
                   className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
                     currentView === 'complianceAgent'
@@ -94,6 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
           {permissions.has('documents:read') && (
             <li className="mt-2">
               <button
+                  id="sidebar-documents"
                   onClick={() => onSetView('documents')}
                   className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
                     currentView === 'documents'
@@ -121,9 +124,25 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
+          {permissions.has('riskAssessment:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('riskAssessment')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'riskAssessment'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <ExclamationTriangleIcon className="w-5 h-5 mr-3" />
+                  <span>Risk Assessment</span>
+                </button>
+            </li>
+          )}
           {permissions.has('assessment:read') && (
             <li className="mt-2">
               <button
+                  id="sidebar-assessment"
                   onClick={() => onSetView('assessment')}
                   className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
                     currentView === 'assessment'
@@ -200,6 +219,67 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
       </nav>
 
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-2 uppercase tracking-wider">AI Studio Apps</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-2 uppercase tracking-wider">Frameworks</h2>
            <a
-              href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZ
+              href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZkvfniZtOCM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              <span className="flex items-center justify-center w-5 h-5 mr-3 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">1</span>
+              <span>PDPL</span>
+            </a>
+             <a
+              href="https://ai.studio/apps/drive/1Wk8fq8HQryWglhSkPLcKHPn5za-ZwGVP"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              <span className="flex items-center justify-center w-5 h-5 mr-3 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">2</span>
+              <span>HRSD</span>
+            </a>
+      </div>
+
+      {permissions.has('navigator:read') && (
+        <div id="sidebar-navigator-header" className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center mb-4 px-2">
+            <span className="flex items-center justify-center w-5 h-5 mr-2 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">3</span>
+            <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">NCA ECC Control Navigator</h2>
+          </div>
+          <nav>
+            <ul>
+              {domains.map((domain, index) => {
+                const controlCount = domain.subdomains.reduce((acc, sub) => acc + sub.controls.length, 0);
+                const isSelected = selectedDomain.id === domain.id && currentView === 'navigator';
+                return (
+                  <li key={domain.id} className="mb-2">
+                    <button
+                      onClick={() => onSelectDomain(domain)}
+                      className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                      }`}
+                    >
+                      <div className="flex items-start flex-1 min-w-0">
+                        <span className={`mr-3 font-mono text-teal-600 dark:text-teal-400 ${isSelected ? 'font-bold' : ''}`}>{index + 1}</span>
+                        <span className="truncate" title={domain.name}>{domain.name}</span>
+                      </div>
+                      <span className={`ml-2 text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-teal-200 dark:bg-teal-500/50 text-teal-800 dark:text-teal-200'
+                          : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200'
+                      }`}>
+                        {controlCount} {controlCount === 1 ? 'Control' : 'Controls'}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+      )}
+    </aside>
+  );
+};

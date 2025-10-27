@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDownIcon } from './Icons';
+import { ChevronDownIcon, GraduationCapIcon } from './Icons';
 
 interface FaqItemProps {
     question: string;
@@ -27,13 +27,27 @@ const FaqItem: React.FC<FaqItemProps> = ({ question, children }) => {
     );
 };
 
+interface HelpSupportPageProps {
+  onStartTour: () => void;
+}
 
-export const HelpSupportPage: React.FC = () => {
+export const HelpSupportPage: React.FC<HelpSupportPageProps> = ({ onStartTour }) => {
     return (
         <div className="max-w-4xl mx-auto space-y-12">
             <div>
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Help & Support Center</h1>
                 <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Find answers to your questions and get in touch with our support team.</p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">Guided Tour</h2>
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                    New to the platform? Let our AI assistant give you a quick tour of the main features to get you started.
+                </p>
+                <button onClick={onStartTour} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+                    <GraduationCapIcon className="w-5 h-5" />
+                    Start AI Guide Tour
+                </button>
             </div>
 
             <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6">

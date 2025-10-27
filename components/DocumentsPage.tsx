@@ -79,7 +79,7 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ doc, company }) => {
     }, [identifierData]);
 
 
-    if (!identifierData) {
+    if (!identifierData && !doc.controlId.startsWith('REPORT-')) { // Allow reports to render without ECC data
         return null;
     }
 
@@ -94,12 +94,14 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ doc, company }) => {
                     </div>
                 </div>
             </div>
-            <div className="border-t dark:border-gray-700 pt-4">
-                <div>
-                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Control Identifier</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{controlIdentifier}</p>
+            {controlIdentifier && (
+                <div className="border-t dark:border-gray-700 pt-4">
+                    <div>
+                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Control Identifier</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{controlIdentifier}</p>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

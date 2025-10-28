@@ -22,7 +22,7 @@ import { TrainingPage } from './components/TrainingPage';
 import { RiskAssessmentPage } from './components/RiskAssessmentPage';
 import { ComplianceAgentPage } from './components/ComplianceAgentPage';
 import { TourGuide } from './components/TourGuide';
-import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon, ExclamationTriangleIcon } from './components/Icons';
+import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, UserCircleIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, ChevronDownIcon, LogoutIcon, LockClosedIcon, DownloadIcon, ExclamationTriangleIcon, QuestionMarkCircleIcon } from './components/Icons';
 import { eccData } from './data/controls';
 import { assessmentData as initialAssessmentData } from './data/assessmentData';
 import { initialPdplAssessmentData } from './data/pdplAssessmentData';
@@ -1505,6 +1505,14 @@ export const App: React.FC = () => {
                                   <DownloadIcon className="w-6 h-6" />
                                 </button>
                             )}
+                             <button
+                                onClick={() => setIsTourOpen(true)}
+                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                                aria-label="Start Guided Tour"
+                                title="Start Guided Tour"
+                            >
+                                <QuestionMarkCircleIcon className="w-6 h-6" />
+                            </button>
                             <button
                                 onClick={toggleTheme}
                                 className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"

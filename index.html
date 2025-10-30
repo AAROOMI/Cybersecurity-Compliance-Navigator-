@@ -18,6 +18,38 @@
         font-family: 'Inter', sans-serif;
       }
       @import url('https://rsms.me/inter/inter.css');
+
+      /* Loading Indicator Styles */
+      #loading-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+      #loading-indicator svg {
+        width: 6rem; /* 96px */
+        height: 6rem; /* 96px */
+        color: #0d9488; /* teal-600 */
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+      #loading-indicator p {
+        margin-top: 1.5rem;
+        font-size: 1.125rem; /* text-lg */
+        font-weight: 600; /* font-semibold */
+        color: #374151; /* text-gray-700 */
+      }
+      .dark #loading-indicator p {
+        color: #d1d5db; /* dark:text-gray-300 */
+      }
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
     </style>
     <script>
       // Prevents flash of incorrect theme
@@ -44,7 +76,22 @@
 </script>
 </head>
   <body class="bg-gray-50 dark:bg-gray-900">
-    <div id="root"></div>
+    <div id="root">
+      <div id="loading-indicator">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3z" />
+        </svg>
+        <p>Loading Cybersecurity Controls Navigator...</p>
+      </div>
+    </div>
     <script type="module" src="/index.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {

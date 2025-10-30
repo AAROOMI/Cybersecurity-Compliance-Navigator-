@@ -1,13 +1,13 @@
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, SparklesIcon, ExclamationTriangleIcon } from './Icons';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, SparklesIcon, ExclamationTriangleIcon, LineChartIcon } from './Icons';
 import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
   domains: Domain[];
   selectedDomain: Domain;
   onSelectDomain: (domain: Domain) => void;
-  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
-  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment') => void;
+  currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
+  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment') => void;
   permissions: Set<Permission>;
 }
 
@@ -185,6 +185,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
+          {permissions.has('cmaAssessment:read') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('cmaAssessment')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'cmaAssessment'
+                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <LineChartIcon className="w-5 h-5 mr-3" />
+                  <span>CMA Assessment</span>
+                </button>
+            </li>
+          )}
           {permissions.has('audit:read') && (
             <li className="mt-2">
               <button
@@ -221,15 +236,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-2 px-2 uppercase tracking-wider">Frameworks</h2>
            <a
-              href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZkvfniZtOCM"
+              href="https://ai.studio/apps/drive/1QccnATP-jWmzFg15L-j0mtHNU3hwRsSD"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
             >
               <span className="flex items-center justify-center w-5 h-5 mr-3 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">1</span>
-              <span>PDPL</span>
+              <span>CMA</span>
             </a>
-             <a
+            <a
               href="https://ai.studio/apps/drive/1Wk8fq8HQryWglhSkPLcKHPn5za-ZwGVP"
               target="_blank"
               rel="noopener noreferrer"
@@ -238,12 +253,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
               <span className="flex items-center justify-center w-5 h-5 mr-3 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">2</span>
               <span>HRSD</span>
             </a>
+           <a
+              href="https://ai.studio/apps/drive/1HM3zXzqtZ6N--AdXXUu3EZkvfniZtOCM"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              <span className="flex items-center justify-center w-5 h-5 mr-3 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">3</span>
+              <span>PDPL</span>
+            </a>
       </div>
 
       {permissions.has('navigator:read') && (
         <div id="sidebar-navigator-header" className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center mb-4 px-2">
-            <span className="flex items-center justify-center w-5 h-5 mr-2 rounded-full bg-gray-200 dark:bg-gray-600 text-xs font-bold text-gray-600 dark:text-gray-200 flex-shrink-0">3</span>
             <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">NCA ECC Control Navigator</h2>
           </div>
           <nav>

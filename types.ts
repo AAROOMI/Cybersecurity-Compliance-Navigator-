@@ -96,6 +96,8 @@ export type Permission =
   | 'pdplAssessment:update'
   | 'samaCsfAssessment:read'
   | 'samaCsfAssessment:update'
+  | 'cmaAssessment:read'
+  | 'cmaAssessment:update'
   | 'userProfile:read'
   | 'userProfile:update'
   | 'help:read'
@@ -142,6 +144,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'pdplAssessment:update',
     'samaCsfAssessment:read',
     'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
     'help:read',
@@ -166,6 +170,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'pdplAssessment:update',
     'samaCsfAssessment:read',
     'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
     'help:read',
@@ -175,9 +181,9 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'riskAssessment:read',
     'riskAssessment:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -191,6 +197,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'pdplAssessment:update',
     'samaCsfAssessment:read',
     'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
     'help:read',
@@ -289,66 +297,22 @@ export interface AssessmentItem {
 }
 
 // --- UPDATED: Training Module ---
-export type ChallengeType = 'multiple-choice' | 'categorization' | 'spot-the-phish' | 'ordering';
-
-export interface MultipleChoiceChallenge {
-  type: 'multiple-choice';
+export interface QuizQuestion {
   question: string;
   options: string[];
   correctAnswer: number; // index
 }
 
-export interface CategorizationItem {
-  id: string;
-  text: string;
-  correctCategory: string;
-}
-
-export interface CategorizationChallenge {
-  type: 'categorization';
-  prompt: string;
-  categories: string[];
-  items: CategorizationItem[];
-}
-
-export interface Hotspot {
-  x: number; // percentage
-  y: number; // percentage
-  width: number; // percentage
-  height: number; // percentage
-  feedback: string;
-}
-
-export interface SpotThePhishChallenge {
-  type: 'spot-the-phish';
-  prompt: string;
-  imageUrl: string;
-  hotspots: Hotspot[];
-}
-
-export interface OrderingItem {
-  id: string;
-  text: string;
-}
-
-export interface OrderingChallenge {
-  type: 'ordering';
-  prompt: string;
-  items: OrderingItem[]; // Must be provided in the correct order
-}
-
-export type Challenge = MultipleChoiceChallenge | CategorizationChallenge | SpotThePhishChallenge | OrderingChallenge;
-
-export interface InteractiveChallenge {
+export interface InteractiveQuiz {
   title: string;
-  items: Challenge[];
+  questions: QuizQuestion[];
 }
 
 export interface Lesson {
   id: string;
   title: string;
   content: string; // Markdown content
-  challenge?: InteractiveChallenge;
+  quiz?: InteractiveQuiz;
 }
 
 export interface TrainingCourse {

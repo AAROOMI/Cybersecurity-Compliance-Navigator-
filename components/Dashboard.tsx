@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
 import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon } from './Icons';
@@ -10,11 +12,12 @@ interface DashboardPageProps {
     currentUser: User;
     allControls: SearchResult[];
     domains: Domain[];
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'riskAssessment') => void;
+    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'riskAssessment') => void;
     trainingProgress?: UserTrainingProgress;
     eccAssessment: AssessmentItem[];
     pdplAssessment: AssessmentItem[];
     samaCsfAssessment: AssessmentItem[];
+    cmaAssessment: AssessmentItem[];
     tasks: Task[];
     setTasks: (updater: React.SetStateAction<Task[]>) => void;
 }
@@ -338,7 +341,7 @@ const FrameworkMeter: React.FC<{
                 </button>
             ) : (
                  <button disabled className="w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 dark:bg-gray-600 cursor-not-allowed">
-                    {disabled ? 'Not Implemented' : 'View Details'}
+                    {disabled ? 'Not Started' : 'View Details'}
                 </button>
             )}
         </div>
@@ -452,7 +455,7 @@ const TaskManager: React.FC<{
     );
 };
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, tasks, setTasks }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, tasks, setTasks }) => {
     const stats = useMemo(() => {
         const approvedCount = repository.filter(doc => doc.status === 'Approved').length;
         const pendingCount = repository.filter(doc => doc.status.startsWith('Pending')).length;
@@ -495,11 +498,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     
     const earnedBadges = useMemo(() => {
         if (!trainingProgress) return [];
-        // FIX: Cast the result of Object.values to the correct type for properties of UserTrainingProgress.
-        // TypeScript infers the values of an object with an index signature as `unknown[]`, so we provide the correct type.
-        type CourseProgress = UserTrainingProgress[string];
-        return (Object.values(trainingProgress) as CourseProgress[])
-            .filter(p => p.badgeEarned)
+        // FIX: Add type assertion to resolve 'unknown' type from Object.values on a potentially empty object.
+        return Object.values(trainingProgress as UserTrainingProgress)
+            .filter((p) => p.badgeEarned)
             .map(p => p.badgeId);
     }, [trainingProgress]);
 
@@ -513,6 +514,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     const eccCompliance = useMemo(() => calculateCompliance(eccAssessment), [eccAssessment]);
     const pdplCompliance = useMemo(() => calculateCompliance(pdplAssessment), [pdplAssessment]);
     const samaCsfCompliance = useMemo(() => calculateCompliance(samaCsfAssessment), [samaCsfAssessment]);
+    const cmaCompliance = useMemo(() => calculateCompliance(cmaAssessment), [cmaAssessment]);
 
     return (
         <div className="space-y-8">
@@ -548,8 +550,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                     />
                     <FrameworkMeter 
                         title="CMA" 
-                        percentage={0} 
-                        disabled={true}
+                        percentage={cmaCompliance} 
+                        onNavigate={() => onSetView('cmaAssessment')}
+                        disabled={false}
                     />
                 </div>
             </div>

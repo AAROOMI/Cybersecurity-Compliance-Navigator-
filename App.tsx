@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { Sidebar } from './components/Sidebar';
@@ -16,6 +18,7 @@ import { MfaVerifyPage } from './components/MfaVerifyPage';
 import { AssessmentPage } from './components/AssessmentPage';
 import { PDPLAssessmentPage } from './components/PDPLAssessmentPage';
 import { SamaCsfAssessmentPage } from './components/SamaCsfAssessmentPage';
+import { CMAAssessmentPage } from './components/CMAAssessmentPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { HelpSupportPage } from './components/HelpSupportPage';
 import { TrainingPage } from './components/TrainingPage';
@@ -27,6 +30,7 @@ import { eccData } from './data/controls';
 import { assessmentData as initialAssessmentData } from './data/assessmentData';
 import { initialPdplAssessmentData } from './data/pdplAssessmentData';
 import { samaCsfAssessmentData as initialSamaCsfAssessmentData } from './data/samaCsfAssessmentData';
+import { cmaAssessmentData as initialCmaAssessmentData } from './data/cmaAssessmentData';
 import { trainingCourses } from './data/trainingData';
 import type { Domain, Control, Subdomain, SearchResult, ChatMessage, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, AgentLogEntry, ComplianceGap } from './types';
 import { rolePermissions } from './types';
@@ -49,6 +53,7 @@ type CompanyData = {
   eccAssessment?: AssessmentItem[];
   pdplAssessment?: AssessmentItem[];
   samaCsfAssessment?: AssessmentItem[];
+  cmaAssessment?: AssessmentItem[];
   assessmentStatuses?: AssessmentStatuses;
   trainingProgress?: UserTrainingProgress;
   tasks?: Task[];
@@ -70,6 +75,7 @@ interface AssessmentStatuses {
     ecc: 'idle' | 'in-progress';
     pdpl: 'idle' | 'in-progress';
     sama: 'idle' | 'in-progress';
+    cma: 'idle' | 'in-progress';
 }
 
 // --- Inactivity Timeout Constants ---
@@ -165,11 +171,10 @@ const LicenseWall: React.FC<{
   );
 };
 
-type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
+type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'complianceAgent' | 'riskAssessment';
 
 
-// FIX: Export App component to be used in index.tsx
-export const App: React.FC = () => {
+const App: React.FC = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<Domain>(eccData[0]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -237,7 +242,8 @@ export const App: React.FC = () => {
   const eccAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.eccAssessment || initialAssessmentData, [allCompanyData, currentCompanyId]);
   const pdplAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.pdplAssessment || initialPdplAssessmentData, [allCompanyData, currentCompanyId]);
   const samaCsfAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.samaCsfAssessment || initialSamaCsfAssessmentData, [allCompanyData, currentCompanyId]);
-  const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }, [allCompanyData, currentCompanyId]);
+  const cmaAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.cmaAssessment || initialCmaAssessmentData, [allCompanyData, currentCompanyId]);
+  const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' }, [allCompanyData, currentCompanyId]);
   const trainingProgress = useMemo(() => allCompanyData[currentCompanyId || '']?.trainingProgress || {}, [allCompanyData, currentCompanyId]);
   const tasks = useMemo(() => allCompanyData[currentCompanyId || '']?.tasks || [], [allCompanyData, currentCompanyId]);
   const agentLog = useMemo(() => allCompanyData[currentCompanyId || '']?.agentLog || [], [allCompanyData, currentCompanyId]);
@@ -429,7 +435,8 @@ export const App: React.FC = () => {
                 eccAssessment: initialAssessmentData,
                 pdplAssessment: initialPdplAssessmentData,
                 samaCsfAssessment: initialSamaCsfAssessmentData,
-                assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+                cmaAssessment: initialCmaAssessmentData,
+                assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' },
                 trainingProgress: {},
                 tasks: [],
                 agentLog: [],
@@ -468,7 +475,8 @@ export const App: React.FC = () => {
                     eccAssessment: parsedData.eccAssessment || initialAssessmentData,
                     pdplAssessment: parsedData.pdplAssessment || initialPdplAssessmentData,
                     samaCsfAssessment: parsedData.samaCsfAssessment || initialSamaCsfAssessmentData,
-                    assessmentStatuses: parsedData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+                    cmaAssessment: parsedData.cmaAssessment || initialCmaAssessmentData,
+                    assessmentStatuses: parsedData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' },
                     trainingProgress: parsedData.trainingProgress || {},
                     tasks: parsedData.tasks || [],
                     agentLog: parsedData.agentLog || [],
@@ -530,6 +538,7 @@ export const App: React.FC = () => {
             case 'ecc': sourceData = initialAssessmentData; break;
             case 'pdpl': sourceData = initialPdplAssessmentData; break;
             case 'sama': sourceData = initialSamaCsfAssessmentData; break;
+            case 'cma': sourceData = initialCmaAssessmentData; break;
             default: return;
         }
 
@@ -546,13 +555,13 @@ export const App: React.FC = () => {
         setAllCompanyData(prev => {
             const currentData = prev[currentCompanyId!];
             if (!currentData) return prev;
-            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : type === 'sama' ? 'samaCsfAssessment' : 'cmaAssessment';
             return {
                 ...prev,
                 [currentCompanyId!]: {
                     ...currentData,
                     [key]: resetData,
-                    assessmentStatuses: { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }), [type]: 'in-progress' }
+                    assessmentStatuses: { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' }), [type]: 'in-progress' }
                 }
             };
         });
@@ -565,7 +574,7 @@ export const App: React.FC = () => {
         const currentData = allCompanyData[currentCompanyId];
         if (!currentData) return;
 
-        const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+        const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : type === 'sama' ? 'samaCsfAssessment' : 'cmaAssessment';
         const assessmentToReport = currentData[key];
         const assessmentName = type.toUpperCase();
 
@@ -616,7 +625,7 @@ export const App: React.FC = () => {
                 ...prev,
                 [currentCompanyId]: {
                     ...updatedCurrentData,
-                    assessmentStatuses: { ...(updatedCurrentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle' }), [type]: 'idle' }
+                    assessmentStatuses: { ...(updatedCurrentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' }), [type]: 'idle' }
                 }
             };
         });
@@ -627,9 +636,7 @@ export const App: React.FC = () => {
         
         setAllCompanyData(prev => {
             const currentData = prev[currentCompanyId];
-            // FIX: Add a guard to prevent spreading an undefined `currentData` object.
-            if (!currentData) return prev;
-            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : 'samaCsfAssessment';
+            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : type === 'sama' ? 'samaCsfAssessment' : 'cmaAssessment';
             const currentAssessmentData = currentData[key] || [];
 
             const newData = currentAssessmentData.map(item => 
@@ -722,7 +729,8 @@ export const App: React.FC = () => {
               eccAssessment: initialAssessmentData,
               pdplAssessment: initialPdplAssessmentData,
               samaCsfAssessment: initialSamaCsfAssessmentData,
-              assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle' },
+              cmaAssessment: initialCmaAssessmentData,
+              assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle' },
               trainingProgress: {},
               tasks: [],
               agentLog: [],
@@ -1073,420 +1081,266 @@ export const App: React.FC = () => {
     return { success: true, message: "Password changed successfully." };
   };
 
-  const handleEnableMfaRequest = () => {
-      if (!currentUser || !currentCompanyId) return;
-
-      // Simulate generating a TOTP secret
-      const secret = 'MFRGGZDFMZTWQ2LKNNWG23TPOBYXEYLTMUXWGY3MMUXGG33NM1TGGZBTMFRGY2DF'; // A sample base32 secret for demo
-      
-      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
-          u.id === currentUser.id ? { ...u, mfaSecret: secret, mfaEnabled: false } : u // set secret but not enabled yet
-      ));
-      
-      const updatedUserForMfa = { ...currentUser, mfaSecret: secret, mfaEnabled: false };
-      setMfaSetupUser(updatedUserForMfa);
-      setCurrentView('mfaSetup');
-  };
-
-  const handleVerifyMfaSetup = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
-      if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
-        return { success: false, message: 'Invalid code format. Please enter a 6-digit code.' };
-      }
-      // In a real app, you would verify the code against the secret. Here we simulate success for any 6-digit code.
-      
-      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
-          u.id === userId ? { ...u, mfaEnabled: true } : u
-      ));
-      
-      addAuditLog('MFA_ENABLED', `User ${currentUser?.name} enabled MFA.`);
-      addNotification('Multi-Factor Authentication enabled successfully!', 'success');
-      
-      // Exit MFA setup flow
-      setMfaSetupUser(null);
-      setCurrentView('userProfile');
-      return { success: true };
-  };
-
-  const handleDisableMfa = async (password: string): Promise<{ success: boolean; message: string }> => {
-      if (!currentUser || currentUser.password !== password) {
-          return { success: false, message: 'Incorrect password.' };
-      }
-      
-      setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
-          u.id === currentUser.id ? { ...u, mfaEnabled: false, mfaSecret: undefined } : u
-      ));
-
-      addAuditLog('MFA_DISABLED', `User ${currentUser.name} disabled MFA.`);
-      addNotification('Multi-Factor Authentication has been disabled.', 'success');
-      return { success: true, message: 'MFA disabled.' };
-  };
-
-  const handleLogout = useCallback(() => {
-    if (session) {
-        addAuditLog('USER_LOGOUT', `User ${session.user.name} logged out.`);
-    }
-    setSession(null);
-    setMfaUserToVerify(null);
-    setIsIdleWarningVisible(false); // Reset warning on logout
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-  }, [session, addAuditLog]);
-
-    // Inactivity timeout logic
-  const resetIdleTimers = useCallback(() => {
-    if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
-    if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-
-    if (session) {
-        warningTimerRef.current = window.setTimeout(() => {
-            setIsIdleWarningVisible(true);
-        }, IDLE_TIMEOUT_MS - WARNING_DURATION_MS);
-
-        logoutTimerRef.current = window.setTimeout(() => {
-            handleLogout();
-        }, IDLE_TIMEOUT_MS);
-    }
-  }, [session, handleLogout]);
-
-  useEffect(() => {
-    const events = ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart'];
-    const reset = () => resetIdleTimers();
-    events.forEach(event => window.addEventListener(event, reset));
-    resetIdleTimers();
-
-    return () => {
-        events.forEach(event => window.removeEventListener(event, reset));
+  // --- LOGIN & SESSION HANDLERS ---
+    const handleLogout = useCallback(() => {
+        if (session) {
+            addAuditLog('USER_LOGOUT', `User ${session.user.name} logged out.`);
+        }
+        setSession(null);
+        setCurrentView('dashboard');
+        setMfaUserToVerify(null);
         if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
         if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
-    };
-  }, [resetIdleTimers]);
+        setIsIdleWarningVisible(false);
+    }, [session, addAuditLog]);
 
-  useEffect(() => {
-    let interval: number | null = null;
-    if (isIdleWarningVisible) {
-        setCountdown(WARNING_DURATION_MS / 1000);
-        interval = window.setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) {
-                    if (interval) clearInterval(interval);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    }
-    return () => {
-        if (interval) clearInterval(interval);
-    };
-  }, [isIdleWarningVisible]);
-
-  // Authentication Handlers
-  const handleLogin = async (email: string, password: string): Promise<{error: string, code?: string} | null> => {
-    let user: User | undefined;
-    let companyId: string | undefined;
-
-    for (const cid of Object.keys(allCompanyData)) {
-        const companyUsers = allCompanyData[cid].users;
-        const foundUser = companyUsers.find(u => u.email === email);
-        if (foundUser) {
-            user = foundUser;
-            companyId = cid;
-            break;
-        }
-    }
-
-    if (user && user.password === password) {
-        if (!user.isVerified) {
-            return { error: 'Your account has not been verified. Please check your email.', code: 'unverified' };
+    const handleLogin = async (email: string, password: string): Promise<{error: string, code?: string} | null> => {
+        const companyId = companies.find(c => allCompanyData[c.id]?.users.some(u => u.email.toLowerCase() === email.toLowerCase()))?.id;
+        if (!companyId) {
+            return { error: "Invalid email or password." };
         }
         
-        const isExpired = user.accessExpiresAt && user.accessExpiresAt < Date.now();
-        if (isExpired) {
-             return { error: 'Your access has expired. Please contact an administrator.' };
-        }
+        const companyUsers = allCompanyData[companyId].users;
+        const user = companyUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
 
+        if (!user || user.password !== password) {
+            return { error: "Invalid email or password." };
+        }
+        
+        if (!user.isVerified) {
+            return { error: "Your account is not verified. A new verification email has been sent.", code: 'unverified' };
+        }
+        
         if (user.mfaEnabled) {
             setMfaUserToVerify(user);
-            return null; // Proceed to MFA verification
-        }
-
-        if (companyId) {
-            setSession({ user, companyId });
-            addAuditLog('USER_LOGIN', `User ${user.name} logged in successfully.`);
             return null;
         }
-    }
-    return { error: 'Invalid email or password.' };
-  };
-  
-  const handleMfaLoginVerify = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
-    // In a real app, you'd verify the TOTP code. Here we'll just simulate success for any 6-digit code.
-    if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
-         return { success: false, message: 'Invalid code format. Please enter a 6-digit code.' };
-    }
-    
-    const user = mfaUserToVerify;
-    if (user && user.id === userId) {
-        let companyId: string | undefined;
-        for (const cid of Object.keys(allCompanyData)) {
-            if (allCompanyData[cid].users.some(u => u.id === userId)) {
-                companyId = cid;
-                break;
-            }
-        }
-        if (companyId) {
-            setSession({ user, companyId });
-            // Cannot call addAuditLog here as session is not set yet for it. It will be called after session is set.
-            // Let's modify addAuditLog to not depend on session state directly but passed arguments
-            
-            const newLogEntry: AuditLogEntry = {
-              id: `log-${Date.now()}`,
-              timestamp: Date.now(),
-              userId: user.id,
-              userName: user.name,
-              action: 'USER_LOGIN',
-              details: `User ${user.name} logged in successfully via MFA.`
-            };
-            setAllCompanyData(prev => ({
-              ...prev,
-              [companyId!]: {
-                ...prev[companyId!],
-                auditLog: [newLogEntry, ...(prev[companyId!]?.auditLog || [])]
-              }
-            }));
 
+        setSession({ user, companyId });
+        addAuditLog('USER_LOGIN', `User ${user.name} logged in successfully.`);
+        setCurrentView('dashboard');
+        return null;
+    };
+
+    const handleVerifyUser = (email: string): boolean => {
+        const companyId = companies.find(c => allCompanyData[c.id]?.users.some(u => u.email.toLowerCase() === email.toLowerCase()))?.id;
+        if (companyId) {
+            setAllCompanyData(prev => {
+                const companyData = prev[companyId];
+                const updatedUsers = companyData.users.map(u => 
+                    u.email.toLowerCase() === email.toLowerCase() ? { ...u, isVerified: true } : u
+                );
+                return { ...prev, [companyId]: { ...companyData, users: updatedUsers } };
+            });
+            addNotification('Email verified successfully! You can now log in.', 'success');
+            return true;
+        }
+        return false;
+    };
+
+    // --- FORGOT/RESET PASSWORD HANDLERS ---
+    const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string; token?: string }> => {
+        const companyId = companies.find(c => allCompanyData[c.id]?.users.some(u => u.email.toLowerCase() === email.toLowerCase()))?.id;
+        if (!companyId) {
+            return { success: false, message: "No account found with that email address." };
+        }
+
+        const token = `reset-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+        const expires = Date.now() + 3600000; // 1 hour
+
+        setAllCompanyData(prev => {
+            const companyData = prev[companyId];
+            const updatedUsers = companyData.users.map(u => 
+                u.email.toLowerCase() === email.toLowerCase() ? { ...u, passwordResetToken: token, passwordResetExpires: expires } : u
+            );
+            return { ...prev, [companyId]: { ...companyData, users: updatedUsers } };
+        });
+
+        addAuditLog('PASSWORD_RESET_REQUESTED', `Password reset requested for ${email}.`);
+        
+        return { success: true, message: "A password reset token has been generated. In a real app, this would be emailed to you. Please copy the token below to proceed.", token };
+    };
+
+    const handleResetPassword = async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+        const companyId = companies.find(c => allCompanyData[c.id]?.users.some(u => u.passwordResetToken === token))?.id;
+        if (!companyId) {
+            return { success: false, message: "Invalid or expired reset token." };
+        }
+        
+        const user = allCompanyData[companyId].users.find(u => u.passwordResetToken === token);
+        
+        if (!user || (user.passwordResetExpires && user.passwordResetExpires < Date.now())) {
+            return { success: false, message: "Invalid or expired reset token." };
+        }
+
+        setAllCompanyData(prev => {
+            const companyData = prev[companyId];
+            const updatedUsers = companyData.users.map(u => 
+                u.id === user.id ? { ...u, password: newPassword, passwordResetToken: undefined, passwordResetExpires: undefined } : u
+            );
+            return { ...prev, [companyId]: { ...companyData, users: updatedUsers } };
+        });
+
+        addAuditLog('PASSWORD_RESET_COMPLETED', `Password was reset for ${user.email}.`);
+        return { success: true, message: "Password reset successfully! You will be redirected to the login page." };
+    };
+
+    // --- MFA HANDLERS ---
+    const handleEnableMfa = () => {
+        if (!currentUser || !currentCompanyId) return;
+        const mockSecret = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.split('').sort(() => 0.5 - Math.random()).join('').substring(0, 16);
+        const userWithSecret = { ...currentUser, mfaSecret: mockSecret };
+        setMfaSetupUser(userWithSecret);
+    };
+
+    const handleDisableMfa = async (password: string): Promise<{ success: boolean; message: string }> => {
+        if (!currentUser || !currentCompanyId || currentUser.password !== password) {
+            return { success: false, message: "Incorrect password." };
+        }
+        setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+            u.id === currentUser.id ? { ...u, mfaEnabled: false, mfaSecret: undefined } : u
+        ));
+        addAuditLog('MFA_DISABLED', `MFA was disabled for user ${currentUser.name}.`);
+        addNotification('Multi-Factor Authentication disabled successfully.', 'success');
+        return { success: true, message: 'MFA Disabled.' };
+    };
+
+    const handleMfaSetupVerified = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
+        if (mfaSetupUser && mfaSetupUser.id === userId && /^\d{6}$/.test(verificationCode)) {
+            setUsersForCurrentCompany(prevUsers => prevUsers.map(u =>
+                u.id === userId ? { ...u, mfaEnabled: true, mfaSecret: mfaSetupUser.mfaSecret } : u
+            ));
+            addAuditLog('MFA_ENABLED', `MFA was enabled for user ${mfaSetupUser.name}.`);
+            addNotification('MFA enabled successfully!', 'success');
+            setMfaSetupUser(null);
+            return { success: true };
+        }
+        return { success: false, message: 'Invalid verification code.' };
+    };
+
+    const handleMfaVerify = async (userId: string, verificationCode: string): Promise<{ success: boolean; message?: string }> => {
+        if (mfaUserToVerify && mfaUserToVerify.id === userId && /^\d{6}$/.test(verificationCode)) {
+            const companyId = companies.find(c => allCompanyData[c.id]?.users.some(u => u.id === userId))!.id;
+            setSession({ user: mfaUserToVerify, companyId });
+            addAuditLog('USER_LOGIN', `User ${mfaUserToVerify.name} logged in successfully via MFA.`);
             setMfaUserToVerify(null);
             return { success: true };
         }
-    }
-    return { success: false, message: 'Verification failed.' };
-  };
-  
-  const handleVerifyUser = (email: string): boolean => {
-    let userFound = false;
-    setAllCompanyData(prevData => {
-      const newData = { ...prevData };
-      for (const companyId in newData) {
-        const users = newData[companyId].users;
-        const userIndex = users.findIndex(u => u.email === email && !u.isVerified);
-        if (userIndex !== -1) {
-          users[userIndex] = { ...users[userIndex], isVerified: true };
-          newData[companyId] = { ...newData[companyId], users: [...users] };
-          userFound = true;
-          break; 
-        }
-      }
-      return newData;
-    });
-    if (userFound) {
-      addNotification('Your account has been verified! You can now log in.', 'success');
-    }
-    return userFound;
-  };
-  
-  const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string; token?: string }> => {
-    let user: User | undefined;
-    let userCompanyId: string | undefined;
+        return { success: false, message: 'Invalid verification code.' };
+    };
 
-    for (const companyId of Object.keys(allCompanyData)) {
-         const foundUser = allCompanyData[companyId].users.find(u => u.email === email);
-         if (foundUser) {
-             user = foundUser;
-             userCompanyId = companyId;
-             break;
-         }
-    }
+    // --- INACTIVITY TIMEOUT LOGIC ---
+    const resetIdleTimers = useCallback(() => {
+        if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+        if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+        setIsIdleWarningVisible(false);
 
-    if (user && userCompanyId) {
-        const token = `reset-${Date.now()}`; // Mock token
-        const expires = Date.now() + 3600000; // 1 hour
-        
-        setAllCompanyData(prev => ({
-            ...prev,
-            [userCompanyId!]: {
-                ...prev[userCompanyId!],
-                users: prev[userCompanyId!].users.map(u => u.id === user!.id ? {...u, passwordResetToken: token, passwordResetExpires: expires} : u)
+        if (session) {
+        warningTimerRef.current = window.setTimeout(() => {
+            setIsIdleWarningVisible(true);
+            let countdownValue = WARNING_DURATION_MS / 1000;
+            setCountdown(countdownValue);
+            const intervalId = setInterval(() => {
+            countdownValue -= 1;
+            setCountdown(countdownValue);
+            if (countdownValue <= 0) {
+                clearInterval(intervalId);
             }
-        }));
+            }, 1000);
+        }, IDLE_TIMEOUT_MS - WARNING_DURATION_MS);
 
-        // Cannot call addAuditLog here.
-        return { success: true, message: "For demonstration, your reset token is provided below. In a real app, this would be emailed.", token };
-    }
-    return { success: false, message: "No account found with that email address." };
-  };
-
-  const handleResetPassword = async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-    let user: User | undefined;
-    let userCompanyId: string | undefined;
-
-    for (const companyId of Object.keys(allCompanyData)) {
-         const foundUser = allCompanyData[companyId].users.find(u => u.passwordResetToken === token && u.passwordResetExpires && u.passwordResetExpires > Date.now());
-         if (foundUser) {
-             user = foundUser;
-             userCompanyId = companyId;
-             break;
-         }
-    }
-    
-    if (user && userCompanyId) {
-         setAllCompanyData(prev => ({
-            ...prev,
-            [userCompanyId!]: {
-                ...prev[userCompanyId!],
-                users: prev[userCompanyId!].users.map(u => u.id === user!.id ? {...u, password: newPassword, passwordResetToken: undefined, passwordResetExpires: undefined} : u)
-            }
-        }));
-        // Cannot call addAuditLog here.
-        return { success: true, message: "Password reset successfully! You can now log in." };
-    }
-
-    return { success: false, message: "Invalid or expired reset token." };
-  };
-
-
-  const renderMainContent = () => {
-    if (!session) {
-      if (mfaUserToVerify) {
-        return (
-          <MfaVerifyPage
-            user={mfaUserToVerify}
-            onVerify={handleMfaLoginVerify}
-            onCancel={handleLogout}
-            theme={theme}
-            toggleTheme={toggleTheme}
-          />
-        );
-      }
-
-      if (viewForNoSession === 'login') {
-        return (
-          <LoginPage
-            onLogin={handleLogin}
-            theme={theme}
-            toggleTheme={toggleTheme}
-            onSetupCompany={() => setViewForNoSession('setup')}
-            onVerify={handleVerifyUser}
-            onForgotPassword={handleForgotPassword}
-            onResetPassword={handleResetPassword}
-          />
-        );
-      } else { // 'setup'
-        return (
-          <CompanySetupPage
-            onSetup={handleCompanySetup}
-            onCancel={() => setViewForNoSession('login')}
-            theme={theme}
-            toggleTheme={toggleTheme}
-          />
-        );
-      }
-    }
-    
-    // Logged-in view
-    const mainContent = () => {
-        if (!isLicensed && currentView !== 'companyProfile') {
-            return (
-                 <LicenseWall 
-                    currentUser={currentUser}
-                    onGoToProfile={() => setCurrentView('companyProfile')}
-                    permissions={currentUserPermissions}
-                />
-            );
+        logoutTimerRef.current = window.setTimeout(handleLogout, IDLE_TIMEOUT_MS);
         }
+    }, [session, handleLogout]);
 
-        if (isContentViewLoading) return <ContentViewSkeleton />;
+    useEffect(() => {
+        const events = ['mousemove', 'keydown', 'mousedown', 'touchstart'];
+        events.forEach(event => window.addEventListener(event, resetIdleTimers));
+        resetIdleTimers();
 
-        switch (currentView) {
-            case 'dashboard':
-                return <DashboardPage
-                    repository={documentRepository}
-                    currentUser={currentUser!}
-                    allControls={allControls}
-                    domains={eccData}
-                    onSetView={setCurrentView}
-                    trainingProgress={trainingProgress}
-                    eccAssessment={eccAssessment}
-                    pdplAssessment={pdplAssessment}
-                    samaCsfAssessment={samaCsfAssessment}
-                    tasks={tasks}
-                    setTasks={setTasksForCurrentCompany}
-                />;
-            case 'navigator':
-                return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={setCurrentView} />;
-            case 'documents':
-                 return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
-            case 'users':
-                return <UserManagementPage users={users} setUsers={setUsersForCurrentCompany} currentUser={currentUser!} addNotification={addNotification} addAuditLog={addAuditLog} />;
-            case 'companyProfile':
-                return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} />;
-            case 'auditLog':
-                 return <AuditLogPage auditLog={auditLog} />;
-            case 'riskAssessment':
-                return <RiskAssessmentPage />;
-            case 'assessment':
-                return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('ecc', code, item)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={setCurrentView} />;
-            case 'pdplAssessment':
-                 return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('pdpl', code, item)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} />;
-            case 'samaCsfAssessment':
-                return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(code, item) => handleUpdateAssessmentItem('sama', code, item)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} />;
-            case 'userProfile':
-                return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfaRequest} onDisableMfa={handleDisableMfa} />;
-            case 'mfaSetup':
-                 if (!mfaSetupUser) {
-                    setCurrentView('userProfile'); // Should not happen, redirect
-                    return null;
-                }
-                return <MfaSetupPage user={mfaSetupUser} companyName={currentCompany?.name || 'Your Company'} onVerified={handleVerifyMfaSetup} onCancel={() => { setMfaSetupUser(null); setCurrentView('userProfile'); }} theme={theme} toggleTheme={toggleTheme} />;
-            case 'help':
-                return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
-            case 'training':
-                return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
-            case 'complianceAgent':
-                return <ComplianceAgentPage onRunAnalysis={handleRunAnalysis} onGenerateDocuments={handleGenerateDocuments} agentLog={agentLog} permissions={currentUserPermissions} />;
-            default:
-                return <div>Not Found</div>;
+        return () => {
+        events.forEach(event => window.removeEventListener(event, resetIdleTimers));
+        if (warningTimerRef.current) clearTimeout(warningTimerRef.current);
+        if (logoutTimerRef.current) clearTimeout(logoutTimerRef.current);
+        };
+    }, [resetIdleTimers]);
+    
+    // --- MAIN RENDER LOGIC ---
+    const handleSetView = (view: View) => {
+        setCurrentView(view);
+        if (view !== 'navigator') {
+            setActiveControlId(null);
         }
     };
     
+    const renderView = () => {
+        if (!isLicensed) {
+            return <LicenseWall currentUser={currentUser} onGoToProfile={() => handleSetView('companyProfile')} permissions={currentUserPermissions} />;
+        }
+        if (isContentViewLoading) {
+            return <ContentViewSkeleton />;
+        }
+        switch (currentView) {
+            case 'dashboard': return <DashboardPage repository={documentRepository} currentUser={currentUser!} allControls={allControls} domains={eccData} onSetView={handleSetView} trainingProgress={trainingProgress} eccAssessment={eccAssessment} pdplAssessment={pdplAssessment} samaCsfAssessment={samaCsfAssessment} cmaAssessment={cmaAssessment} tasks={tasks} setTasks={setTasksForCurrentCompany} />;
+            case 'navigator': return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={handleSetView} />;
+            case 'documents': return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
+            case 'users': return <UserManagementPage users={users} setUsers={setUsersForCurrentCompany} currentUser={currentUser!} addNotification={addNotification} addAuditLog={addAuditLog} />;
+            case 'companyProfile': return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} />;
+            case 'auditLog': return <AuditLogPage auditLog={auditLog} />;
+            case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView} />;
+            case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} />;
+            case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} />;
+            case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} />;
+            case 'userProfile': return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfa} onDisableMfa={handleDisableMfa} />;
+            case 'help': return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
+            case 'training': return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
+            case 'complianceAgent': return <ComplianceAgentPage onRunAnalysis={handleRunAnalysis} onGenerateDocuments={handleGenerateDocuments} agentLog={agentLog} permissions={currentUserPermissions} />;
+            case 'riskAssessment': return <RiskAssessmentPage />;
+            default: return <div>View not found</div>;
+        }
+    };
+    
+    if (!session) {
+        if (viewForNoSession === 'setup') {
+            return <CompanySetupPage onSetup={handleCompanySetup} onCancel={() => setViewForNoSession('login')} theme={theme} toggleTheme={toggleTheme} />;
+        }
+        return <LoginPage onLogin={handleLogin} theme={theme} toggleTheme={toggleTheme} onSetupCompany={() => setViewForNoSession('setup')} onVerify={handleVerifyUser} onForgotPassword={handleForgotPassword} onResetPassword={handleResetPassword} />;
+    }
+
+    if (mfaUserToVerify) {
+        return <MfaVerifyPage user={mfaUserToVerify} onVerify={handleMfaVerify} onCancel={handleLogout} theme={theme} toggleTheme={toggleTheme} />;
+    }
+
+    if (mfaSetupUser) {
+        return <MfaSetupPage user={mfaSetupUser} companyName={currentCompany?.name || ''} onVerified={handleMfaSetupVerified} onCancel={() => setMfaSetupUser(null)} theme={theme} toggleTheme={toggleTheme} />;
+    }
+
     return (
-        <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-            <Sidebar
-                domains={eccData}
-                selectedDomain={selectedDomain}
-                onSelectDomain={handleSelectDomain}
-                currentView={currentView}
-                onSetView={setCurrentView}
-                permissions={currentUserPermissions}
-            />
-            <div className="flex-1 flex flex-col overflow-hidden">
-                <header className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center flex-1 min-w-0">
-                            <div className="relative w-full max-w-xl">
+        <>
+            <div className="flex h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans">
+                <Sidebar domains={eccData} selectedDomain={selectedDomain} onSelectDomain={handleSelectDomain} currentView={currentView} onSetView={handleSetView} permissions={currentUserPermissions} />
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <header className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center justify-between p-4 h-16">
+                            <div className="relative w-full max-w-md">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <SearchIcon className="h-5 w-5 text-gray-400" />
                                 </div>
-                                <input
-                                    id="header-search-input"
-                                    type="text"
-                                    placeholder="Search for controls (e.g., 1.5.1)"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onFocus={() => setIsSearchFocused(true)}
-                                    onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                                />
+                                <input id="header-search-input" type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setIsSearchFocused(true)} onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)} placeholder="Search for a control..." className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-teal-500 focus:border-teal-500 sm:text-sm" />
                                 {isSearchFocused && searchResults.length > 0 && (
-                                    <div className="absolute mt-2 w-full rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-600 ring-opacity-5 z-10">
+                                    <div className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
                                         <ul>
                                             {searchResults.map((result) => (
-                                                <li key={result.control.id} onMouseDown={() => handleResultClick(result)} className="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-4 border-b border-gray-200 dark:border-gray-600 last:border-b-0">
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-100">{result.control.id}</p>
-                                                            <p className="text-sm text-gray-600 dark:text-gray-300">{highlightText(result.control.description, debouncedSearchQuery)}</p>
-                                                        </div>
-                                                        <ArrowUpRightIcon className="w-5 h-5 text-gray-400 ml-4" />
+                                                <li key={result.control.id} onMouseDown={() => handleResultClick(result)} className="p-4 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700/50">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="font-semibold text-teal-600 dark:text-teal-400 font-mono text-sm">{result.control.id}</div>
+                                                        <ArrowUpRightIcon className="w-4 h-4 text-gray-400" />
+                                                    </div>
+                                                    <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                                                        {highlightText(result.control.description, debouncedSearchQuery)}
+                                                    </div>
+                                                    <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                                                        {result.domain.name} &gt; {result.subdomain.title}
                                                     </div>
                                                 </li>
                                             ))}
@@ -1494,133 +1348,100 @@ export const App: React.FC = () => {
                                     </div>
                                 )}
                             </div>
-                        </div>
-                        <div className="flex items-center ml-6">
-                            {installPrompt && !isStandalone && (
-                                <button
-                                  onClick={handleInstallClick}
-                                  className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-                                  title="Install to Desktop"
-                                >
-                                  <DownloadIcon className="w-6 h-6" />
+                            <div className="flex items-center space-x-4">
+                                <button onClick={toggleTheme} className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
                                 </button>
-                            )}
-                             <button
-                                onClick={() => setIsTourOpen(true)}
-                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-                                aria-label="Start Guided Tour"
-                                title="Start Guided Tour"
-                            >
-                                <QuestionMarkCircleIcon className="w-6 h-6" />
-                            </button>
-                            <button
-                                onClick={toggleTheme}
-                                className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
-                                aria-label="Toggle theme"
-                            >
-                                {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
-                            </button>
-                             <div className="ml-4 flex items-center">
-                                <UserCircleIcon className="w-6 h-6 text-gray-500" />
-                                <div className="ml-2 text-sm">
-                                    <p className="font-semibold text-gray-800 dark:text-gray-200">{currentUser?.name}</p>
-                                    <p className="text-gray-600 dark:text-gray-400">{currentUser?.role}</p>
+                                {installPrompt && !isStandalone && (
+                                    <button onClick={handleInstallClick} title="Install to Desktop" className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        <DownloadIcon className="w-6 h-6" />
+                                    </button>
+                                )}
+                                <div className="relative">
+                                    <UserCircleIcon className="w-8 h-8 text-gray-500" />
+                                    <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-gray-800" />
                                 </div>
-                            </div>
-                             <button onClick={handleLogout} className="ml-4 p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none" aria-label="Sign Out">
-                                <LogoutIcon className="w-6 h-6" />
-                            </button>
-                        </div>
-                    </div>
-                </header>
-                <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-                    {mainContent()}
-                </main>
-            </div>
-             <LiveAssistantWidget isOpen={isAssistantOpen} onToggle={() => setIsAssistantOpen(!isAssistantOpen)} onNavigate={(view) => { setCurrentView(view); setIsAssistantOpen(false); }} />
-        </div>
-    );
-  };
-  
-    return (
-        <>
-            {session && <TourGuide steps={tourSteps} isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />}
-            {/* Notification container */}
-            <div aria-live="assertive" className="fixed inset-0 flex items-end px-4 py-6 pointer-events-none sm:p-6 sm:items-start z-[100]">
-                <div className="w-full flex flex-col items-center space-y-4 sm:items-end">
-                    {notifications.map(notification => (
-                        <div key={notification.id} className="max-w-sm w-full bg-white dark:bg-gray-800 shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border border-gray-200 dark:border-gray-700">
-                            <div className="p-4">
-                                <div className="flex items-start">
-                                    <div className="flex-shrink-0">
-                                        {notification.type === 'success' ? (
-                                            <CheckCircleIcon className="h-6 w-6 text-green-400" />
-                                        ) : (
-                                            <InformationCircleIcon className="h-6 w-6 text-blue-400" />
-                                        )}
-                                    </div>
-                                    <div className="ml-3 w-0 flex-1 pt-0.5">
-                                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{notification.message}</p>
-                                    </div>
-                                    <div className="ml-4 flex-shrink-0 flex">
-                                        <button onClick={() => removeNotification(notification.id)} className="inline-flex text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300">
-                                            <span className="sr-only">Close</span>
-                                            <CloseIcon className="h-5 w-5" />
-                                        </button>
-                                    </div>
+                                <div>
+                                    <div className="text-sm font-semibold text-gray-800 dark:text-gray-200">{currentUser.name}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">{currentUser.role}</div>
                                 </div>
+                                <button onClick={handleLogout} title="Sign Out" className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <LogoutIcon className="w-6 h-6" />
+                                </button>
                             </div>
                         </div>
-                    ))}
+                    </header>
+                    <main className="flex-1 overflow-y-auto p-6 md:p-8">
+                        {renderView()}
+                    </main>
                 </div>
+            </div>
+            
+            {/* Global Overlays */}
+            <LiveAssistantWidget isOpen={isAssistantOpen} onToggle={() => setIsAssistantOpen(!isAssistantOpen)} onNavigate={(view) => { handleSetView(view as View); setIsAssistantOpen(false); }} />
+            <TourGuide isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} steps={tourSteps} />
+            
+            <div className="fixed top-5 right-5 z-[200] space-y-3">
+                {notifications.map(n => (
+                    <div key={n.id} className={`flex items-start p-4 rounded-lg shadow-lg border animate-fade-in-down ${n.type === 'success' ? 'bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700'}`}>
+                        {n.type === 'success' ? <CheckCircleIcon className="w-6 h-6 text-green-500" /> : <InformationCircleIcon className="w-6 h-6 text-blue-500" />}
+                        <div className="ml-3 flex-1">
+                            <p className={`text-sm font-medium ${n.type === 'success' ? 'text-green-800 dark:text-green-100' : 'text-blue-800 dark:text-blue-100'}`}>{n.message}</p>
+                        </div>
+                        <button onClick={() => removeNotification(n.id)} className="ml-4 p-1 rounded-full hover:bg-black/10">
+                            <CloseIcon className="w-4 h-4 text-gray-500" />
+                        </button>
+                    </div>
+                ))}
             </div>
 
             {isIdleWarningVisible && (
-                <div className="fixed inset-0 bg-black bg-opacity-75 z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8 max-w-sm w-full text-center">
-                        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Session Timeout Warning</h2>
-                        <p className="mt-2 text-gray-600 dark:text-gray-400">
-                            You have been inactive. For your security, you will be logged out in...
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-[250] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+                        <ExclamationTriangleIcon className="w-12 h-12 text-yellow-500 mx-auto" />
+                        <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Are you still there?</h3>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            You've been inactive for a while. For your security, you will be logged out in{' '}
+                            <span className="font-bold">{countdown}</span> seconds.
                         </p>
-                        <p className="text-5xl font-bold text-teal-600 dark:text-teal-400 my-4">{countdown}</p>
-                        <button
-                            onClick={() => {
-                                setIsIdleWarningVisible(false);
-                                resetIdleTimers();
-                            }}
-                            className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
-                        >
-                            Stay Logged In
-                        </button>
+                        <div className="mt-6">
+                            <button onClick={resetIdleTimers} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-teal-600 text-base font-medium text-white hover:bg-teal-700">
+                                I'm still here
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
-            
+
             {showInitiateConfirmModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 z-[200] flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md transform transition-all" role="dialog" aria-modal="true" aria-labelledby="modal-headline">
-                        <div className="p-6 text-center">
-                            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50">
-                                <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+                <div className="fixed inset-0 bg-black bg-opacity-60 z-[250] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6">
+                        <div className="sm:flex sm:items-start">
+                            <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
+                                <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-300" aria-hidden="true" />
                             </div>
-                            <h3 className="mt-5 text-lg font-semibold text-gray-900 dark:text-gray-100" id="modal-headline">Initiate New Assessment?</h3>
-                            <div className="mt-2">
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    Are you sure you want to start a new {showInitiateConfirmModal.toUpperCase()} assessment? All current progress for this assessment type will be permanently deleted. This action cannot be undone.
-                                </p>
+                            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                                    Initiate New Assessment
+                                </h3>
+                                <div className="mt-2">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        Are you sure? This will delete all current progress for the {showInitiateConfirmModal.toUpperCase()} assessment and start over with a fresh template. This action cannot be undone.
+                                    </p>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-gray-50 dark:bg-gray-800/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse rounded-b-lg">
+                        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                             <button
                                 type="button"
                                 className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm"
                                 onClick={() => executeInitiateAssessment(showInitiateConfirmModal)}
                             >
-                                Initiate
+                                Yes, Initiate
                             </button>
                             <button
                                 type="button"
-                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-500 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto sm:text-sm"
                                 onClick={() => setShowInitiateConfirmModal(null)}
                             >
                                 Cancel
@@ -1629,8 +1450,16 @@ export const App: React.FC = () => {
                     </div>
                 </div>
             )}
-
-            {renderMainContent()}
+            <style>{`
+            @keyframes fade-in-down {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .animate-fade-in-down {
+                animation: fade-in-down 0.3s ease-out forwards;
+            }
+            `}</style>
         </>
     );
-};
+}
+export default App;

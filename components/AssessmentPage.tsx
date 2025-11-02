@@ -1,5 +1,5 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
 import { DomainComplianceBarChart } from './DomainComplianceBarChart';
@@ -92,10 +92,9 @@ interface AssessmentPageProps {
     onInitiate: () => void;
     onComplete: () => void;
     permissions: Set<Permission>;
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void;
 }
 
-export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView }) => {
+export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
@@ -106,7 +105,8 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
     const [currentAiControlIndex, setCurrentAiControlIndex] = useState(0);
     const [activeField, setActiveField] = useState<{ controlCode: string; field: string | null } | null>(null);
     const [isEvidenceRequestedForControl, setEvidenceRequestedForControl] = useState<string | null>(null);
-    
+    const [generatingRecommendationFor, setGeneratingRecommendationFor] = useState<string | null>(null);
+
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('assessment:update');
 
@@ -238,7 +238,6 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 const delimiter = headerRow.includes(';') ? ';' : ',';
                 const headers = headerRow.split(delimiter).map(h => h.trim().replace(/^#/, '').replace(/"/g, ''));
                 
-                const expectedHeaders = [ 'Control Code', 'Current Status', 'Control Status', 'Recommendation', 'Management Response', 'Target Date'];
                 if (!headers.includes('Control Code')) {
                     throw new Error(`CSV is missing required header: 'Control Code'.`);
                 }
@@ -248,7 +247,6 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 
                 const keyMap: Record<string, keyof AssessmentItem> = {
                     'Current Status': 'currentStatusDescription',
-                    'Saudi Ceramics Current Status': 'currentStatusDescription',
                     'Control Status': 'controlStatus',
                     'Recommendation': 'recommendation',
                     'Management Response': 'managementResponse',
@@ -296,6 +294,57 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
         if (event.target) event.target.value = ''; // Reset file input
     };
 
+    const handleNcaEccItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
+        // Update state immediately for responsiveness
+        onUpdateItem(controlCode, updatedItem);
+
+        const shouldGenerate = (updatedItem.controlStatus === 'Not Implemented' || updatedItem.controlStatus === 'Partially Implemented') && !updatedItem.recommendation;
+
+        if (shouldGenerate && canUpdate) {
+            setGeneratingRecommendationFor(controlCode);
+            try {
+                if (!process.env.API_KEY) throw new Error("API_KEY not set");
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                
+                const prompt = `You are a cybersecurity and compliance expert specializing in the Saudi Arabian National Cybersecurity Authority's Essential Cybersecurity Controls (NCA ECC) framework.
+
+                An assessment of the following control has been marked as '${updatedItem.controlStatus}':
+                - Control Code: ${updatedItem.controlCode}
+                - Control Description: ${updatedItem.controlName}
+
+                The 'Recommendation' field for this control is currently empty. Your task is to generate a concise recommendation that includes:
+                1. A brief summary of potential risks associated with this non-compliance (e.g., regulatory non-compliance, operational disruption, data breach).
+                2. A few high-level, actionable remediation steps to address the gap based on NCA best practices.
+
+                Format the output as a single string suitable for a textarea, using Markdown-style bullet points (*). For example:
+                **Potential Risks:**
+                * Risk of non-compliance with NCA regulations.
+                * Increased vulnerability to cyber attacks targeting this control area.
+
+                **Remediation Steps:**
+                * Develop and document a formal process for [relevant action].
+                * Implement technical control [e.g., configure firewall rules].
+                * Assign ownership of the control to a specific role.`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                });
+                
+                const recommendationText = response.text;
+                
+                // Final update with the generated recommendation
+                onUpdateItem(controlCode, { ...updatedItem, recommendation: recommendationText });
+
+            } catch (e) {
+                console.error("Failed to generate AI recommendation:", e);
+                // Optionally, add a notification to the user
+            } finally {
+                setGeneratingRecommendationFor(null);
+            }
+        }
+    };
+
 
     return (
         <div className="space-y-8">
@@ -324,6 +373,13 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 )}
             </div>
             
+            {status === 'idle' && (
+                 <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                     <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Assessment Not Started</h2>
+                     <p className="mt-2 text-gray-500 dark:text-gray-400">Click the button below to start a new assessment. This will populate the sheet with the latest NCA ECC controls.</p>
+                 </div>
+            )}
+
             {isEditable && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
                     <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
@@ -404,13 +460,14 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
 
             <AssessmentSheet
                 filteredDomains={filteredDomains}
-                onUpdateItem={onUpdateItem}
+                onUpdateItem={handleNcaEccItemUpdate}
                 isEditable={isEditable}
                 canUpdate={canUpdate}
                 isAiAssessing={isAiAssessing}
                 activeControlCode={activeField?.controlCode}
                 activeField={activeField?.field}
                 isEvidenceRequestedForControl={isEvidenceRequestedForControl}
+                generatingRecommendationFor={generatingRecommendationFor}
             />
             {isAiAssessing && (
                 <NooraAssistant

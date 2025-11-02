@@ -92,20 +92,8 @@ export type Permission =
   | 'audit:read'
   | 'assessment:read'
   | 'assessment:update'
-  | 'pdplAssessment:read'
-  | 'pdplAssessment:update'
-  | 'samaCsfAssessment:read'
-  | 'samaCsfAssessment:update'
-  | 'cmaAssessment:read'
-  | 'cmaAssessment:update'
   | 'userProfile:read'
-  | 'userProfile:update'
-  | 'help:read'
-  | 'training:read'
-  | 'complianceAgent:read'
-  | 'complianceAgent:run'
-  | 'riskAssessment:read'
-  | 'riskAssessment:update';
+  | 'userProfile:update';
 
 
 export interface User {
@@ -140,20 +128,8 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'audit:read',
     'assessment:read',
     'assessment:update',
-    'pdplAssessment:read',
-    'pdplAssessment:update',
-    'samaCsfAssessment:read',
-    'samaCsfAssessment:update',
-    'cmaAssessment:read',
-    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
-    'help:read',
-    'training:read',
-    'complianceAgent:read',
-    'complianceAgent:run',
-    'riskAssessment:read',
-    'riskAssessment:update',
   ],
   CISO: [
     'dashboard:read',
@@ -166,24 +142,12 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'company:read',
     'assessment:read',
     'assessment:update',
-    'pdplAssessment:read',
-    'pdplAssessment:update',
-    'samaCsfAssessment:read',
-    'samaCsfAssessment:update',
-    'cmaAssessment:read',
-    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
-    'help:read',
-    'training:read',
-    'complianceAgent:read',
-    'complianceAgent:run',
-    'riskAssessment:read',
-    'riskAssessment:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -193,21 +157,10 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'company:read',
     'assessment:read',
     'assessment:update',
-    'pdplAssessment:read',
-    'pdplAssessment:update',
-    'samaCsfAssessment:read',
-    'samaCsfAssessment:update',
-    'cmaAssessment:read',
-    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
-    'help:read',
-    'training:read',
-    'complianceAgent:read',
-    'riskAssessment:read',
-    'riskAssessment:update',
   ],
-  Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
+  Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update'],
 };
 
 
@@ -361,3 +314,13 @@ export interface ComplianceGap {
     assessedStatus: ControlStatus;
     framework: string;
 }
+
+// --- NEW: Risk Assessment ---
+export type Risk = {
+  id: string;
+  description: string;
+  likelihood: number; // 1-5
+  impact: number;     // 1-5
+  mitigation: string;
+  owner: string;
+};

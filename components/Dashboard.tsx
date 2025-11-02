@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
 import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon } from './Icons';
@@ -497,8 +495,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     }, [repository]);
     
     const earnedBadges = useMemo(() => {
-        if (!trainingProgress) return [];
-        // FIX: Add type assertion to resolve 'unknown' type from Object.values on a potentially empty object.
+        if (!trainingProgress || Object.keys(trainingProgress).length === 0) return [];
         return Object.values(trainingProgress as UserTrainingProgress)
             .filter((p) => p.badgeEarned)
             .map(p => p.badgeId);

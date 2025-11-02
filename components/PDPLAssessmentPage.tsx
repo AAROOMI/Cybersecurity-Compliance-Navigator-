@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';

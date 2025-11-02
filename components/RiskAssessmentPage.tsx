@@ -1,47 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { TrashIcon } from './Icons';
-
-type Risk = {
-  id: string;
-  description: string;
-  likelihood: number; // 1-5
-  impact: number;     // 1-5
-  mitigation: string;
-  owner: string;
-};
-
-// Updated initial data with new 1-5 scale
-const initialRiskData: Record<string, Risk[]> = {
-  'Network Security': [
-    { id: 'ns1', description: 'Unauthorized access to internal network via unpatched firewall.', likelihood: 3, impact: 5, mitigation: 'Implement regular firewall patch management and rule reviews.', owner: 'IT Security' },
-    { id: 'ns2', description: 'Denial-of-Service (DoS) attack against public-facing web servers.', likelihood: 2, impact: 3, mitigation: 'Utilize a cloud-based DDoS protection service.', owner: 'Network Team' },
-  ],
-  'Data Security': [
-    { id: 'ds1', description: 'Sensitive customer data leakage from production database.', likelihood: 3, impact: 5, mitigation: 'Implement Data Loss Prevention (DLP) and encrypt database at rest.', owner: 'DBA Team' },
-  ],
-  'Endpoint Security': [
-     { id: 'es1', description: 'Ransomware infection on employee workstations via phishing email.', likelihood: 4, impact: 5, mitigation: 'Deploy advanced Endpoint Detection and Response (EDR) and conduct regular user awareness training.', owner: 'Endpoint Team' },
-  ],
-  'Access Control': [
-    { id: 'ac1', description: 'Former employee retaining access to critical systems.', likelihood: 3, impact: 3, mitigation: 'Automate de-provisioning process upon employee termination notification from HR.', owner: 'IAM Team' },
-  ],
-};
-
-// Updated options to a 1-5 scale
-const likelihoodOptions = [
-    { value: 1, label: 'Very Low' }, 
-    { value: 2, label: 'Low' }, 
-    { value: 3, label: 'Medium' }, 
-    { value: 4, label: 'High' },
-    { value: 5, label: 'Very High' }
-];
-const impactOptions = [
-    { value: 1, label: 'Very Low' },
-    { value: 2, label: 'Low' },
-    { value: 3, label: 'Medium' },
-    { value: 4, label: 'High' },
-    { value: 5, label: 'Very High' }
-];
+import { TrashIcon, MicrophoneIcon } from './Icons';
+import type { Risk, Permission } from '../types';
+import { likelihoodOptions, impactOptions } from '../data/riskAssessmentData';
+import { RiskAssistant } from './RiskAssistant';
 
 // Updated risk score calculation and color coding
 const getRiskScoreInfo = (score: number): { text: string, color: string } => {
@@ -58,7 +19,8 @@ const RiskCategory: React.FC<{
   onAddRisk: (category: string, risk: Omit<Risk, 'id'>) => void;
   onUpdateRisk: (category: string, risk: Risk) => void;
   onDeleteRisk: (category: string, riskId: string) => void;
-}> = ({ title, risks, onAddRisk, onUpdateRisk, onDeleteRisk }) => {
+  isEditable: boolean;
+}> = ({ title, risks, onAddRisk, onUpdateRisk, onDeleteRisk, isEditable }) => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newRisk, setNewRisk] = useState<Omit<Risk, 'id'>>({ description: '', likelihood: 1, impact: 1, mitigation: '', owner: '' });
 
@@ -76,12 +38,14 @@ const RiskCategory: React.FC<{
         <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
             <header className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
-                <button
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className="px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
-                >
-                    {showAddForm ? 'Cancel' : '+ Add Risk'}
-                </button>
+                {isEditable && (
+                    <button
+                        onClick={() => setShowAddForm(!showAddForm)}
+                        className="px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700"
+                    >
+                        {showAddForm ? 'Cancel' : '+ Add Risk'}
+                    </button>
+                )}
             </header>
             <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
@@ -107,26 +71,28 @@ const RiskCategory: React.FC<{
 
                             return (
                                 <tr key={risk.id}>
-                                    <td className="px-4 py-3"><textarea rows={2} value={risk.description} onChange={(e) => handleUpdate('description', e.target.value)} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600"/></td>
+                                    <td className="px-4 py-3"><textarea rows={2} value={risk.description} onChange={(e) => handleUpdate('description', e.target.value)} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50"/></td>
                                     <td className="px-4 py-3">
-                                        <select value={risk.likelihood} onChange={(e) => handleUpdate('likelihood', parseInt(e.target.value))} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600">
+                                        <select value={risk.likelihood} onChange={(e) => handleUpdate('likelihood', parseInt(e.target.value))} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50">
                                             {likelihoodOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                         </select>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <select value={risk.impact} onChange={(e) => handleUpdate('impact', parseInt(e.target.value))} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600">
+                                        <select value={risk.impact} onChange={(e) => handleUpdate('impact', parseInt(e.target.value))} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50">
                                             {impactOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                                         </select>
                                     </td>
                                     <td className="px-4 py-3 font-semibold">
                                         <span className={`px-2 py-1 rounded-full text-xs ${scoreInfo.color}`}>{score} ({scoreInfo.text})</span>
                                     </td>
-                                    <td className="px-4 py-3"><textarea rows={2} value={risk.mitigation} onChange={(e) => handleUpdate('mitigation', e.target.value)} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600"/></td>
-                                    <td className="px-4 py-3"><input type="text" value={risk.owner} onChange={(e) => handleUpdate('owner', e.target.value)} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600"/></td>
+                                    <td className="px-4 py-3"><textarea rows={2} value={risk.mitigation} onChange={(e) => handleUpdate('mitigation', e.target.value)} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50"/></td>
+                                    <td className="px-4 py-3"><input type="text" value={risk.owner} onChange={(e) => handleUpdate('owner', e.target.value)} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50"/></td>
                                     <td className="px-4 py-3 text-right">
-                                        <button onClick={() => window.confirm('Are you sure you want to delete this risk?') && onDeleteRisk(title, risk.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <TrashIcon className="w-5 h-5"/>
-                                        </button>
+                                        {isEditable && (
+                                            <button onClick={() => window.confirm('Are you sure you want to delete this risk?') && onDeleteRisk(title, risk.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                                                <TrashIcon className="w-5 h-5"/>
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -231,45 +197,95 @@ const RiskMatrix: React.FC<{ allRisks: Risk[] }> = ({ allRisks }) => {
   );
 };
 
+interface RiskAssessmentPageProps {
+    risks: Risk[];
+    setRisks: (updater: React.SetStateAction<Risk[]>) => void;
+    status: 'idle' | 'in-progress';
+    onInitiate: () => void;
+    onComplete: () => void;
+    permissions: Set<Permission>;
+}
 
-export const RiskAssessmentPage: React.FC = () => {
-    const [risks, setRisks] = useState<Record<string, Risk[]>>(initialRiskData);
+export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, setRisks, status, onInitiate, onComplete, permissions }) => {
+    const [isAiAssessing, setIsAiAssessing] = useState(false);
+    const isEditable = status === 'in-progress' && permissions.has('riskAssessment:update');
 
-    const allRisks = useMemo(() => Object.values(risks).flat(), [risks]);
+    const categorizedRisks = useMemo(() => {
+        const categories: Record<string, Risk[]> = {};
+        risks.forEach(risk => {
+            const match = risk.id.match(/^[a-zA-Z]+/);
+            const prefix = match ? match[0] : 'unknown';
+            let category = 'General';
+            switch (prefix) {
+                case 'ns': category = 'Network Security'; break;
+                case 'ds': category = 'Data Security'; break;
+                case 'es': category = 'Endpoint Security'; break;
+                case 'ac': category = 'Access Control'; break;
+            }
+            if (!categories[category]) {
+                categories[category] = [];
+            }
+            categories[category].push(risk);
+        });
+        return categories;
+    }, [risks]);
+
 
     const handleAddRisk = (category: string, risk: Omit<Risk, 'id'>) => {
         const newRisk = { ...risk, id: `${category.slice(0, 2).toLowerCase()}${Date.now()}` };
-        setRisks(prev => ({
-            ...prev,
-            [category]: [...prev[category], newRisk]
-        }));
+        setRisks(prev => [...prev, newRisk]);
     };
 
     const handleUpdateRisk = (category: string, updatedRisk: Risk) => {
-        setRisks(prev => ({
-            ...prev,
-            [category]: prev[category].map(r => r.id === updatedRisk.id ? updatedRisk : r)
-        }));
+        setRisks(prev => prev.map(r => r.id === updatedRisk.id ? updatedRisk : r));
     };
 
     const handleDeleteRisk = (category: string, riskId: string) => {
-        setRisks(prev => ({
-            ...prev,
-            [category]: prev[category].filter(r => r.id !== riskId)
-        }));
+        setRisks(prev => prev.filter(r => r.id !== riskId));
     };
+    
+    if (status === 'idle') {
+        return (
+            <div className="text-center">
+                 <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-8 max-w-2xl mx-auto">
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Risk Assessment Not Started</h1>
+                    <p className="mt-2 text-gray-500 dark:text-gray-400">
+                        There is no risk assessment in progress. Initiate a new one to begin identifying and managing organizational risks.
+                    </p>
+                    <div className="mt-6">
+                        <button onClick={onInitiate} className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+                            Initiate New Risk Assessment
+                        </button>
+                    </div>
+                 </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
-            <div>
-                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Risk Assessment Register</h1>
-                <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Identify, analyze, and manage organizational risks in a centralized register.</p>
+            <div className="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Risk Assessment Register</h1>
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Identify, analyze, and manage organizational risks in a centralized register.</p>
+                </div>
+                <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
+                    {isEditable && (
+                        <button onClick={() => setIsAiAssessing(true)} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+                            <MicrophoneIcon className="w-5 h-5" />
+                            AI Voice Assessment
+                        </button>
+                    )}
+                    <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                        Complete Assessment
+                    </button>
+                </div>
             </div>
             
-            <RiskMatrix allRisks={allRisks} />
+            <RiskMatrix allRisks={risks} />
 
             <div className="space-y-8">
-                {Object.entries(risks).map(([category, riskItems]) => (
+                {Object.entries(categorizedRisks).map(([category, riskItems]) => (
                     <RiskCategory
                         key={category}
                         title={category}
@@ -277,12 +293,25 @@ export const RiskAssessmentPage: React.FC = () => {
                         onAddRisk={handleAddRisk}
                         onUpdateRisk={handleUpdateRisk}
                         onDeleteRisk={handleDeleteRisk}
+                        isEditable={isEditable}
                     />
                 ))}
             </div>
+            {isAiAssessing && (
+                <RiskAssistant
+                    isOpen={isAiAssessing}
+                    onClose={() => setIsAiAssessing(false)}
+                    risks={risks}
+                    setRisks={setRisks}
+                    onInitiate={onInitiate}
+                />
+            )}
              <style>{`
-                td, th {
-                    vertical-align: middle;
+                td textarea, td input, td select {
+                    color: #111827; /* a default color for non-dark mode */
+                }
+                .dark td textarea, .dark td input, .dark td select {
+                    color: #f9fafb; /* text-gray-50 */
                 }
                 td textarea, td input, td select {
                     background-color: transparent;

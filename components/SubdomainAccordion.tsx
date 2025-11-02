@@ -159,7 +159,7 @@ interface ControlDetailProps {
   isActive: boolean;
   domain: Domain;
   subdomain: Subdomain;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent') => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
 }
@@ -280,7 +280,7 @@ const ControlDetail = React.forwardRef<HTMLDivElement, ControlDetailProps>(
         });
         
         const parsedResponse = JSON.parse(response.text);
-        onAddDocument(control, subdomain, domain, parsedResponse, 'user');
+        onAddDocument(control, subdomain, domain, parsedResponse, 'AI Agent');
         setGeneratedDocs(parsedResponse); // Keep showing generated docs locally for a bit
 
       } catch (e) {
@@ -448,7 +448,7 @@ interface SubdomainAccordionProps {
   subdomain: Subdomain;
   activeControlId: string | null;
   setActiveControlId: (id: string | null) => void;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent') => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
 }
@@ -501,39 +501,3 @@ export const SubdomainAccordion: React.FC<SubdomainAccordionProps> = ({ domain, 
         <div className="flex items-center flex-1 min-w-0">
             <span className="font-mono text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/50 rounded px-2 py-1 text-sm font-semibold mr-4">{subdomain.id}</span>
             <div className="flex items-baseline flex-1 min-w-0">
-              <span className="font-semibold text-lg text-gray-800 dark:text-gray-100 truncate" title={subdomain.title}>{subdomain.title}</span>
-              <span className="ml-3 text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full whitespace-nowrap">
-                  {controlCount} {controlCount === 1 ? 'Control' : 'Controls'}
-              </span>
-            </div>
-        </div>
-        <ChevronDownIcon
-          className={`w-6 h-6 text-gray-500 dark:text-gray-400 transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
-        />
-      </button>
-      <div 
-        id={`subdomain-content-${subdomain.id}`}
-        className={`transition-all duration-500 ease-in-out overflow-hidden ${isOpen ? 'max-h-[20000px]' : 'max-h-0'}`}
-      >
-        <div className="p-5 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-            <p className="text-gray-600 dark:text-gray-300 italic mb-6">{subdomain.objective}</p>
-            <div className="space-y-4">
-                {subdomain.controls.map(control => (
-                  <ControlDetail 
-                    key={control.id} 
-                    control={control} 
-                    isActive={control.id === activeControlId}
-                    domain={domain}
-                    subdomain={subdomain}
-                    onAddDocument={onAddDocument}
-                    documentRepository={documentRepository}
-                    permissions={permissions}
-                    ref={(el) => { controlRefs.current.set(control.id, el); }}
-                  />
-                ))}
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};

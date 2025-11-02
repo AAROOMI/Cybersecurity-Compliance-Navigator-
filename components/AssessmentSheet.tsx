@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
 import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';

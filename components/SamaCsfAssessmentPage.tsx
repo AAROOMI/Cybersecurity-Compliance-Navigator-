@@ -1,5 +1,5 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
 import { SamaCsfDomainComplianceBarChart } from './SamaCsfComplianceBarChart';
@@ -104,6 +104,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
     const [currentAiControlIndex, setCurrentAiControlIndex] = useState(0);
     const [activeField, setActiveField] = useState<{ controlCode: string; field: string | null } | null>(null);
     const [isEvidenceRequestedForControl, setEvidenceRequestedForControl] = useState<string | null>(null);
+    const [generatingRecommendationFor, setGeneratingRecommendationFor] = useState<string | null>(null);
 
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('samaCsfAssessment:update');
@@ -295,6 +296,58 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
         reader.readAsText(file);
         if (event.target) event.target.value = ''; // Reset file input
     };
+    
+    const handleSamaItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
+        // Update state immediately for responsiveness
+        onUpdateItem(controlCode, updatedItem);
+
+        const shouldGenerate = (updatedItem.controlStatus === 'Not Implemented' || updatedItem.controlStatus === 'Partially Implemented') && !updatedItem.recommendation;
+
+        if (shouldGenerate && canUpdate) {
+            setGeneratingRecommendationFor(controlCode);
+            try {
+                if (!process.env.API_KEY) throw new Error("API_KEY not set");
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                
+                const prompt = `You are a cybersecurity and financial compliance expert specializing in the Saudi Arabian Monetary Authority (SAMA) Cyber Security Framework (CSF).
+
+                An assessment of the following control has been marked as '${updatedItem.controlStatus}':
+                - Control Code: ${updatedItem.controlCode}
+                - Control Description: ${updatedItem.controlName}
+
+                The 'Recommendation' field for this control is currently empty. Your task is to generate a concise recommendation that includes:
+                1. A brief summary of potential risks (mention regulatory penalties from SAMA, financial loss, and reputational damage for a financial institution).
+                2. High-level, actionable remediation steps to address the gap, specific to the financial sector context.
+
+                Format the output as a single string suitable for a textarea, using Markdown-style bullet points (*). For example:
+                **Potential Risks:**
+                * Risk of regulatory penalties and sanctions from SAMA.
+                * Potential for financial fraud or loss of customer funds.
+                * Damage to the institution's reputation and customer trust.
+
+                **Remediation Steps:**
+                * Implement [specific technology, e.g., a Privileged Access Management solution].
+                * Update the [relevant policy, e.g., Incident Response Plan] to align with SAMA CSF requirements.
+                * Conduct quarterly reviews of [e.g., user access rights].`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                });
+                
+                const recommendationText = response.text;
+                
+                // Final update with the generated recommendation
+                onUpdateItem(controlCode, { ...updatedItem, recommendation: recommendationText });
+
+            } catch (e) {
+                console.error("Failed to generate AI recommendation:", e);
+                // Optionally, add a notification to the user
+            } finally {
+                setGeneratingRecommendationFor(null);
+            }
+        }
+    };
 
     return (
         <div className="space-y-8">
@@ -303,7 +356,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
                     <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">SAMA CSF Assessment</h1>
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the SAMA Cyber Security Framework.</p>
                 </div>
-                {canUpdate && (
+                 {canUpdate && (
                      <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
                             <>
@@ -323,7 +376,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
                 )}
             </div>
 
-             {isEditable && (
+            {isEditable && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
                     <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
                     <p className="text-sm text-blue-700 dark:text-blue-300">You are in edit mode. Changes are saved automatically as you update fields. Click "Complete Assessment" when you are finished.</p>
@@ -403,15 +456,16 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
 
             <AssessmentSheet
                 filteredDomains={filteredDomains}
-                onUpdateItem={onUpdateItem}
-                isEditable={isEditable && canUpdate}
+                onUpdateItem={handleSamaItemUpdate}
+                isEditable={isEditable}
                 canUpdate={canUpdate}
                 isAiAssessing={isAiAssessing}
                 activeControlCode={activeField?.controlCode}
                 activeField={activeField?.field}
                 isEvidenceRequestedForControl={isEvidenceRequestedForControl}
+                generatingRecommendationFor={generatingRecommendationFor}
             />
-            {isAiAssessing && (
+             {isAiAssessing && (
                 <NooraAssistant
                     isAssessing={isAiAssessing}
                     onClose={() => setIsAiAssessing(false)}

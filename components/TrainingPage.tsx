@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import type { TrainingCourse, UserTrainingProgress, Lesson } from '../types';
 import { trainingCourses } from '../data/trainingData';
 import { CourseDetailPage } from './CourseDetailPage';
 import { LessonPlayer } from './LessonPlayer';
+import { TrainingAssistant } from './TrainingAssistant';
+import { MicrophoneIcon } from './Icons';
+
 
 interface TrainingPageProps {
   userProgress: UserTrainingProgress;
@@ -39,6 +42,7 @@ const CourseCard: React.FC<{ course: TrainingCourse; progress?: UserTrainingProg
 export const TrainingPage: React.FC<TrainingPageProps> = ({ userProgress, onUpdateProgress }) => {
     const [activeCourse, setActiveCourse] = useState<TrainingCourse | null>(null);
     const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+    const [isMentorOpen, setIsMentorOpen] = useState(false);
 
     const handleSelectCourse = (course: TrainingCourse) => {
         setActiveCourse(course);
@@ -53,7 +57,7 @@ export const TrainingPage: React.FC<TrainingPageProps> = ({ userProgress, onUpda
         setActiveLesson(null); // Close the lesson player
     };
 
-    if (activeCourse) {
+    if (activeCourse && !isMentorOpen) {
         return (
             <>
                 <CourseDetailPage
@@ -80,6 +84,18 @@ export const TrainingPage: React.FC<TrainingPageProps> = ({ userProgress, onUpda
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Training & Awareness</h1>
                 <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Enhance your cybersecurity knowledge with our interactive courses.</p>
             </div>
+
+            <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">AI Training Mentor</h2>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Start a voice-guided session with Noora to complete your training courses hands-free.</p>
+                </div>
+                <button onClick={() => setIsMentorOpen(true)} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 flex-shrink-0">
+                    <MicrophoneIcon className="w-5 h-5" />
+                    Start Mentor Session
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {trainingCourses.map(course => (
                     <button key={course.id} onClick={() => handleSelectCourse(course)} className="text-left focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 rounded-lg">
@@ -87,6 +103,17 @@ export const TrainingPage: React.FC<TrainingPageProps> = ({ userProgress, onUpda
                     </button>
                 ))}
             </div>
+            
+            {isMentorOpen && (
+                <TrainingAssistant
+                    isOpen={isMentorOpen}
+                    onClose={() => setIsMentorOpen(false)}
+                    courses={trainingCourses}
+                    userProgress={userProgress}
+                    onUpdateProgress={onUpdateProgress}
+                    onSelectCourse={handleSelectCourse}
+                />
+            )}
         </div>
     );
 };

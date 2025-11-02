@@ -245,17 +245,16 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                 }
                 return u;
             }));
+            addNotification('User updated successfully.', 'success');
         } else {
-            // Create a new user
-            const newUser: User = { ...user };
+            // Create a new, verified user directly.
+            const newUser: User = { ...user, isVerified: true };
             setUsers(prevUsers => [...prevUsers, newUser]);
-            
+    
             const expires = newUser.accessExpiresAt ? ` until ${new Date(newUser.accessExpiresAt).toLocaleDateString()}` : '';
             addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}) with role ${newUser.role}. Access is ${newUser.accessExpiresAt ? 'temporary' : 'permanent'}${expires}.`, newUser.id);
     
-            if (!newUser.isVerified) {
-                addNotification(`Verification email sent to ${newUser.email}. User must verify account before logging in.`, 'info');
-            }
+            addNotification(`User ${newUser.name} created successfully.`, 'success');
         }
         setIsModalOpen(false);
         setEditingUser(null);
@@ -283,53 +282,4 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                                 <tr>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Name</th>
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Role</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Access Status</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Expires On</th>
-                                    {canPerformActions && (
-                                        <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                {users.map(user => {
-                                    const isExpired = user.accessExpiresAt && user.accessExpiresAt < Date.now();
-                                    return (
-                                    <tr key={user.id} className={isExpired ? 'bg-gray-50 dark:bg-gray-800/50 opacity-60' : ''}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
-                                                {!user.isVerified && <span className="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">Unverified</span>}
-                                            </div>
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${isExpired ? 'bg-gray-200 text-gray-800 dark:bg-gray-600 dark:text-gray-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'}`}>
-                                                {isExpired ? 'Expired' : 'Active'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {user.accessExpiresAt ? new Date(user.accessExpiresAt).toLocaleDateString() : 'Permanent'}
-                                        </td>
-                                        {canPerformActions && (
-                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                                {canUpdate && <button onClick={() => handleEdit(user)} className="text-teal-600 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-200">{isExpired ? 'Re-activate' : 'Edit'}</button>}
-                                                {canDelete && user.id !== currentUser.id && <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete</button>}
-                                            </td>
-                                        )}
-                                    </tr>
-                                )})}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            {isModalOpen && <UserFormModal user={editingUser} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} />}
-        </div>
-    );
-};
+                               

@@ -113,15 +113,22 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                     
                     inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
                     outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-                    streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    streamRef.current = stream;
+
 
                     sessionPromise.current = ai.live.connect({
                         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                         callbacks: {
                             onopen: () => {
                                 setStatus('listening');
-                                const source = inputAudioContextRef.current!.createMediaStreamSource(streamRef.current!);
-                                scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                                if (!inputAudioContextRef.current || inputAudioContextRef.current.state === 'closed' || !stream) {
+                                    console.error("Audio context not ready or stream not available in onopen.");
+                                    return;
+                                }
+                                const source = inputAudioContextRef.current.createMediaStreamSource(stream);
+                                scriptProcessorRef.current = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
                                 scriptProcessorRef.current.onaudioprocess = (e) => {
                                     const inputData = e.inputBuffer.getChannelData(0);
                                     const pcmBlob: Blob = {
@@ -131,7 +138,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                                     sessionPromise.current?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
                                 };
                                 source.connect(scriptProcessorRef.current);
-                                scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
+                                scriptProcessorRef.current.connect(inputAudioContextRef.current.destination);
                             },
                             onmessage: async (message: LiveServerMessage) => {
                                 if (message.serverContent?.inputTranscription) {
@@ -161,12 +168,18 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
 
                                 const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                                 if (base64Audio) {
+                                    const audioCtx = outputAudioContextRef.current;
+                                    if (!audioCtx) return;
+                                    if (audioCtx.state === 'suspended') {
+                                        audioCtx.resume();
+                                    }
+
                                     setStatus('speaking');
-                                    nextStartTime = Math.max(nextStartTime, outputAudioContextRef.current!.currentTime);
-                                    const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
-                                    const sourceNode = outputAudioContextRef.current!.createBufferSource();
+                                    nextStartTime = Math.max(nextStartTime, audioCtx.currentTime);
+                                    const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
+                                    const sourceNode = audioCtx.createBufferSource();
                                     sourceNode.buffer = audioBuffer;
-                                    sourceNode.connect(outputAudioContextRef.current!.destination);
+                                    sourceNode.connect(audioCtx.destination);
                                     sourceNode.addEventListener('ended', () => {
                                         sources.current.delete(sourceNode);
                                         if (sources.current.size === 0) setStatus('listening');
@@ -184,7 +197,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                             inputAudioTranscription: {},
                             outputAudioTranscription: {},
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                            systemInstruction: "You are Gemini, a helpful voice assistant integrated into the Cybersecurity Controls Navigator application. Your goal is to help users by answering their questions and performing actions within the app. You can navigate between different sections. Use the `navigate_to_view` function to switch pages when the user asks. Available views are: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', 'training', and 'riskAssessment'. Start the conversation by saying 'Hello, how can I help you navigate your cybersecurity compliance today?'.",
+                            systemInstruction: "You are a helpful voice assistant integrated into the Cybersecurity Controls Navigator application. Your goal is to help users by answering their questions and performing actions within the app. You can navigate between different sections. Use the `navigate_to_view` function to switch pages when the user asks. Available views are: 'dashboard', 'navigator', 'documents', 'users', 'companyProfile', 'auditLog', 'assessment', 'pdplAssessment', 'samaCsfAssessment', 'userProfile', 'help', 'training', and 'riskAssessment'. Start the conversation by saying 'Hello, how can I help you navigate your cybersecurity compliance today?'.",
                             tools: [{ functionDeclarations: [navigateToViewDeclaration] }],
                         },
                     });
@@ -215,7 +228,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                 <button
                     onClick={onToggle}
                     className="bg-teal-600 text-white rounded-full p-4 shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
-                    aria-label="Open voice assistant"
+                    aria-label="Open AI-powered voice assistant"
                 >
                     <MicrophoneIcon className="h-8 w-8" />
                 </button>
@@ -227,10 +240,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                          <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
                              <div className="flex items-center">
                                 <MicrophoneIcon className="h-6 w-6 mr-3 text-teal-500" />
-                                <div>
-                                    <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">Live Gemini Assistant</h2>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini Live</p>
-                                </div>
+                                <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">Live Assistant</h2>
                             </div>
                             <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <CloseIcon className="w-6 h-6 text-gray-500" />
@@ -251,7 +261,7 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                             
                             <div className="mt-6 w-full h-24 text-left p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-y-auto">
                                 <p className="text-sm text-gray-700 dark:text-gray-300"><strong className="text-gray-900 dark:text-gray-100">You:</strong> {userTranscript}</p>
-                                <p className="text-sm text-teal-700 dark:text-teal-300 mt-2"><strong className="text-teal-800 dark:text-teal-200">Gemini:</strong> {assistantTranscript}</p>
+                                <p className="text-sm text-teal-700 dark:text-teal-300 mt-2"><strong className="text-teal-800 dark:text-teal-200">Assistant:</strong> {assistantTranscript}</p>
                             </div>
 
                             {error && <p className="mt-4 text-sm text-red-500">{error}</p>}

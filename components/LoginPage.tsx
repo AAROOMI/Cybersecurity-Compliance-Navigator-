@@ -8,7 +8,6 @@ interface LoginPageProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onSetupCompany: () => void;
-  onVerify: (email: string) => boolean;
   onForgotPassword: (email: string) => Promise<{ success: boolean; message: string; token?: string }>;
   onResetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
@@ -23,7 +22,7 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; children: Re
     </div>
 );
 
-const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSetupCompany' | 'onForgotPassword' | 'onResetPassword'> & { setView: (view: 'forgotPassword') => void; }> = ({ onLogin, onVerify, setView }) => {
+const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSetupCompany' | 'onForgotPassword' | 'onResetPassword'> & { setView: (view: 'forgotPassword') => void; }> = ({ onLogin, setView }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<{message: string, code?: string} | null>(null);
@@ -38,14 +37,6 @@ const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSet
             setError({ message: loginResult.error, code: loginResult.code });
         }
         setIsLoading(false);
-    };
-
-    const handleVerificationClick = () => {
-        if (onVerify(email)) {
-            setError(null);
-        } else {
-            setError({ message: "An error occurred during verification. Please contact an administrator." });
-        }
     };
 
     return (
@@ -76,16 +67,8 @@ const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSet
                 </div>
             </div>
             {error && (
-                <div className={`p-4 rounded-md border ${error.code === 'unverified' ? 'bg-yellow-50 dark:bg-yellow-900/50 border-yellow-200 dark:border-yellow-500/50' : 'bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-500/50'}`}>
-                    <p className={`text-sm text-center ${error.code === 'unverified' ? 'text-yellow-800 dark:text-yellow-200' : 'text-red-700 dark:text-red-200'}`}>{error.message}</p>
-                    {error.code === 'unverified' && (
-                        <>
-                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-2 text-center">Click the button below to simulate verifying your email address.</p>
-                            <button type="button" onClick={handleVerificationClick} className="mt-3 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                                Verify My Email
-                            </button>
-                        </>
-                    )}
+                <div className="p-4 rounded-md border bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-500/50">
+                    <p className="text-sm text-center text-red-700 dark:text-red-200">{error.message}</p>
                 </div>
             )}
             <div>
@@ -227,7 +210,7 @@ const ResetPasswordView: React.FC<{ onResetPassword: LoginPageProps['onResetPass
     );
 };
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleTheme, onSetupCompany, onVerify, onForgotPassword, onResetPassword }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleTheme, onSetupCompany, onForgotPassword, onResetPassword }) => {
     const [view, setView] = useState<'signIn' | 'forgotPassword' | 'resetPassword'>('signIn');
 
     const viewTitles = {
@@ -259,7 +242,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleThem
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200 dark:border-gray-700">
-                    {view === 'signIn' && <SignInView onLogin={onLogin} onVerify={onVerify} setView={setView} />}
+                    {view === 'signIn' && <SignInView onLogin={onLogin} setView={setView} />}
                     {view === 'forgotPassword' && <ForgotPasswordView onForgotPassword={onForgotPassword} setView={setView} />}
                     {view === 'resetPassword' && <ResetPasswordView onResetPassword={onResetPassword} setView={setView} />}
                     

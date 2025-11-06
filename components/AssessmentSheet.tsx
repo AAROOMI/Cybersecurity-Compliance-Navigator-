@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+
+
+import React, { useState, useEffect, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
 import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';
 
@@ -10,15 +12,11 @@ interface EditableControlRowProps {
     isEditable: boolean;
     canUpdate: boolean;
     index: number;
-    isAiAssessing?: boolean;
-    isActiveControl?: boolean;
-    activeField?: string | null;
-    isEvidenceRequested?: boolean;
     isGenerating?: boolean;
 }
 
 // A component for a single editable control row.
-const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isAiAssessing, isActiveControl, activeField, isEvidenceRequested, isGenerating }) => {
+const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isGenerating }) => {
     const [localItem, setLocalItem] = useState(item);
     const [isSaving, setIsSaving] = useState(false);
     const timeoutRef = useRef<number | null>(null);
@@ -28,13 +26,6 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
     useEffect(() => {
         setLocalItem(item);
     }, [item]);
-
-    // Scroll into view when this becomes the active control for AI assessment
-    useEffect(() => {
-        if (isActiveControl) {
-            rowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, [isActiveControl]);
 
     const handleBlur = () => {
         if (JSON.stringify(localItem) !== JSON.stringify(item)) {
@@ -59,7 +50,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
         timeoutRef.current = window.setTimeout(() => setIsSaving(false), 2000);
 
-        if (newStatus === 'Implemented' && !newItem.evidence && !isAiAssessing) {
+        if (newStatus === 'Implemented' && !newItem.evidence) {
             if (window.confirm("This control is marked as 'Implemented'. It's recommended to upload supporting evidence (e.g., a policy document, screenshot, or report). Would you like to upload a file now?")) {
                 fileInputRef.current?.click();
             }
@@ -100,20 +91,16 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
     };
     
     const isDisabled = !isEditable || !canUpdate;
-    const isFieldActive = (fieldName: keyof AssessmentItem) => isActiveControl && activeField === fieldName;
     
-    const activeFieldClasses = "ai-active-field";
-
-
     return (
-         <div ref={rowRef} className={`p-4 border rounded-lg transition-shadow duration-300 ${isActiveControl ? 'shadow-lg shadow-teal-500/20' : ''} border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative`}>
+         <div ref={rowRef} className={`p-4 border rounded-lg transition-shadow duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative`}>
              {isSaving && (
                  <div className="absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded-full bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200 animate-fade-out">
                      Saved
                  </div>
             )}
             <div className="flex items-start gap-4">
-                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${isActiveControl ? 'bg-teal-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-200'}`}>
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-colors bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-200`}>
                     {index + 1}
                 </div>
                 <div className="flex-grow">
@@ -122,7 +109,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
 
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
                         <div className="md:col-span-2">
-                            <label htmlFor={`currentStatusDescription-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors ${isFieldActive('currentStatusDescription') ? 'text-teal-600 dark:text-teal-300' : ''}`}>Current Status Description</label>
+                            <label htmlFor={`currentStatusDescription-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Current Status Description</label>
                             <textarea
                                 id={`currentStatusDescription-${item.controlCode}`}
                                 name="currentStatusDescription"
@@ -131,18 +118,18 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('currentStatusDescription') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
                         </div>
                         <div>
-                             <label htmlFor={`controlStatus-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors ${isFieldActive('controlStatus') ? 'text-teal-600 dark:text-teal-300' : ''}`}>Control Status</label>
+                             <label htmlFor={`controlStatus-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Control Status</label>
                              <select
                                 id={`controlStatus-${item.controlCode}`}
                                 name="controlStatus"
                                 value={localItem.controlStatus}
                                 onChange={handleStatusChange}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('controlStatus') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             >
                                 {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                             </select>
@@ -166,7 +153,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                     <div className="text-sm text-gray-400 italic py-2">No evidence uploaded.</div>
                                 )}
                                 {isEditable && canUpdate && (
-                                     <button type="button" onClick={() => fileInputRef.current?.click()} className={`mt-2 text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center p-1 rounded-md transition-shadow ${isEvidenceRequested && isActiveControl ? activeFieldClasses : ''}`}>
+                                     <button type="button" onClick={() => fileInputRef.current?.click()} className={`mt-2 text-sm font-medium text-teal-600 dark:text-teal-400 hover:underline flex items-center p-1 rounded-md transition-shadow`}>
                                         <UploadIcon className="w-4 h-4 mr-1"/>
                                         {localItem.evidence ? 'Replace Evidence' : 'Upload Evidence'}
                                      </button>
@@ -181,7 +168,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                             </div>
                         </div>
                          <div className="md:col-span-2">
-                            <label htmlFor={`recommendation-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors ${isFieldActive('recommendation') ? 'text-teal-600 dark:text-teal-300' : ''}`}>Recommendation</label>
+                            <label htmlFor={`recommendation-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Recommendation</label>
                             <textarea
                                 id={`recommendation-${item.controlCode}`}
                                 name="recommendation"
@@ -190,11 +177,11 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled || isGenerating}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('recommendation') ? activeFieldClasses : ''} ${isGenerating ? 'animate-pulse' : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isGenerating ? 'animate-pulse' : ''}`}
                             />
                         </div>
                         <div>
-                             <label htmlFor={`managementResponse-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors ${isFieldActive('managementResponse') ? 'text-teal-600 dark:text-teal-300' : ''}`}>Management Response</label>
+                             <label htmlFor={`managementResponse-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Management Response</label>
                             <textarea
                                 id={`managementResponse-${item.controlCode}`}
                                 name="managementResponse"
@@ -203,11 +190,11 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('managementResponse') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
                         </div>
                         <div>
-                             <label htmlFor={`targetDate-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors ${isFieldActive('targetDate') ? 'text-teal-600 dark:text-teal-300' : ''}`}>Target Date</label>
+                             <label htmlFor={`targetDate-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Target Date</label>
                              <input
                                 type="date"
                                 id={`targetDate-${item.controlCode}`}
@@ -216,7 +203,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isFieldActive('targetDate') ? activeFieldClasses : ''}`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
                         </div>
                     </div>
@@ -252,14 +239,10 @@ interface AssessmentSheetProps {
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     isEditable: boolean;
     canUpdate: boolean;
-    isAiAssessing?: boolean;
-    activeControlCode?: string | null;
-    activeField?: string | null;
-    isEvidenceRequestedForControl?: string | null;
     generatingRecommendationFor?: string | null;
 }
 
-export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, isAiAssessing, activeControlCode, activeField, isEvidenceRequestedForControl, generatingRecommendationFor }) => {
+export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, generatingRecommendationFor }) => {
     
     let controlCounter = 0;
 
@@ -281,10 +264,6 @@ export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomain
                                     isEditable={isEditable}
                                     canUpdate={canUpdate}
                                     index={domainStartIndex + index}
-                                    isAiAssessing={isAiAssessing}
-                                    isActiveControl={isAiAssessing && activeControlCode === item.controlCode}
-                                    activeField={isAiAssessing && activeControlCode === item.controlCode ? activeField : null}
-                                    isEvidenceRequested={isEvidenceRequestedForControl === item.controlCode}
                                     isGenerating={generatingRecommendationFor === item.controlCode}
                                 />
                             ))}

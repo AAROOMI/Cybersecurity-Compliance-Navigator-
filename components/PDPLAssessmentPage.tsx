@@ -1,10 +1,10 @@
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
+import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
 import { PDPLDomainComplianceBarChart } from './PDPLComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
-import { NooraAssistant } from './NooraAssistant';
 
 
 declare const Chart: any;
@@ -100,13 +100,6 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
     const [domainFilter, setDomainFilter] = useState('All');
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // AI Assessment State
-    const [isAiAssessing, setIsAiAssessing] = useState(false);
-    const [currentAiControlIndex, setCurrentAiControlIndex] = useState(0);
-    const [activeField, setActiveField] = useState<{ controlCode: string; field: string | null } | null>(null);
-    const [isEvidenceRequestedForControl, setEvidenceRequestedForControl] = useState<string | null>(null);
-    const [generatingRecommendationFor, setGeneratingRecommendationFor] = useState<string | null>(null);
-
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('pdplAssessment:update');
 
@@ -160,26 +153,6 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
             })
             .filter(domain => domain.items.length > 0);
     }, [domains, searchTerm, statusFilter, domainFilter]);
-
-    const handleActiveFieldChange = (controlCode: string | null, field: keyof AssessmentItem | null) => {
-        if (controlCode && field) {
-            setActiveField({ controlCode, field });
-            // Highlight for 2.5 seconds
-            setTimeout(() => {
-                setActiveField(prev => (prev?.controlCode === controlCode && prev?.field === field ? null : prev));
-            }, 2500);
-        } else {
-            setActiveField(null);
-        }
-    };
-
-    const handleRequestEvidenceUpload = (controlCode: string) => {
-        setEvidenceRequestedForControl(controlCode);
-         // Highlight for 10 seconds, giving user time to find file
-        setTimeout(() => {
-            setEvidenceRequestedForControl(prev => (prev === controlCode ? null : prev));
-        }, 10000);
-    };
 
     const handleExportCSV = () => {
         const dataToExport = filteredDomains.flatMap(domain => domain.items);
@@ -297,54 +270,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
     };
     
     const handlePdplItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
-        // Update state immediately for responsiveness
         onUpdateItem(controlCode, updatedItem);
-
-        const shouldGenerate = (updatedItem.controlStatus === 'Not Implemented' || updatedItem.controlStatus === 'Partially Implemented') && !updatedItem.recommendation;
-
-        if (shouldGenerate && canUpdate) {
-            setGeneratingRecommendationFor(controlCode);
-            try {
-                if (!process.env.API_KEY) throw new Error("API_KEY not set");
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                
-                const prompt = `You are a cybersecurity and data privacy compliance expert specializing in the Saudi Arabian Personal Data Protection Law (PDPL).
-
-                An assessment of the following control has been marked as '${updatedItem.controlStatus}':
-                - Control Code: ${updatedItem.controlCode}
-                - Control Description: ${updatedItem.controlName}
-
-                The 'Recommendation' field for this control is currently empty. Your task is to generate a concise recommendation that includes:
-                1. A brief summary of potential risks associated with this non-compliance (mention regulatory fines under PDPL and reputational damage).
-                2. A few high-level, actionable remediation steps to address the gap.
-
-                Format the output as a single string suitable for a textarea, using Markdown-style bullet points (*). For example:
-                **Potential Risks:**
-                * Risk of regulatory fines and penalties under PDPL.
-                * Reputational damage and loss of data subject trust.
-
-                **Remediation Steps:**
-                * Develop and document a formal process for [relevant action].
-                * Assign ownership of the process to a specific role or department.
-                * Train relevant personnel on the new process and their responsibilities.`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                });
-                
-                const recommendationText = response.text;
-                
-                // Final update with the generated recommendation
-                onUpdateItem(controlCode, { ...updatedItem, recommendation: recommendationText });
-
-            } catch (e) {
-                console.error("Failed to generate AI recommendation:", e);
-                // Optionally, add a notification to the user
-            } finally {
-                setGeneratingRecommendationFor(null);
-            }
-        }
     };
 
 
@@ -358,15 +284,9 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                  {canUpdate && (
                      <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
-                            <>
-                                <button onClick={() => setIsAiAssessing(true)} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
-                                    <MicrophoneIcon className="w-5 h-5" />
-                                    AI Voice Assessment
-                                </button>
-                                <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-                                    Complete Assessment
-                                </button>
-                            </>
+                            <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                                Complete Assessment
+                            </button>
                         )}
                         <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                             Initiate New Assessment
@@ -458,26 +378,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                 onUpdateItem={handlePdplItemUpdate}
                 isEditable={isEditable && canUpdate}
                 canUpdate={canUpdate}
-                isAiAssessing={isAiAssessing}
-                activeControlCode={activeField?.controlCode}
-                activeField={activeField?.field}
-                isEvidenceRequestedForControl={isEvidenceRequestedForControl}
-                generatingRecommendationFor={generatingRecommendationFor}
             />
-             {isAiAssessing && (
-                <NooraAssistant
-                    isAssessing={isAiAssessing}
-                    onClose={() => setIsAiAssessing(false)}
-                    assessmentData={assessmentData}
-                    onUpdateItem={onUpdateItem}
-                    currentControlIndex={currentAiControlIndex}
-                    onNextControl={() => setCurrentAiControlIndex(prev => Math.min(prev + 1, assessmentData.length - 1))}
-                    assessmentType="PDPL"
-                    onInitiate={onInitiate}
-                    onActiveFieldChange={handleActiveFieldChange}
-                    onRequestEvidenceUpload={handleRequestEvidenceUpload}
-                />
-            )}
         </div>
     );
 };

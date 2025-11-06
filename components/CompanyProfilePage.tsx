@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { CompanyProfile, License } from '../types';
+import type { CompanyProfile, License, User } from '../types';
 import { SunIcon, MoonIcon, ClipboardIcon, CheckIcon, CloseIcon } from './Icons';
+import { CreateCompanyModal } from './CreateCompanyModal';
 
 interface CompanyProfilePageProps {
   company: CompanyProfile | null | undefined;
   onSave: (profile: CompanyProfile) => void;
   canEdit: boolean;
-  theme?: 'light' | 'dark';
-  toggleTheme?: () => void;
   addNotification: (message: string, type?: 'success' | 'info') => void;
+  currentUser: User;
+  onSetupCompany: (
+    profileData: Omit<CompanyProfile, 'id' | 'license'>,
+    adminData: Omit<User, 'id' | 'isVerified' | 'role'>
+  ) => void;
 }
 
 const LicenseStatus: React.FC<{ license?: License }> = ({ license }) => {
@@ -129,6 +133,7 @@ const LicenseGenerator: React.FC<LicenseGeneratorProps> = ({ company, onKeyGener
         { label: '3 Months', tier: 'quarterly', months: 3 },
         { label: '6 Months', tier: 'semi-annually', months: 6 },
         { label: '1 Year', tier: 'yearly', months: 12 },
+        { label: '2 Years', tier: 'yearly', months: 24 },
     ];
     
     return (
@@ -137,10 +142,10 @@ const LicenseGenerator: React.FC<LicenseGeneratorProps> = ({ company, onKeyGener
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                 Create a new license key for this company. The generated key can then be activated below.
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {tiers.map(({label, tier, months}) => (
                     <button
-                        key={tier}
+                        key={label}
                         type="button"
                         onClick={() => generateKey(tier, months)}
                         className="w-full text-center py-2 px-3 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -153,7 +158,7 @@ const LicenseGenerator: React.FC<LicenseGeneratorProps> = ({ company, onKeyGener
     );
 };
 
-export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company, onSave, canEdit, theme, toggleTheme, addNotification }) => {
+export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company, onSave, canEdit, addNotification, currentUser, onSetupCompany }) => {
   const [formData, setFormData] = useState<Omit<CompanyProfile, 'id' | 'license'>>({
     name: '',
     logo: '',
@@ -161,13 +166,16 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
     cioName: '',
     cisoName: '',
     ctoName: '',
+    cybersecurityOfficerName: '',
+    dpoName: '',
+    complianceOfficerName: '',
   });
   const [isEditing, setIsEditing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newLicenseKey, setNewLicenseKey] = useState('');
   const [generatedKey, setGeneratedKey] = useState<{ key: string; tier: License['tier']; expiresAt: number } | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const isSetupMode = !!toggleTheme;
 
   useEffect(() => {
     if (company) {
@@ -178,10 +186,13 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
         cioName: company.cioName,
         cisoName: company.cisoName,
         ctoName: company.ctoName,
+        cybersecurityOfficerName: company.cybersecurityOfficerName || '',
+        dpoName: company.dpoName || '',
+        complianceOfficerName: company.complianceOfficerName || '',
       });
-      setIsEditing(false); // Default to view mode if a company exists
+      setIsEditing(false); 
     } else {
-      setIsEditing(true); // Default to edit mode if no company
+      setIsEditing(true);
     }
   }, [company]);
 
@@ -213,9 +224,7 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
       license: company?.license, // Preserve existing license when just editing profile
     };
     onSave(profileToSave);
-    if (!isSetupMode) {
-      setIsEditing(false);
-    }
+    setIsEditing(false);
   };
   
   const handleActivateLicense = (license: License | string) => {
@@ -233,7 +242,7 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
             const [companyId, tier, expiresAtStr] = decoded.split(':');
             const expiresAt = parseInt(expiresAtStr, 10);
 
-            if (companyId !== company.id || !['monthly', 'quarterly', 'semi-annually', 'yearly'].includes(tier) || isNaN(expiresAt)) {
+            if (companyId !== company.id || !['monthly', 'quarterly', 'semi-annually', 'yearly', 'trial'].includes(tier) || isNaN(expiresAt)) {
                 throw new Error("Invalid license key format or mismatched company.");
             }
 
@@ -262,16 +271,27 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
     setNewLicenseKey('');
     if (generatedKey) setGeneratedKey(null);
   };
+
+  const handleSetupNewCompany = (
+    profileData: Omit<CompanyProfile, 'id' | 'license'>,
+    adminData: Omit<User, 'id' | 'isVerified' | 'role'>
+  ) => {
+    onSetupCompany(profileData, adminData);
+    setIsCreateModalOpen(false);
+  };
   
   const pageContent = (
     <div className="space-y-8">
-        <div>
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">
-              {isSetupMode ? "Setup Your Company Profile" : "Company Profile"}
-            </h1>
-            <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">
-                {isSetupMode ? 'Please provide your company details to begin.' : 'Manage your company information, logo, and subscription.'}
-            </p>
+        <div className="flex justify-between items-start">
+            <div>
+                <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Company Profile</h1>
+                <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Manage your company information, logo, and subscription.</p>
+            </div>
+             {currentUser.role === 'Administrator' && (
+                <button onClick={() => setIsCreateModalOpen(true)} className="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                    Create New Company
+                </button>
+             )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -300,6 +320,18 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                                     <label htmlFor="ctoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CTO Name</label>
                                     <input type="text" name="ctoName" id="ctoName" value={formData.ctoName} onChange={handleChange} required disabled={!isEditing} className="mt-1 block w-full input-style" />
                                 </div>
+                                <div>
+                                    <label htmlFor="cybersecurityOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cybersecurity Officer</label>
+                                    <input type="text" name="cybersecurityOfficerName" id="cybersecurityOfficerName" value={formData.cybersecurityOfficerName} onChange={handleChange} required disabled={!isEditing} className="mt-1 block w-full input-style" />
+                                </div>
+                                <div>
+                                    <label htmlFor="dpoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data Protection Officer (DPO)</label>
+                                    <input type="text" name="dpoName" id="dpoName" value={formData.dpoName} onChange={handleChange} required disabled={!isEditing} className="mt-1 block w-full input-style" />
+                                </div>
+                                <div>
+                                    <label htmlFor="complianceOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Compliance Officer</label>
+                                    <input type="text" name="complianceOfficerName" id="complianceOfficerName" value={formData.complianceOfficerName} onChange={handleChange} required disabled={!isEditing} className="mt-1 block w-full input-style" />
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -307,8 +339,8 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end items-center">
                             {isEditing ? (
                                 <>
-                                   {company && !isSetupMode && <button type="button" onClick={() => { setIsEditing(false); if(company) setFormData(company); }} className="mr-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500">Cancel</button>}
-                                    <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">{isSetupMode ? "Create Profile & Continue" : "Save Profile"}</button>
+                                   {company && <button type="button" onClick={() => { setIsEditing(false); if(company) setFormData(company); }} className="mr-2 inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500">Cancel</button>}
+                                    <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">Save Profile</button>
                                 </>
                             ) : (
                                 <button type="button" onClick={() => setIsEditing(true)} className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">
@@ -340,7 +372,7 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                         )}
                     </div>
                 </div>
-                 {!isSetupMode && company && (
+                 {company && (
                     <>
                         {canEdit && (
                             <LicenseGenerator company={company} onKeyGenerated={setGeneratedKey} />
@@ -409,29 +441,6 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
     </div>
   );
 
-  if (isSetupMode) {
-      return (
-          <>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 relative">
-                {toggleTheme && theme && (
-                    <div className="absolute top-0 right-0 p-6">
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-900"
-                            aria-label="Toggle theme"
-                        >
-                            {theme === 'light' ? <MoonIcon className="w-6 h-6" /> : <SunIcon className="w-6 h-6" />}
-                        </button>
-                    </div>
-                )}
-                <div className="w-full max-w-4xl">
-                    {pageContent}
-                </div>
-            </div>
-          </>
-      )
-  }
-
   return (
     <>
         {pageContent}
@@ -440,6 +449,12 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                 generatedKey={generatedKey}
                 onClose={() => setGeneratedKey(null)}
                 onActivate={handleActivateLicense}
+            />
+        )}
+        {isCreateModalOpen && (
+            <CreateCompanyModal 
+                onSetup={handleSetupNewCompany}
+                onClose={() => setIsCreateModalOpen(false)}
             />
         )}
     </>

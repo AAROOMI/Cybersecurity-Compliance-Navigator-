@@ -1,3 +1,8 @@
+// FIX: Removed self-import of types, which caused declaration conflicts with the types defined in this file.
+
+
+
+
 export interface ControlVersion {
   version: string;
   date: string;
@@ -33,11 +38,6 @@ export interface SearchResult {
   domain: Domain;
 }
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 export interface GeneratedDocsState {
   [controlId: string]: number; // Maps control ID to generation timestamp
 }
@@ -53,6 +53,7 @@ export type AuditAction =
   | 'DOCUMENT_APPROVED'
   | 'DOCUMENT_REJECTED'
   | 'COMPANY_PROFILE_UPDATED'
+  | 'COMPANY_CREATED'
   | 'PASSWORD_RESET_REQUESTED'
   | 'PASSWORD_RESET_COMPLETED'
   | 'LICENSE_UPDATED'
@@ -92,22 +93,36 @@ export type Permission =
   | 'audit:read'
   | 'assessment:read'
   | 'assessment:update'
+  | 'pdplAssessment:read'
+  | 'pdplAssessment:update'
+  | 'samaCsfAssessment:read'
+  | 'samaCsfAssessment:update'
+  | 'cmaAssessment:read'
+  | 'cmaAssessment:update'
   | 'userProfile:read'
-  | 'userProfile:update';
+  | 'userProfile:update'
+  | 'help:read'
+  | 'training:read'
+  | 'riskAssessment:read'
+  | 'riskAssessment:update'
+  | 'mapping:read'
+  | 'hrsdAssessment:read'
+  | 'hrsdAssessment:update';
 
 
+// User interface with all fields for custom auth
 export interface User {
   id: string;
   name: string;
   email: string;
   role: UserRole;
-  accessExpiresAt?: number; // Timestamp for access expiration
-  password?: string;
   isVerified: boolean;
+  accessExpiresAt?: number;
+  password?: string;
+  mfaEnabled?: boolean;
+  mfaSecret?: string;
   passwordResetToken?: string;
   passwordResetExpires?: number;
-  mfaSecret?: string;
-  mfaEnabled?: boolean;
 }
 
 export const rolePermissions: Record<UserRole, Permission[]> = {
@@ -128,8 +143,21 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'audit:read',
     'assessment:read',
     'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
+    'help:read',
+    'training:read',
+    'riskAssessment:read',
+    'riskAssessment:update',
+    'mapping:read',
+    'hrsdAssessment:read',
+    'hrsdAssessment:update',
   ],
   CISO: [
     'dashboard:read',
@@ -142,12 +170,25 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'company:read',
     'assessment:read',
     'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
+    'help:read',
+    'training:read',
+    'riskAssessment:read',
+    'riskAssessment:update',
+    'mapping:read',
+    'hrsdAssessment:read',
+    'hrsdAssessment:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'userProfile:read', 'userProfile:update'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -157,10 +198,23 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'company:read',
     'assessment:read',
     'assessment:update',
+    'pdplAssessment:read',
+    'pdplAssessment:update',
+    'samaCsfAssessment:read',
+    'samaCsfAssessment:update',
+    'cmaAssessment:read',
+    'cmaAssessment:update',
     'userProfile:read',
     'userProfile:update',
+    'help:read',
+    'training:read',
+    'riskAssessment:read',
+    'riskAssessment:update',
+    'mapping:read',
+    'hrsdAssessment:read',
+    'hrsdAssessment:update',
   ],
-  Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update'],
+  Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
 };
 
 
@@ -213,7 +267,7 @@ export interface License {
   key: string;
   status: 'active' | 'expired' | 'inactive';
   expiresAt: number; // Timestamp
-  tier: 'monthly' | 'quarterly' | 'semi-annually' | 'yearly';
+  tier: 'monthly' | 'quarterly' | 'semi-annually' | 'yearly' | 'trial';
 }
 
 // New type for Company Profile
@@ -225,6 +279,9 @@ export interface CompanyProfile {
   cioName: string;
   cisoName: string;
   ctoName: string;
+  cybersecurityOfficerName?: string;
+  dpoName?: string;
+  complianceOfficerName?: string;
   license?: License;
 }
 
@@ -298,21 +355,28 @@ export interface Task {
   createdAt: number;
 }
 
-
-// --- NEW: Compliance Agent ---
-export interface AgentLogEntry {
-  id: string;
-  timestamp: number;
-  message: string;
-  status: 'info' | 'success' | 'working' | 'error';
+// FIX: Added missing ChatMessage type for the AI chat widget.
+// --- NEW: Chat Widget ---
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
+// --- NEW: Compliance Agent ---
 export interface ComplianceGap {
     controlCode: string;
     controlName: string;
     domainName: string;
     assessedStatus: ControlStatus;
     framework: string;
+}
+
+// FIX: Added missing AgentLogEntry type for the Compliance Agent log.
+export interface AgentLogEntry {
+  id: string;
+  timestamp: number;
+  message: string;
+  status: 'info' | 'working' | 'success' | 'error';
 }
 
 // --- NEW: Risk Assessment ---
@@ -324,3 +388,14 @@ export type Risk = {
   mitigation: string;
   owner: string;
 };
+
+// --- NEW: Control Mapping ---
+export type FrameworkName = 'NCA ECC' | 'PDPL' | 'SAMA CSF' | 'CMA' | 'HRSD';
+
+export interface ControlMapping {
+  sourceFramework: FrameworkName;
+  sourceControlId: string;
+  targetFramework: FrameworkName;
+  targetControlId: string;
+  justification: string;
+}

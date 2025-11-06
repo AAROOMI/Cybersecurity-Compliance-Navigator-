@@ -1,13 +1,15 @@
 
 
+
 import React, { useState } from 'react';
-import { LogoIcon, ShieldCheckIcon, UserGroupIcon, ChartPieIcon, SunIcon, MoonIcon, CheckIcon, ClipboardIcon, ChatBotIcon } from './Icons';
+import { LogoIcon, ShieldCheckIcon, UserGroupIcon, ChartPieIcon, SunIcon, MoonIcon, CheckIcon, ClipboardIcon, ChatBotIcon, EyeIcon, EyeSlashIcon } from './Icons';
 
 interface LoginPageProps {
   onLogin: (email: string, password: string) => Promise<{error: string, code?: string} | null>;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onSetupCompany: () => void;
+  onVerify: (email: string) => boolean;
   onForgotPassword: (email: string) => Promise<{ success: boolean; message: string; token?: string }>;
   onResetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
 }
@@ -22,11 +24,12 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; children: Re
     </div>
 );
 
-const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSetupCompany' | 'onForgotPassword' | 'onResetPassword'> & { setView: (view: 'forgotPassword') => void; }> = ({ onLogin, setView }) => {
+const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSetupCompany' | 'onForgotPassword' | 'onResetPassword'> & { setView: (view: 'forgotPassword') => void; }> = ({ onLogin, onVerify, setView }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<{message: string, code?: string} | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,6 +40,14 @@ const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSet
             setError({ message: loginResult.error, code: loginResult.code });
         }
         setIsLoading(false);
+    };
+
+    const handleVerificationClick = () => {
+        if (onVerify(email)) {
+            setError(null);
+        } else {
+            setError({ message: "An error occurred during verification. Please contact an administrator." });
+        }
     };
 
     return (
@@ -54,9 +65,12 @@ const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSet
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Password
                 </label>
-                <div className="mt-1">
-                    <input id="password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                <div className="mt-1 relative">
+                    <input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)}
                         className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                    </button>
                 </div>
             </div>
              <div className="flex items-center justify-end">
@@ -67,8 +81,16 @@ const SignInView: React.FC<Omit<LoginPageProps, 'theme' | 'toggleTheme' | 'onSet
                 </div>
             </div>
             {error && (
-                <div className="p-4 rounded-md border bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-500/50">
-                    <p className="text-sm text-center text-red-700 dark:text-red-200">{error.message}</p>
+                <div className={`p-4 rounded-md border ${error.code === 'unverified' ? 'bg-yellow-50 dark:bg-yellow-900/50 border-yellow-200 dark:border-yellow-500/50' : 'bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-500/50'}`}>
+                    <p className={`text-sm text-center ${error.code === 'unverified' ? 'text-yellow-800 dark:text-yellow-200' : 'text-red-700 dark:text-red-200'}`}>{error.message}</p>
+                    {error.code === 'unverified' && (
+                        <>
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200 mt-2 text-center">Click the button below to simulate verifying your email address.</p>
+                            <button type="button" onClick={handleVerificationClick} className="mt-3 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                Verify My Email
+                            </button>
+                        </>
+                    )}
                 </div>
             )}
             <div>
@@ -157,6 +179,8 @@ const ResetPasswordView: React.FC<{ onResetPassword: LoginPageProps['onResetPass
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -186,13 +210,23 @@ const ResetPasswordView: React.FC<{ onResetPassword: LoginPageProps['onResetPass
             </div>
             <div>
                 <label htmlFor="new-password">New Password</label>
-                <input id="new-password" name="newPassword" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                <div className="mt-1 relative">
+                    <input id="new-password" name="newPassword" type={showPassword ? 'text' : 'password'} required value={password} onChange={(e) => setPassword(e.target.value)}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                    </button>
+                </div>
             </div>
             <div>
                 <label htmlFor="confirm-password">Confirm New Password</label>
-                <input id="confirm-password" name="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                <div className="mt-1 relative">
+                    <input id="confirm-password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                    </button>
+                </div>
             </div>
             {message && <p className="text-sm text-center p-4 rounded-md border bg-green-50 dark:bg-green-900/50 border-green-200 dark:border-green-500/50 text-green-800 dark:text-green-200">{message}</p>}
             {error && <p className="text-sm text-center p-4 rounded-md border bg-red-50 dark:bg-red-900/50 border-red-200 dark:border-red-500/50 text-red-700 dark:text-red-200">{error}</p>}
@@ -210,7 +244,7 @@ const ResetPasswordView: React.FC<{ onResetPassword: LoginPageProps['onResetPass
     );
 };
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleTheme, onSetupCompany, onForgotPassword, onResetPassword }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleTheme, onSetupCompany, onVerify, onForgotPassword, onResetPassword }) => {
     const [view, setView] = useState<'signIn' | 'forgotPassword' | 'resetPassword'>('signIn');
 
     const viewTitles = {
@@ -242,7 +276,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, theme, toggleThem
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200 dark:border-gray-700">
-                    {view === 'signIn' && <SignInView onLogin={onLogin} setView={setView} />}
+                    {view === 'signIn' && <SignInView onLogin={onLogin} onVerify={onVerify} setView={setView} />}
                     {view === 'forgotPassword' && <ForgotPasswordView onForgotPassword={onForgotPassword} setView={setView} />}
                     {view === 'resetPassword' && <ResetPasswordView onResetPassword={onResetPassword} setView={setView} />}
                     

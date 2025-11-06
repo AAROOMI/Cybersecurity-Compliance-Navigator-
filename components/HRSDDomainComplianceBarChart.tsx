@@ -3,7 +3,7 @@ import type { AssessmentItem, ControlStatus } from '../types';
 
 declare const Chart: any;
 
-interface SamaCsfDomainComplianceBarChartProps {
+interface HRSDDomainComplianceBarChartProps {
     data: AssessmentItem[];
 }
 
@@ -15,7 +15,7 @@ const getStatusChartColor = (status: 'Implemented' | 'Partially Implemented' | '
     }
 };
 
-export const SamaCsfDomainComplianceBarChart: React.FC<SamaCsfDomainComplianceBarChartProps> = ({ data }) => {
+export const HRSDDomainComplianceBarChart: React.FC<HRSDDomainComplianceBarChartProps> = ({ data }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
 
@@ -94,7 +94,7 @@ export const SamaCsfDomainComplianceBarChart: React.FC<SamaCsfDomainComplianceBa
                     },
                     title: {
                         display: true,
-                        text: 'SAMA CSF Compliance Status by Domain',
+                        text: 'HRSD Compliance Status by Domain',
                         color: textColor,
                         font: {
                             size: 18

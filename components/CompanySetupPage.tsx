@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { CompanyProfile, User } from '../types';
-import { LogoIcon, MoonIcon, SunIcon } from './Icons';
+import { LogoIcon, MoonIcon, SunIcon, EyeIcon, EyeSlashIcon } from './Icons';
 
 interface CompanySetupPageProps {
   onSetup: (
@@ -19,7 +19,9 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     cioName: '',
     cisoName: '',
     ctoName: '',
-    logo: '',
+    cybersecurityOfficerName: '',
+    dpoName: '',
+    complianceOfficerName: '',
   });
 
   const [adminData, setAdminData] = useState({
@@ -29,7 +31,8 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     confirmPassword: '',
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -41,21 +44,6 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     setAdminData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-          alert('Logo image cannot exceed 2MB.');
-          return;
-      }
-      const reader = new FileReader();
-      reader.onload = (loadEvent) => {
-        setCompanyData(prev => ({ ...prev, logo: loadEvent.target?.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (adminData.password !== adminData.confirmPassword) {
@@ -64,7 +52,7 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     }
     
     const { confirmPassword, ...adminPayload } = adminData;
-    const profilePayload = { ...companyData };
+    const profilePayload = { ...companyData, logo: '' }; // Logo can be added later
 
     onSetup(profilePayload, adminPayload);
   };
@@ -81,7 +69,7 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
           </button>
       </div>
 
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-2xl">
         <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8">
             <LogoIcon className="mx-auto h-20 w-auto text-teal-600" />
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
@@ -96,48 +84,38 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
             <div className="p-6 space-y-8">
                  <fieldset className="space-y-4">
                     <legend className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">Company Details</legend>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company Name</label>
-                                    <input type="text" name="name" id="companyName" value={companyData.name} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
-                                </div>
-                                 <div>
-                                    <label htmlFor="cisoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CISO Name</label>
-                                    <input type="text" name="cisoName" id="cisoName" value={companyData.cisoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
-                                </div>
-                                <div>
-                                    <label htmlFor="ceoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CEO Name</label>
-                                    <input type="text" name="ceoName" id="ceoName" value={companyData.ceoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
-                                </div>
-                                <div>
-                                    <label htmlFor="cioName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CIO Name</label>
-                                    <input type="text" name="cioName" id="cioName" value={companyData.cioName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
-                                </div>
-                                 <div>
-                                    <label htmlFor="ctoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CTO Name</label>
-                                    <input type="text" name="ctoName" id="ctoName" value={companyData.ctoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
-                                </div>
-                            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company Name</label>
+                            <input type="text" name="name" id="companyName" value={companyData.name} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
                         </div>
-                        <div className="md:col-span-1">
-                             <div className="flex flex-col items-center">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">Company Logo (Optional)</label>
-                                <div className="w-40 h-40 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600">
-                                {companyData.logo ? (
-                                    <img src={companyData.logo} alt="Company Logo Preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-gray-500 text-sm">No Logo</span>
-                                )}
-                                </div>
-                                <>
-                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-4 text-sm font-medium text-teal-600 dark:text-teal-400 hover:text-teal-500">
-                                        Upload Logo
-                                    </button>
-                                    <input ref={fileInputRef} type="file" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} className="hidden" />
-                                </>
-                            </div>
+                         <div>
+                            <label htmlFor="cisoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CISO Name</label>
+                            <input type="text" name="cisoName" id="cisoName" value={companyData.cisoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label htmlFor="ceoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CEO Name</label>
+                            <input type="text" name="ceoName" id="ceoName" value={companyData.ceoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label htmlFor="cioName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CIO Name</label>
+                            <input type="text" name="cioName" id="cioName" value={companyData.cioName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                         <div>
+                            <label htmlFor="ctoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CTO Name</label>
+                            <input type="text" name="ctoName" id="ctoName" value={companyData.ctoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label htmlFor="cybersecurityOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cybersecurity Officer</label>
+                            <input type="text" name="cybersecurityOfficerName" id="cybersecurityOfficerName" value={companyData.cybersecurityOfficerName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label htmlFor="dpoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data Protection Officer (DPO)</label>
+                            <input type="text" name="dpoName" id="dpoName" value={companyData.dpoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                        </div>
+                        <div>
+                            <label htmlFor="complianceOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Compliance Officer</label>
+                            <input type="text" name="complianceOfficerName" id="complianceOfficerName" value={companyData.complianceOfficerName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
                         </div>
                     </div>
                  </fieldset>
@@ -155,11 +133,21 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
                         </div>
                         <div>
                             <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                            <input type="password" name="password" id="adminPassword" value={adminData.password} onChange={handleAdminChange} required className="mt-1 block w-full input-style" />
+                            <div className="relative mt-1">
+                                <input type={showPassword ? 'text' : 'password'} name="password" id="adminPassword" value={adminData.password} onChange={handleAdminChange} required className="block w-full input-style pr-10" />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+                                    {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </div>
                         <div>
                             <label htmlFor="adminConfirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
-                            <input type="password" name="confirmPassword" id="adminConfirmPassword" value={adminData.confirmPassword} onChange={handleAdminChange} required className="mt-1 block w-full input-style" />
+                             <div className="relative mt-1">
+                                <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" id="adminConfirmPassword" value={adminData.confirmPassword} onChange={handleAdminChange} required className="block w-full input-style pr-10" />
+                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+                                    {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </fieldset>

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
-import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon } from './Icons';
+import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon, SecureCodingBadgeIcon, IncidentResponseBadgeIcon, DataPrivacyBadgeIcon } from './Icons';
 import { trainingCourses } from '../data/trainingData';
 
 declare const Chart: any;
@@ -10,12 +10,13 @@ interface DashboardPageProps {
     currentUser: User;
     allControls: SearchResult[];
     domains: Domain[];
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'riskAssessment') => void;
+    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'riskAssessment') => void;
     trainingProgress?: UserTrainingProgress;
     eccAssessment: AssessmentItem[];
     pdplAssessment: AssessmentItem[];
     samaCsfAssessment: AssessmentItem[];
     cmaAssessment: AssessmentItem[];
+    hrsdAssessment: AssessmentItem[];
     tasks: Task[];
     setTasks: (updater: React.SetStateAction<Task[]>) => void;
 }
@@ -249,6 +250,9 @@ const BadgeIcon: React.FC<{ badgeId: string }> = ({ badgeId }) => {
         'password-badge': <PasswordBadgeIcon {...props} />,
         'browsing-badge': <SafeBrowsingBadgeIcon {...props} />,
         'remote-work-badge': <RemoteWorkBadgeIcon {...props} />,
+        'secure-coding-badge': <SecureCodingBadgeIcon {...props} />,
+        'incident-response-badge': <IncidentResponseBadgeIcon {...props} />,
+        'data-privacy-badge': <DataPrivacyBadgeIcon {...props} />,
     };
 
     return (
@@ -453,7 +457,7 @@ const TaskManager: React.FC<{
     );
 };
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, tasks, setTasks }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, hrsdAssessment, tasks, setTasks }) => {
     const stats = useMemo(() => {
         const approvedCount = repository.filter(doc => doc.status === 'Approved').length;
         const pendingCount = repository.filter(doc => doc.status.startsWith('Pending')).length;
@@ -495,7 +499,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     }, [repository]);
     
     const earnedBadges = useMemo(() => {
-        if (!trainingProgress || Object.keys(trainingProgress).length === 0) return [];
+        if (!trainingProgress) return [];
+        // FIX: Add type assertion to resolve 'unknown' type from Object.values on a potentially empty object.
         return Object.values(trainingProgress as UserTrainingProgress)
             .filter((p) => p.badgeEarned)
             .map(p => p.badgeId);
@@ -512,6 +517,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     const pdplCompliance = useMemo(() => calculateCompliance(pdplAssessment), [pdplAssessment]);
     const samaCsfCompliance = useMemo(() => calculateCompliance(samaCsfAssessment), [samaCsfAssessment]);
     const cmaCompliance = useMemo(() => calculateCompliance(cmaAssessment), [cmaAssessment]);
+    const hrsdCompliance = useMemo(() => calculateCompliance(hrsdAssessment), [hrsdAssessment]);
 
     return (
         <div className="space-y-8">
@@ -529,7 +535,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
 
             <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Frameworks Compliance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                     <FrameworkMeter 
                         title="NCA ECC" 
                         percentage={eccCompliance} 
@@ -549,6 +555,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                         title="CMA" 
                         percentage={cmaCompliance} 
                         onNavigate={() => onSetView('cmaAssessment')}
+                        disabled={false}
+                    />
+                    <FrameworkMeter 
+                        title="HRSD" 
+                        percentage={hrsdCompliance} 
+                        onNavigate={() => onSetView('hrsdAssessment')}
                         disabled={false}
                     />
                 </div>

@@ -354,5 +354,150 @@ Cybersecurity isn't just about what happens online. Protecting physical access t
         }
        }
     ]
+  },
+  // Module 7
+  {
+    id: 'course-secure-coding',
+    title: 'Secure Coding Practices',
+    description: 'Essential guidelines for developers to write secure code and prevent common vulnerabilities like SQL injection and XSS.',
+    standard: 'ISO 27001',
+    badgeId: 'secure-coding-badge',
+    lessons: [
+      {
+        id: 'secure-coding-l1',
+        title: 'Input Validation and Sanitization',
+        content: `
+# Lesson 1: Never Trust User Input
+
+The number one rule of secure coding is to **never trust data that comes from a user**. Always assume it is malicious until proven otherwise. This is the principle behind input validation and sanitization.
+
+### Input Validation
+Input validation is the process of ensuring that data from a user or external source meets a specific set of criteria before it's processed by your application.
+
+*   **Type Checking:** Ensure a number is a number, a date is a date, etc.
+*   **Range Checking:** Ensure a number is within an expected range (e.g., age must be between 18 and 120).
+*   **Length Checking:** Ensure a username is not more than 50 characters long.
+*   **Whitelist Validation:** Only allow known, good characters. For example, a username might only be allowed to contain letters and numbers (<code>[a-zA-Z0-9]</code>). This is much safer than trying to block bad characters (blacklisting).
+
+### Sanitization
+Sanitization is the process of cleaning up or modifying user input to make it safe. This is often used as a second layer of defense.
+
+*   **Example:** If a user submits a comment with HTML tags like <code><script></code>, sanitization would remove or encode these tags (e.g., changing <code><</code> to <code>&lt;</code>) to prevent a Cross-Site Scripting (XSS) attack.
+
+**Always validate first, then sanitize as a backup.** A strong validation whitelist is your best defense.
+`,
+        quiz: {
+          title: 'Input Validation Quiz',
+          questions: [
+            {
+              question: 'Which is a more secure approach for validating a username?',
+              options: ['Blocking special characters like < and > (Blacklisting)', 'Only allowing letters and numbers (Whitelisting)', 'Checking if the username exists'],
+              correctAnswer: 1,
+            }
+          ]
+        }
+      }
+    ]
+  },
+  // Module 8
+  {
+    id: 'course-incident-response',
+    title: 'Incident Response Fundamentals',
+    description: 'Learn the incident response lifecycle: preparation, identification, containment, eradication, recovery, and lessons learned.',
+    standard: 'NCA ECC',
+    badgeId: 'incident-response-badge',
+    lessons: [
+      {
+        id: 'incident-response-l1',
+        title: 'The Incident Response Lifecycle',
+        content: `
+# Lesson 1: Responding to a Cyber Attack
+
+When a security incident occurs, a chaotic response can make things worse. A structured **Incident Response (IR) plan** ensures a calm, efficient, and effective reaction. The industry-standard lifecycle has six phases.
+
+### 1. Preparation
+This is the work you do **before** an incident. It includes creating the IR plan, forming the response team (CSIRT), and having the right tools (logging, monitoring) in place.
+
+### 2. Identification
+How do you know an incident has occurred? This phase involves analyzing events from logs, alerts from security tools, or reports from users to determine if a real security incident is happening.
+
+### 3. Containment
+Once an incident is identified, the immediate goal is to stop the bleeding. **Containment** limits the scope and magnitude of the incident. This could mean disconnecting an infected machine from the network or blocking a malicious IP address at the firewall.
+
+### 4. Eradication
+After the incident is contained, the next step is to remove the threat from the environment. This involves finding the root cause of the incident and eliminating it. For example, removing malware from all affected systems and patching the vulnerability that allowed it to get in.
+
+### 5. Recovery
+This phase focuses on restoring systems to normal operation. This might involve restoring data from backups, rebuilding systems from a known-good state, and monitoring to ensure the threat is truly gone.
+
+### 6. Lessons Learned
+After every incident, the team must meet to discuss what happened, what went well, and what could be improved. The goal is to update the IR plan and strengthen defenses to prevent the same incident from happening again. This is a critical step!
+`,
+        quiz: {
+          title: 'IR Lifecycle Quiz',
+          questions: [
+            {
+              question: 'After you discover a computer has been infected with malware, what is the most important immediate step?',
+              options: ['Wipe the computer and reinstall Windows', 'Disconnect it from the network to prevent spreading', 'Run a full antivirus scan', 'Try to find out who did it'],
+              correctAnswer: 1,
+            },
+            {
+              question: 'Which phase is focused on improving your defenses for the future?',
+              options: ['Preparation', 'Recovery', 'Lessons Learned'],
+              correctAnswer: 2,
+            }
+          ]
+        }
+      }
+    ]
+  },
+  // Module 9
+  {
+    id: 'course-data-privacy',
+    title: 'Data Privacy & PDPL Compliance',
+    description: 'An introduction to data privacy principles and the key requirements of the Saudi Personal Data Protection Law (PDPL).',
+    standard: 'PDPL',
+    badgeId: 'data-privacy-badge',
+    lessons: [
+      {
+        id: 'data-privacy-l1',
+        title: 'Key Principles of PDPL',
+        content: `
+# Lesson 1: Understanding PDPL
+
+The **Saudi Personal Data Protection Law (PDPL)** is a comprehensive data protection regulation that governs the collection, use, and disclosure of personal data of individuals in Saudi Arabia. Understanding its core principles is crucial for compliance.
+
+### Key Principles
+- **Lawfulness of Processing & Transparency:** You must have a legal basis (like explicit consent) to process personal data, and you must be transparent with individuals (data subjects) about how you use their data.
+- **Purpose Limitation:** You can only collect and process personal data for the specific, explicit purpose that you disclosed to the data subject when you collected it. You can't collect data for one reason and then use it for another.
+- **Data Minimization:** You should only collect the personal data that is absolutely necessary to achieve your stated purpose. Don't collect data "just in case" you might need it later.
+- **Accuracy:** You must take reasonable steps to ensure that the personal data you hold is accurate, complete, and up-to-date.
+- **Storage Limitation:** You must not keep personal data in an identifiable form for longer than is necessary to achieve the purpose for which it was collected.
+- **Integrity & Confidentiality:** You must implement appropriate technical and organizational measures to protect personal data against unauthorized access, disclosure, alteration, or destruction.
+
+### Data Subject Rights
+PDPL grants several rights to individuals, including:
+*   The right to be informed.
+*   The right to access their data.
+*   The right to request correction of their data.
+*   The right to request destruction of their data.
+`,
+        quiz: {
+          title: 'PDPL Principles Quiz',
+          questions: [
+            {
+              question: "The principle that states you should only collect the data you absolutely need is called:",
+              options: ['Purpose Limitation', 'Data Minimization', 'Storage Limitation'],
+              correctAnswer: 1,
+            },
+            {
+              question: 'Under PDPL, what must you typically obtain before collecting personal data?',
+              options: ['The person\'s age', 'Explicit consent', 'Government approval'],
+              correctAnswer: 1,
+            }
+          ]
+        }
+      }
+    ]
   }
 ];

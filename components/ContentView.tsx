@@ -8,8 +8,7 @@ interface ContentViewProps {
   domain: Domain;
   activeControlId: string | null;
   setActiveControlId: (id: string | null) => void;
-  // Fix: Add optional `generatedBy` parameter to the onAddDocument prop type.
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
   onSetView: (view: View) => void;

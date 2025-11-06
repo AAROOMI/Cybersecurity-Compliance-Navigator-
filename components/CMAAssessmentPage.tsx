@@ -1,10 +1,9 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, MicrophoneIcon, UploadIcon } from './Icons';
+import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
 import { CMADomainComplianceBarChart } from './CMADomainComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
-import { NooraAssistant } from './NooraAssistant';
 
 
 declare const Chart: any;
@@ -100,13 +99,6 @@ export const CMAAssessmentPage: React.FC<CMAAssessmentPageProps> = ({ assessment
     const [domainFilter, setDomainFilter] = useState('All');
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    // AI Assessment State
-    const [isAiAssessing, setIsAiAssessing] = useState(false);
-    const [currentAiControlIndex, setCurrentAiControlIndex] = useState(0);
-    const [activeField, setActiveField] = useState<{ controlCode: string; field: string | null } | null>(null);
-    const [isEvidenceRequestedForControl, setEvidenceRequestedForControl] = useState<string | null>(null);
-    const [generatingRecommendationFor, setGeneratingRecommendationFor] = useState<string | null>(null);
-
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('cmaAssessment:update');
 
@@ -160,24 +152,6 @@ export const CMAAssessmentPage: React.FC<CMAAssessmentPageProps> = ({ assessment
             })
             .filter(domain => domain.items.length > 0);
     }, [domains, searchTerm, statusFilter, domainFilter]);
-
-    const handleActiveFieldChange = (controlCode: string | null, field: keyof AssessmentItem | null) => {
-        if (controlCode && field) {
-            setActiveField({ controlCode, field });
-            setTimeout(() => {
-                setActiveField(prev => (prev?.controlCode === controlCode && prev?.field === field ? null : prev));
-            }, 2500);
-        } else {
-            setActiveField(null);
-        }
-    };
-
-    const handleRequestEvidenceUpload = (controlCode: string) => {
-        setEvidenceRequestedForControl(controlCode);
-        setTimeout(() => {
-            setEvidenceRequestedForControl(prev => (prev === controlCode ? null : prev));
-        }, 10000);
-    };
 
     const handleExportCSV = () => {
         const dataToExport = filteredDomains.flatMap(domain => domain.items);
@@ -294,42 +268,6 @@ export const CMAAssessmentPage: React.FC<CMAAssessmentPageProps> = ({ assessment
     
     const handleCmaItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
         onUpdateItem(controlCode, updatedItem);
-
-        const shouldGenerate = (updatedItem.controlStatus === 'Not Implemented' || updatedItem.controlStatus === 'Partially Implemented') && !updatedItem.recommendation;
-
-        if (shouldGenerate && canUpdate) {
-            setGeneratingRecommendationFor(controlCode);
-            try {
-                if (!process.env.API_KEY) throw new Error("API_KEY not set");
-                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                
-                const prompt = `You are a cybersecurity and financial compliance expert specializing in the Saudi Arabian Capital Market Authority (CMA) framework.
-
-                An assessment of the following control has been marked as '${updatedItem.controlStatus}':
-                - Control Code: ${updatedItem.controlCode}
-                - Control Description: ${updatedItem.controlName}
-
-                Your task is to generate a concise recommendation that includes:
-                1. A brief summary of potential risks (mention regulatory penalties from CMA, market integrity risks, and reputational damage).
-                2. High-level, actionable remediation steps to address the gap.
-
-                Format the output as a single string suitable for a textarea, using Markdown-style bullet points (*).`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                });
-                
-                const recommendationText = response.text;
-                
-                onUpdateItem(controlCode, { ...updatedItem, recommendation: recommendationText });
-
-            } catch (e) {
-                console.error("Failed to generate AI recommendation:", e);
-            } finally {
-                setGeneratingRecommendationFor(null);
-            }
-        }
     };
 
 
@@ -343,15 +281,9 @@ export const CMAAssessmentPage: React.FC<CMAAssessmentPageProps> = ({ assessment
                  {canUpdate && (
                      <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
-                            <>
-                                <button onClick={() => setIsAiAssessing(true)} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
-                                    <MicrophoneIcon className="w-5 h-5" />
-                                    AI Voice Assessment
-                                </button>
-                                <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
-                                    Complete Assessment
-                                </button>
-                            </>
+                            <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                                Complete Assessment
+                            </button>
                         )}
                         <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
                             Initiate New Assessment
@@ -443,26 +375,7 @@ export const CMAAssessmentPage: React.FC<CMAAssessmentPageProps> = ({ assessment
                 onUpdateItem={handleCmaItemUpdate}
                 isEditable={isEditable && canUpdate}
                 canUpdate={canUpdate}
-                isAiAssessing={isAiAssessing}
-                activeControlCode={activeField?.controlCode}
-                activeField={activeField?.field}
-                isEvidenceRequestedForControl={isEvidenceRequestedForControl}
-                generatingRecommendationFor={generatingRecommendationFor}
             />
-             {isAiAssessing && (
-                <NooraAssistant
-                    isAssessing={isAiAssessing}
-                    onClose={() => setIsAiAssessing(false)}
-                    assessmentData={assessmentData}
-                    onUpdateItem={onUpdateItem}
-                    currentControlIndex={currentAiControlIndex}
-                    onNextControl={() => setCurrentAiControlIndex(prev => Math.min(prev + 1, assessmentData.length - 1))}
-                    assessmentType="CMA"
-                    onInitiate={onInitiate}
-                    onActiveFieldChange={handleActiveFieldChange}
-                    onRequestEvidenceUpload={handleRequestEvidenceUpload}
-                />
-            )}
         </div>
     );
 };

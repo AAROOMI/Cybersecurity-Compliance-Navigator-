@@ -1,9 +1,9 @@
 
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
-import { DomainComplianceBarChart } from './DomainComplianceBarChart';
+import { HRSDDomainComplianceBarChart } from './HRSDDomainComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
 
 
@@ -85,24 +85,23 @@ const StatusDistributionChart: React.FC<{ data: Record<string, number> }> = ({ d
     );
 };
 
-interface AssessmentPageProps {
+interface HRSDAssessmentPageProps {
     assessmentData: AssessmentItem[];
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     status: 'idle' | 'in-progress';
     onInitiate: () => void;
     onComplete: () => void;
     permissions: Set<Permission>;
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void;
 }
 
-export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView }) => {
+export const HRSDAssessmentPage: React.FC<HRSDAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
     const fileInputRef = useRef<HTMLInputElement>(null);
     
     const isEditable = status === 'in-progress';
-    const canUpdate = permissions.has('assessment:update');
+    const canUpdate = permissions.has('hrsdAssessment:update');
 
     const stats = useMemo(() => {
         const totalApplicable = assessmentData.filter(d => d.controlStatus !== 'Not Applicable').length;
@@ -191,7 +190,7 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `nca_ecc_assessment_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.download = `hrsd_assessment_export_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -212,7 +211,6 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 const delimiter = headerRow.includes(';') ? ';' : ',';
                 const headers = headerRow.split(delimiter).map(h => h.trim().replace(/^#/, '').replace(/"/g, ''));
                 
-                const expectedHeaders = [ 'Control Code', 'Current Status', 'Control Status', 'Recommendation', 'Management Response', 'Target Date'];
                 if (!headers.includes('Control Code')) {
                     throw new Error(`CSV is missing required header: 'Control Code'.`);
                 }
@@ -222,7 +220,6 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 
                 const keyMap: Record<string, keyof AssessmentItem> = {
                     'Current Status': 'currentStatusDescription',
-                    'Saudi Ceramics Current Status': 'currentStatusDescription',
                     'Control Status': 'controlStatus',
                     'Recommendation': 'recommendation',
                     'Management Response': 'managementResponse',
@@ -269,17 +266,21 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
         reader.readAsText(file);
         if (event.target) event.target.value = ''; // Reset file input
     };
+    
+    const handleHrsdItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
+        onUpdateItem(controlCode, updatedItem);
+    };
 
 
     return (
         <div className="space-y-8">
             <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">NCA ECC Assessment</h1>
-                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the National Cybersecurity Authority's standards.</p>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">HRSD Assessment</h1>
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the Human Resources and Social Development (HRSD) framework.</p>
                 </div>
-                {canUpdate && (
-                    <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
+                 {canUpdate && (
+                     <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
                             <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                                 Complete Assessment
@@ -291,7 +292,7 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                     </div>
                 )}
             </div>
-            
+
             {isEditable && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
                     <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
@@ -335,7 +336,7 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                                 </select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <button
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={!isEditable || !canUpdate}
@@ -367,13 +368,13 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
             </div>
 
             <Card>
-                <DomainComplianceBarChart data={assessmentData} />
+                <HRSDDomainComplianceBarChart data={assessmentData} />
             </Card>
 
             <AssessmentSheet
                 filteredDomains={filteredDomains}
-                onUpdateItem={onUpdateItem}
-                isEditable={isEditable}
+                onUpdateItem={handleHrsdItemUpdate}
+                isEditable={isEditable && canUpdate}
                 canUpdate={canUpdate}
             />
         </div>

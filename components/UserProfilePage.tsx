@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { User } from '../types';
+import { EyeIcon, EyeSlashIcon } from './Icons';
 
 interface UserProfilePageProps {
   currentUser: User;
@@ -33,6 +34,10 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
 
     const handlePasswordChange = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -87,15 +92,30 @@ export const UserProfilePage: React.FC<UserProfilePageProps> = ({ currentUser, o
                 <form onSubmit={handlePasswordChange} className="space-y-4 max-w-sm">
                     <div>
                         <label htmlFor="current-password" className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">Current Password</label>
-                        <input type="password" id="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="mt-1 block w-full input-style" />
+                        <div className="relative mt-1">
+                            <input type={showCurrentPassword ? 'text' : 'password'} id="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required className="block w-full input-style pr-10" />
+                            <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+                                {showCurrentPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="new-password" className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">New Password</label>
-                        <input type="password" id="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="mt-1 block w-full input-style" />
+                         <div className="relative mt-1">
+                            <input type={showNewPassword ? 'text' : 'password'} id="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required className="block w-full input-style pr-10" />
+                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+                                {showNewPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="confirm-password" className="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-300">Confirm New Password</label>
-                        <input type="password" id="confirm-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="mt-1 block w-full input-style" />
+                         <div className="relative mt-1">
+                            <input type={showConfirmPassword ? 'text' : 'password'} id="confirm-password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="block w-full input-style pr-10" />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
+                                {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                            </button>
+                        </div>
                     </div>
                     
                     {passwordMessage && (

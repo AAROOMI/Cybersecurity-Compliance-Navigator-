@@ -1,8 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
-import { TrashIcon, MicrophoneIcon } from './Icons';
+import { TrashIcon } from './Icons';
 import type { Risk, Permission } from '../types';
 import { likelihoodOptions, impactOptions } from '../data/riskAssessmentData';
-import { RiskAssistant } from './RiskAssistant';
 
 // Updated risk score calculation and color coding
 const getRiskScoreInfo = (score: number): { text: string, color: string } => {
@@ -207,11 +207,12 @@ interface RiskAssessmentPageProps {
 }
 
 export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, setRisks, status, onInitiate, onComplete, permissions }) => {
-    const [isAiAssessing, setIsAiAssessing] = useState(false);
     const isEditable = status === 'in-progress' && permissions.has('riskAssessment:update');
 
+    // FIX: Refactored categorizedRisks to use a simpler, single-pass grouping logic to fix a TypeScript error.
     const categorizedRisks = useMemo(() => {
         const categories: Record<string, Risk[]> = {};
+
         risks.forEach(risk => {
             const match = risk.id.match(/^[a-zA-Z]+/);
             const prefix = match ? match[0] : 'unknown';
@@ -270,12 +271,6 @@ export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, s
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Identify, analyze, and manage organizational risks in a centralized register.</p>
                 </div>
                 <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
-                    {isEditable && (
-                        <button onClick={() => setIsAiAssessing(true)} className="inline-flex items-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
-                            <MicrophoneIcon className="w-5 h-5" />
-                            AI Voice Assessment
-                        </button>
-                    )}
                     <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                         Complete Assessment
                     </button>
@@ -297,15 +292,6 @@ export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, s
                     />
                 ))}
             </div>
-            {isAiAssessing && (
-                <RiskAssistant
-                    isOpen={isAiAssessing}
-                    onClose={() => setIsAiAssessing(false)}
-                    risks={risks}
-                    setRisks={setRisks}
-                    onInitiate={onInitiate}
-                />
-            )}
              <style>{`
                 td textarea, td input, td select {
                     color: #111827; /* a default color for non-dark mode */

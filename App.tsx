@@ -17,6 +17,8 @@ import { TrainingPage } from './components/TrainingPage';
 import { RiskAssessmentPage } from './components/RiskAssessmentPage';
 import { ControlMappingPage } from './components/ControlMappingPage';
 import { TourGuide } from './components/TourGuide';
+import { NooraAssistant } from './components/NooraAssistant';
+import { RiskAssistant } from './components/RiskAssistant';
 import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, DownloadIcon, ExclamationTriangleIcon, LockClosedIcon, LogoutIcon } from './components/Icons';
 import { eccData } from './data/controls';
 import { assessmentData as initialAssessmentData } from './data/assessmentData';
@@ -27,7 +29,7 @@ import { initialHrsdAssessmentData } from './data/hrsdAssessmentData';
 import { initialRiskData } from './data/riskAssessmentData';
 import { trainingCourses } from './data/trainingData';
 import { mappingData } from './data/mappingData';
-import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk } from './types';
+import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk, AssessmentRecord } from './types';
 import { rolePermissions } from './types';
 
 // Import pages for custom auth flow
@@ -62,6 +64,11 @@ type CompanyData = {
   assessmentStatuses?: AssessmentStatuses;
   trainingProgress?: UserTrainingProgress;
   tasks?: Task[];
+  eccAssessmentHistory?: AssessmentRecord[];
+  pdplAssessmentHistory?: AssessmentRecord[];
+  samaCsfAssessmentHistory?: AssessmentRecord[];
+  cmaAssessmentHistory?: AssessmentRecord[];
+  hrsdAssessmentHistory?: AssessmentRecord[];
 };
 
 interface Notification {
@@ -95,6 +102,35 @@ const tourSteps = [
 type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'controlMapping';
 
 type AppState = 'login' | 'setup' | 'app' | 'mfa_verify' | 'mfa_setup';
+
+const NotificationComponent: React.FC<{ notification: Notification; onDismiss: () => void }> = ({ notification, onDismiss }) => {
+    const Icon = notification.type === 'success' ? CheckCircleIcon : InformationCircleIcon;
+    const colors = notification.type === 'success'
+        ? 'bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-200 border-green-200 dark:border-green-600'
+        : 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-600';
+
+    return (
+        <div className={`max-w-sm w-full rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border ${colors}`}>
+            <div className="p-4">
+                <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                        <Icon className="h-6 w-6" aria-hidden="true" />
+                    </div>
+                    <div className="ml-3 w-0 flex-1 pt-0.5">
+                        <p className="text-sm font-medium">{notification.message}</p>
+                    </div>
+                    <div className="ml-4 flex-shrink-0 flex">
+                        <button onClick={onDismiss} className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800">
+                            <span className="sr-only">Close</span>
+                            <CloseIcon className="h-5 w-5" aria-hidden="true" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -149,6 +185,15 @@ const App: React.FC = () => {
   
   const [showInitiateConfirmModal, setShowInitiateConfirmModal] = useState<keyof AssessmentStatuses | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
+  
+  // Noora AI Assistant State
+  const [isNooraAssessing, setIsNooraAssessing] = useState(false);
+  type NooraAssessmentType = 'ecc' | 'pdpl' | 'sama' | 'cma' | 'hrsd';
+  const [nooraAssessmentType, setNooraAssessmentType] = useState<NooraAssessmentType | null>(null);
+  const [nooraCurrentControlIndex, setNooraCurrentControlIndex] = useState(0);
+  const [nooraActiveField, setNooraActiveField] = useState<{ controlCode: string | null, field: keyof AssessmentItem | null }>({ controlCode: null, field: null });
+  const [nooraEvidenceRequest, setNooraEvidenceRequest] = useState<string | null>(null);
+  const [isRiskAssistantOpen, setIsRiskAssistantOpen] = useState(false);
 
   const currentCompany = useMemo(() => companies.find(c => c.id === currentCompanyId), [companies, currentCompanyId]);
   const documentRepository = useMemo(() => allCompanyData[currentCompanyId || '']?.documents || [], [allCompanyData, currentCompanyId]);
@@ -385,14 +430,15 @@ const App: React.FC = () => {
 
         let sourceData: AssessmentItem[] | Risk[];
         let key: keyof CompanyData;
+        let historyKey: keyof CompanyData;
         
         switch (type) {
-            case 'ecc': sourceData = initialAssessmentData; key = 'eccAssessment'; break;
-            case 'pdpl': sourceData = initialPdplAssessmentData; key = 'pdplAssessment'; break;
-            case 'sama': sourceData = initialSamaCsfAssessmentData; key = 'samaCsfAssessment'; break;
-            case 'cma': sourceData = initialCmaAssessmentData; key = 'cmaAssessment'; break;
-            case 'hrsd': sourceData = initialHrsdAssessmentData; key = 'hrsdAssessment'; break;
-            case 'riskAssessment': sourceData = initialRiskData; key = 'riskAssessmentData'; break;
+            case 'ecc': sourceData = initialAssessmentData; key = 'eccAssessment'; historyKey = 'eccAssessmentHistory'; break;
+            case 'pdpl': sourceData = initialPdplAssessmentData; key = 'pdplAssessment'; historyKey = 'pdplAssessmentHistory'; break;
+            case 'sama': sourceData = initialSamaCsfAssessmentData; key = 'samaCsfAssessment'; historyKey = 'samaCsfAssessmentHistory'; break;
+            case 'cma': sourceData = initialCmaAssessmentData; key = 'cmaAssessment'; historyKey = 'cmaAssessmentHistory'; break;
+            case 'hrsd': sourceData = initialHrsdAssessmentData; key = 'hrsdAssessment'; historyKey = 'hrsdAssessmentHistory'; break;
+            case 'riskAssessment': sourceData = initialRiskData; key = 'riskAssessmentData'; historyKey = undefined; break; // No history for risk yet
             default: return;
         }
 
@@ -410,14 +456,24 @@ const App: React.FC = () => {
         setAllCompanyData(prev => {
             const currentData = prev[currentCompanyId!];
             if (!currentData) return prev;
-            return {
-                ...prev,
-                [currentCompanyId!]: {
-                    ...currentData,
-                    [key]: resetData,
-                    assessmentStatuses: { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' }), [type]: 'in-progress' }
+
+            const updatedData = { ...currentData };
+
+            if (historyKey) {
+                const existingAssessment = currentData[key as keyof CompanyData] as AssessmentItem[] | undefined;
+                const currentHistory = (currentData[historyKey] as AssessmentRecord[] | undefined) || [];
+                const newHistory = [...currentHistory];
+
+                if (existingAssessment && existingAssessment.some(item => item.controlStatus !== 'Not Implemented' || item.currentStatusDescription !== '')) {
+                    newHistory.push({ timestamp: Date.now(), data: existingAssessment });
+                    updatedData[historyKey] = newHistory;
                 }
-            };
+            }
+
+            updatedData[key] = resetData;
+            updatedData.assessmentStatuses = { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' }), [type]: 'in-progress' };
+            
+            return { ...prev, [currentCompanyId!]: updatedData };
         });
         addNotification(`${type.toUpperCase()} assessment has been initiated.`, 'success');
     };
@@ -440,7 +496,7 @@ const App: React.FC = () => {
         });
     };
 
-    const handleUpdateAssessmentItem = (type: keyof Omit<AssessmentStatuses, 'riskAssessment'>, controlCode: string, updatedItem: AssessmentItem) => {
+    const handleUpdateAssessmentItem = (type: 'ecc' | 'pdpl' | 'sama' | 'cma' | 'hrsd', controlCode: string, updatedItem: AssessmentItem) => {
         if (!currentCompanyId) return;
         
         setAllCompanyData(prev => {
@@ -949,6 +1005,44 @@ const App: React.FC = () => {
         setAllCompanyData(prev => ({ ...prev, [companyId]: newCompanyData }));
         addNotification(`Company "${newCompany.name}" created with a 7-day trial.`, "success");
     };
+
+    // --- NOORA AI ASSISTANT LOGIC ---
+    const handleStartNoora = (type: NooraAssessmentType) => {
+        setNooraAssessmentType(type);
+        setNooraCurrentControlIndex(0); // Start from the beginning
+        setNooraActiveField({ controlCode: null, field: null });
+        setIsNooraAssessing(true);
+    };
+
+    const handleCloseNoora = () => {
+        setIsNooraAssessing(false);
+        setNooraAssessmentType(null);
+    };
+
+    const handleNooraNextControl = () => {
+        setNooraCurrentControlIndex(prev => {
+            const data = getNooraAssessmentData();
+            if (data && prev < data.length - 1) {
+                return prev + 1;
+            }
+            return prev;
+        });
+    };
+    
+    const handleNooraEvidenceRequestHandled = () => {
+        setNooraEvidenceRequest(null);
+    }
+
+    const getNooraAssessmentData = () => {
+        switch (nooraAssessmentType) {
+            case 'ecc': return eccAssessment;
+            case 'pdpl': return pdplAssessment;
+            case 'sama': return samaCsfAssessment;
+            case 'cma': return cmaAssessment;
+            case 'hrsd': return hrsdAssessment;
+            default: return [];
+        }
+    };
     
     if (appState === 'login' && companies.length === 0) {
         setAppState('setup');
@@ -1031,16 +1125,16 @@ const App: React.FC = () => {
         case 'documents': return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
         case 'companyProfile': return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} currentUser={currentUser} onSetupCompany={handleCreateNewCompany} />;
         case 'auditLog': return <AuditLogPage auditLog={auditLog} />;
-        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView} />;
-        case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} />;
-        case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} />;
-        case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} />;
-        case 'hrsdAssessment': return <HRSDAssessmentPage assessmentData={hrsdAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('hrsd', c, u)} status={assessmentStatuses.hrsd} onInitiate={() => handleInitiateAssessment('hrsd')} onComplete={() => handleCompleteAssessment('hrsd')} permissions={currentUserPermissions} />;
+        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView} onStartNoora={() => handleStartNoora('ecc')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'ecc' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
+        case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('pdpl')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'pdpl' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
+        case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('sama')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'sama' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
+        case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('cma')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'cma' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
+        case 'hrsdAssessment': return <HRSDAssessmentPage assessmentData={hrsdAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('hrsd', c, u)} status={assessmentStatuses.hrsd} onInitiate={() => handleInitiateAssessment('hrsd')} onComplete={() => handleCompleteAssessment('hrsd')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('hrsd')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'hrsd' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
         case 'userManagement': return <UserManagementPage users={usersForCurrentCompany} setUsers={setUsersForCurrentCompany} currentUser={currentUser} addNotification={addNotification} addAuditLog={addAuditLog} />;
         case 'userProfile': return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfa} onDisableMfa={handleDisableMfa} />;
         case 'help': return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
         case 'training': return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
-        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} />;
+        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} onStartAssistant={() => setIsRiskAssistantOpen(true)} />;
         case 'controlMapping': return <ControlMappingPage eccData={eccData} pdplData={pdplAssessment} samaData={samaCsfAssessment} cmaData={cmaAssessment} hrsdData={hrsdAssessment} mappingData={mappingData} />;
         default: return <div>View not found</div>;
     }
@@ -1090,10 +1184,68 @@ const App: React.FC = () => {
               </div>
           </div>
           
+          {isNooraAssessing && nooraAssessmentType && (
+            <NooraAssistant
+                isAssessing={isNooraAssessing}
+                onClose={handleCloseNoora}
+                assessmentData={getNooraAssessmentData()}
+                onUpdateItem={(controlCode, updatedItem) => handleUpdateAssessmentItem(nooraAssessmentType, controlCode, updatedItem)}
+                currentControlIndex={nooraCurrentControlIndex}
+                onNextControl={handleNooraNextControl}
+                assessmentType={nooraAssessmentType.toUpperCase()}
+                onInitiate={() => handleInitiateAssessment(nooraAssessmentType as keyof AssessmentStatuses)}
+                onActiveFieldChange={(controlCode, field) => setNooraActiveField({ controlCode, field })}
+                onRequestEvidenceUpload={(controlCode) => setNooraEvidenceRequest(controlCode)}
+            />
+          )}
+
+          {isRiskAssistantOpen && (
+            <RiskAssistant
+                isOpen={isRiskAssistantOpen}
+                onClose={() => setIsRiskAssistantOpen(false)}
+                risks={riskAssessmentData}
+                setRisks={setRiskAssessmentDataForCurrentCompany}
+                onInitiate={() => handleInitiateAssessment('riskAssessment')}
+            />
+          )}
+
           <TourGuide isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} steps={tourSteps} />
           
           <div className="fixed top-5 right-5 z-[200] space-y-3">
+            {notifications.map((n) => (
+                <NotificationComponent key={n.id} notification={n} onDismiss={() => removeNotification(n.id)} />
+            ))}
           </div>
+          
+          {showInitiateConfirmModal && (
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-[150] flex items-center justify-center p-4" onClick={() => setShowInitiateConfirmModal(null)}>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+                      <div className="p-6 text-center">
+                          <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-yellow-500" />
+                          <h3 className="mt-4 text-xl font-bold text-gray-800 dark:text-gray-100">Confirm New Assessment</h3>
+                          <p className="mt-2 text-gray-600 dark:text-gray-400">
+                              Are you sure you want to start a new <span className="font-semibold uppercase">{showInitiateConfirmModal.replace('Assessment', '')}</span> assessment? All current progress for this framework will be erased. This action cannot be undone.
+                          </p>
+                      </div>
+                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-3 rounded-b-lg">
+                          <button
+                              type="button"
+                              onClick={() => setShowInitiateConfirmModal(null)}
+                              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none"
+                          >
+                              Cancel
+                          </button>
+                          <button
+                              type="button"
+                              onClick={() => executeInitiateAssessment(showInitiateConfirmModal)}
+                              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
+                          >
+                              Confirm & Erase
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          )}
       </>
   );
 };

@@ -13,19 +13,37 @@ interface EditableControlRowProps {
     canUpdate: boolean;
     index: number;
     isGenerating?: boolean;
+    activeField: { controlCode: string | null, field: keyof AssessmentItem | null };
+    evidenceRequestControlCode: string | null;
+    onEvidenceRequestHandled: () => void;
 }
 
 // A component for a single editable control row.
-const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isGenerating }) => {
+const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isGenerating, activeField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
     const [localItem, setLocalItem] = useState(item);
     const [isSaving, setIsSaving] = useState(false);
     const timeoutRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const rowRef = useRef<HTMLDivElement>(null);
+    const [highlightedField, setHighlightedField] = useState<keyof AssessmentItem | null>(null);
 
     useEffect(() => {
         setLocalItem(item);
     }, [item]);
+    
+    useEffect(() => {
+        if (activeField.controlCode === item.controlCode && activeField.field) {
+            setHighlightedField(activeField.field);
+            setTimeout(() => setHighlightedField(null), 2000); // Highlight for 2 seconds
+        }
+    }, [activeField, item.controlCode]);
+    
+     useEffect(() => {
+        if (evidenceRequestControlCode === item.controlCode) {
+            fileInputRef.current?.click();
+            onEvidenceRequestHandled();
+        }
+    }, [evidenceRequestControlCode, item.controlCode, onEvidenceRequestHandled]);
 
     const handleBlur = () => {
         if (JSON.stringify(localItem) !== JSON.stringify(item)) {
@@ -92,6 +110,14 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
     
     const isDisabled = !isEditable || !canUpdate;
     
+    const getFieldClass = (fieldName: keyof AssessmentItem) => {
+        let baseClass = `mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`;
+        if (highlightedField === fieldName) {
+            baseClass += ' ai-active-field';
+        }
+        return baseClass;
+    }
+    
     return (
          <div ref={rowRef} className={`p-4 border rounded-lg transition-shadow duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative`}>
              {isSaving && (
@@ -118,7 +144,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
+                                className={getFieldClass('currentStatusDescription')}
                             />
                         </div>
                         <div>
@@ -129,7 +155,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 value={localItem.controlStatus}
                                 onChange={handleStatusChange}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
+                                className={getFieldClass('controlStatus')}
                             >
                                 {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                             </select>
@@ -177,7 +203,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled || isGenerating}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isGenerating ? 'animate-pulse' : ''}`}
+                                className={`${getFieldClass('recommendation')} ${isGenerating ? 'animate-pulse' : ''}`}
                             />
                         </div>
                         <div>
@@ -190,7 +216,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
+                                className={getFieldClass('managementResponse')}
                             />
                         </div>
                         <div>
@@ -203,7 +229,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
-                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
+                                className={getFieldClass('targetDate')}
                             />
                         </div>
                     </div>
@@ -219,15 +245,12 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                     animation: fade-out 2s ease-out forwards;
                 }
                  @keyframes pulse-glow {
-                  0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7); }
-                  70% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
-                  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
+                  50% { box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.4); }
                 }
                 .ai-active-field {
-                  animation: pulse-glow 2s ease-out;
+                  animation: pulse-glow 1.5s ease-out;
                   border-color: #0d9488 !important; /* teal-600 */
-                  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.4);
-                  border-radius: 6px;
                 }
             `}</style>
         </div>
@@ -240,9 +263,12 @@ interface AssessmentSheetProps {
     isEditable: boolean;
     canUpdate: boolean;
     generatingRecommendationFor?: string | null;
+    activeField: { controlCode: string | null, field: keyof AssessmentItem | null };
+    evidenceRequestControlCode: string | null;
+    onEvidenceRequestHandled: () => void;
 }
 
-export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, generatingRecommendationFor }) => {
+export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, generatingRecommendationFor, activeField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
     
     let controlCounter = 0;
 
@@ -265,6 +291,9 @@ export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomain
                                     canUpdate={canUpdate}
                                     index={domainStartIndex + index}
                                     isGenerating={generatingRecommendationFor === item.controlCode}
+                                    activeField={activeField}
+                                    evidenceRequestControlCode={evidenceRequestControlCode}
+                                    onEvidenceRequestHandled={onEvidenceRequestHandled}
                                 />
                             ))}
                         </div>

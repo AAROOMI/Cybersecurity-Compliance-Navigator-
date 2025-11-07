@@ -50,6 +50,95 @@
           opacity: 0.6;
         }
       }
+
+      @media print {
+        body {
+          background-color: white !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        #root > div {
+            display: block !important;
+        }
+        .no-print, header, aside, .sidebar, #live-assistant-widget-button, #chat-widget-button {
+          display: none !important;
+        }
+        main {
+            padding: 0 !important;
+            overflow: visible !important;
+        }
+        .risk-assessment-page, .risk-assessment-page > div {
+            margin: 0;
+            padding: 0;
+        }
+        .risk-assessment-page h1 {
+            font-size: 24pt;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .risk-assessment-page p {
+            display: none;
+        }
+        .risk-assessment-page h1 + p {
+            display: block;
+            text-align: center;
+            font-size: 12pt;
+            color: #555;
+            margin-bottom: 32px;
+        }
+        .bg-white, .dark .bg-gray-800 {
+            background-color: transparent !important;
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        thead {
+            display: table-header-group;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            font-size: 9pt;
+            color: black !important;
+        }
+        td textarea, td input, td select {
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            width: 100%;
+            -webkit-print-color-adjust: exact;
+        }
+        .risk-heatmap {
+            page-break-before: always;
+            padding-top: 2rem;
+        }
+        .risk-heatmap .group {
+            position: static;
+        }
+        .risk-heatmap .group > div:last-child {
+            display: none !important;
+        }
+        .risk-heatmap [class*="bg-"] {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color: white !important;
+        }
+        .dark .risk-heatmap .dark\\:text-gray-800 {
+            color: black !important;
+        }
+        .risk-heatmap .text-2xl {
+            font-size: 18pt !important;
+        }
+      }
     </style>
     <script>
       // Prevents flash of incorrect theme

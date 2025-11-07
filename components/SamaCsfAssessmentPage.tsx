@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
+import { SearchIcon, DownloadIcon, UploadIcon, MicrophoneIcon } from './Icons';
 import { SamaCsfDomainComplianceBarChart } from './SamaCsfComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
 
@@ -91,9 +91,13 @@ interface SamaCsfAssessmentPageProps {
     onInitiate: () => void;
     onComplete: () => void;
     permissions: Set<Permission>;
+    onStartNoora: () => void;
+    nooraActiveField: { controlCode: string | null, field: keyof AssessmentItem | null };
+    evidenceRequestControlCode: string | null;
+    onEvidenceRequestHandled: () => void;
 }
 
-export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
+export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onStartNoora, nooraActiveField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
@@ -183,3 +187,178 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
                 escapeCSV(item.domainCode), escapeCSV(item.domainName), escapeCSV(item.subDomainCode),
                 escapeCSV(item.subdomainName), escapeCSV(item.controlCode), escapeCSV(item.controlName),
                 escapeCSV(item.currentStatusDescription), escapeCSV(item.controlStatus),
+                escapeCSV(item.recommendation), escapeCSV(item.managementResponse), escapeCSV(item.targetDate)
+            ];
+            csvRows.push(row.join(','));
+        });
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `sama_csf_assessment_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const text = e.target?.result as string;
+                const rows = text.split('\n').filter(row => row.trim() !== '');
+                if (rows.length < 2) throw new Error('CSV file must have a header and at least one data row.');
+                const headers = rows[0].trim().split(',').map(h => h.trim().replace(/"/g, ''));
+                if (!headers.includes('Control Code')) throw new Error('CSV is missing required header: "Control Code".');
+                
+                const indices: Record<string, number> = {};
+                headers.forEach((h, i) => indices[h] = i);
+
+                const keyMap: Record<string, keyof AssessmentItem> = {
+                    'Current Status': 'currentStatusDescription',
+                    'Control Status': 'controlStatus',
+                    'Recommendation': 'recommendation',
+                    'Management Response': 'managementResponse',
+                    'Target Date': 'targetDate',
+                };
+
+                let updatedCount = 0;
+                for (let i = 1; i < rows.length; i++) {
+                    const values = rows[i].trim().split(',').map(v => v.trim().replace(/"/g, ''));
+                    const controlCode = values[indices['Control Code']];
+                    if (!controlCode) continue;
+
+                    const existingItem = assessmentData.find(item => item.controlCode === controlCode);
+                    if (existingItem) {
+                        const updatedItem = { ...existingItem };
+                        let hasUpdate = false;
+                        Object.keys(keyMap).forEach(header => {
+                            if (indices[header] !== undefined) {
+                                const key = keyMap[header];
+                                const value = values[indices[header]];
+                                if (key === 'controlStatus' && !allStatuses.includes(value as ControlStatus)) {
+                                    console.warn(`Skipping invalid status "${value}" for ${controlCode}`);
+                                } else if ((updatedItem as any)[key] !== value) {
+                                    (updatedItem as any)[key] = value;
+                                    hasUpdate = true;
+                                }
+                            }
+                        });
+                        if (hasUpdate) {
+                            onUpdateItem(controlCode, updatedItem);
+                            updatedCount++;
+                        }
+                    }
+                }
+                alert(`${updatedCount} records updated successfully from the CSV file.`);
+
+            } catch (error: any) {
+                alert(`Error importing CSV: ${error.message}`);
+            }
+        };
+        reader.readAsText(file);
+        if (event.target) event.target.value = '';
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-wrap justify-between items-start gap-4">
+                <div>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">SAMA Cyber Security Framework Assessment</h1>
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the SAMA Cyber Security Framework.</p>
+                </div>
+                 {canUpdate && (
+                     <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
+                        {status === 'in-progress' && (
+                            <button onClick={onStartNoora} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700">
+                                <MicrophoneIcon className="w-5 h-5 mr-2" />
+                                Start AI Voice Assessment
+                            </button>
+                        )}
+                        {status === 'in-progress' && (
+                            <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                                Complete Assessment
+                            </button>
+                        )}
+                        <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                            Initiate New Assessment
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {isEditable && (
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
+                    <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">You are in edit mode. Changes are saved automatically. Click "Complete Assessment" when finished.</p>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+                <StatCard title="Overall Compliance" value={`${stats.compliance.toFixed(1)}%`} description="Based on applicable controls" />
+                <StatCard title="Implemented" value={stats.implemented} />
+                <StatCard title="Partially Implemented" value={stats.partially} />
+                <StatCard title="Not Implemented" value={stats.notImplemented} />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                    <div className="space-y-4">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <SearchIcon className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <input type="text" placeholder="Search controls..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                                className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                             <div>
+                                <select value={domainFilter} onChange={e => setDomainFilter(e.target.value)} className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                    <option value="All">All Domains</option>
+                                    {domains.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                    <option value="All">All Statuses</option>
+                                    {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <button onClick={() => fileInputRef.current?.click()} disabled={!isEditable || !canUpdate}
+                                className="w-full h-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50">
+                                <UploadIcon className="w-5 h-5" /> Import CSV
+                            </button>
+                            <input type="file" ref={fileInputRef} onChange={handleFileImport} className="hidden" accept=".csv" />
+                            <button onClick={handleExportCSV}
+                                className="w-full h-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+                                <DownloadIcon className="w-5 h-5" /> Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div className="lg:col-span-1">
+                    <StatusDistributionChart data={statusDistribution} />
+                </div>
+            </div>
+
+            <Card>
+                <SamaCsfDomainComplianceBarChart data={assessmentData} />
+            </Card>
+
+            <AssessmentSheet
+                filteredDomains={filteredDomains}
+                onUpdateItem={onUpdateItem}
+                isEditable={isEditable}
+                canUpdate={canUpdate}
+                activeField={nooraActiveField}
+                evidenceRequestControlCode={evidenceRequestControlCode}
+                onEvidenceRequestHandled={onEvidenceRequestHandled}
+            />
+        </div>
+    );
+};

@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
+import { SearchIcon, DownloadIcon, UploadIcon, MicrophoneIcon } from './Icons';
 import { HRSDDomainComplianceBarChart } from './HRSDDomainComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
 
@@ -92,9 +92,13 @@ interface HRSDAssessmentPageProps {
     onInitiate: () => void;
     onComplete: () => void;
     permissions: Set<Permission>;
+    onStartNoora: () => void;
+    nooraActiveField: { controlCode: string | null, field: keyof AssessmentItem | null };
+    evidenceRequestControlCode: string | null;
+    onEvidenceRequestHandled: () => void;
 }
 
-export const HRSDAssessmentPage: React.FC<HRSDAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
+export const HRSDAssessmentPage: React.FC<HRSDAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onStartNoora, nooraActiveField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
@@ -282,6 +286,12 @@ export const HRSDAssessmentPage: React.FC<HRSDAssessmentPageProps> = ({ assessme
                  {canUpdate && (
                      <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
+                             <button onClick={onStartNoora} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700">
+                                <MicrophoneIcon className="w-5 h-5 mr-2" />
+                                Start AI Voice Assessment
+                            </button>
+                        )}
+                        {status === 'in-progress' && (
                             <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                                 Complete Assessment
                             </button>
@@ -376,6 +386,9 @@ export const HRSDAssessmentPage: React.FC<HRSDAssessmentPageProps> = ({ assessme
                 onUpdateItem={handleHrsdItemUpdate}
                 isEditable={isEditable && canUpdate}
                 canUpdate={canUpdate}
+                activeField={nooraActiveField}
+                evidenceRequestControlCode={evidenceRequestControlCode}
+                onEvidenceRequestHandled={onEvidenceRequestHandled}
             />
         </div>
     );

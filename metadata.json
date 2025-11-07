@@ -1,5 +1,7 @@
 {
-  "name": "Copy of Metaworks  Cybersecurity Controls Navigator",
+  "name": " Metaworks Compliance Navigator",
   "description": "An interactive web application to browse, search, and understand the National Cybersecurity Authority's Essential Cybersecurity Controls (ECC) and their implementation guidelines.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }

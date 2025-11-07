@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
+import { SearchIcon, DownloadIcon, UploadIcon, MicrophoneIcon } from './Icons';
 import { DomainComplianceBarChart } from './DomainComplianceBarChart';
 import { AssessmentSheet } from './AssessmentSheet';
 
@@ -93,9 +93,13 @@ interface AssessmentPageProps {
     onComplete: () => void;
     permissions: Set<Permission>;
     onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void;
+    onStartNoora: () => void;
+    nooraActiveField: { controlCode: string | null, field: keyof AssessmentItem | null };
+    evidenceRequestControlCode: string | null;
+    onEvidenceRequestHandled: () => void;
 }
 
-export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView }) => {
+export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView, onStartNoora, nooraActiveField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
@@ -281,6 +285,12 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 {canUpdate && (
                     <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
                         {status === 'in-progress' && (
+                             <button onClick={onStartNoora} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700">
+                                <MicrophoneIcon className="w-5 h-5 mr-2" />
+                                Start AI Voice Assessment
+                            </button>
+                        )}
+                        {status === 'in-progress' && (
                             <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                                 Complete Assessment
                             </button>
@@ -375,6 +385,9 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                 onUpdateItem={onUpdateItem}
                 isEditable={isEditable}
                 canUpdate={canUpdate}
+                activeField={nooraActiveField}
+                evidenceRequestControlCode={evidenceRequestControlCode}
+                onEvidenceRequestHandled={onEvidenceRequestHandled}
             />
         </div>
     );

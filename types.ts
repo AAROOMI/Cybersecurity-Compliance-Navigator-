@@ -306,6 +306,12 @@ export interface AssessmentItem {
   };
 }
 
+// NEW: Assessment Versioning
+export interface AssessmentRecord {
+  timestamp: number;
+  data: AssessmentItem[];
+}
+
 // --- UPDATED: Training Module ---
 export interface QuizQuestion {
   question: string;

@@ -1,6 +1,7 @@
 
+
 import React, { useState, useMemo } from 'react';
-import { TrashIcon } from './Icons';
+import { TrashIcon, MicrophoneIcon, DownloadIcon, PrinterIcon } from './Icons';
 import type { Risk, Permission } from '../types';
 import { likelihoodOptions, impactOptions } from '../data/riskAssessmentData';
 
@@ -36,7 +37,7 @@ const RiskCategory: React.FC<{
     
     return (
         <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700">
-            <header className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <header className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center no-print">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h2>
                 {isEditable && (
                     <button
@@ -57,7 +58,7 @@ const RiskCategory: React.FC<{
                             <th className="px-4 py-3 text-left">Risk Score</th>
                             <th className="px-4 py-3 text-left w-1/4">Mitigation Strategy</th>
                             <th className="px-4 py-3 text-left">Owner</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
+                            <th className="px-4 py-3 text-right no-print">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -87,7 +88,7 @@ const RiskCategory: React.FC<{
                                     </td>
                                     <td className="px-4 py-3"><textarea rows={2} value={risk.mitigation} onChange={(e) => handleUpdate('mitigation', e.target.value)} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50"/></td>
                                     <td className="px-4 py-3"><input type="text" value={risk.owner} onChange={(e) => handleUpdate('owner', e.target.value)} disabled={!isEditable} className="w-full p-1 bg-transparent rounded-md border border-gray-300 dark:border-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-700/50"/></td>
-                                    <td className="px-4 py-3 text-right">
+                                    <td className="px-4 py-3 text-right no-print">
                                         {isEditable && (
                                             <button onClick={() => window.confirm('Are you sure you want to delete this risk?') && onDeleteRisk(title, risk.id)} className="p-2 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                                                 <TrashIcon className="w-5 h-5"/>
@@ -113,7 +114,7 @@ const RiskCategory: React.FC<{
                                 <td className="px-4 py-3"></td>
                                 <td className="px-4 py-3"><textarea placeholder="Describe mitigation..." rows={2} value={newRisk.mitigation} onChange={(e) => setNewRisk({...newRisk, mitigation: e.target.value})} className="w-full p-1 rounded-md border border-gray-300 dark:border-gray-600"/></td>
                                 <td className="px-4 py-3"><input type="text" placeholder="e.g., IT Team" value={newRisk.owner} onChange={(e) => setNewRisk({...newRisk, owner: e.target.value})} className="w-full p-1 rounded-md border border-gray-300 dark:border-gray-600"/></td>
-                                <td className="px-4 py-3 text-right">
+                                <td className="px-4 py-3 text-right no-print">
                                     <button onClick={handleSaveNewRisk} className="px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">Save</button>
                                 </td>
                             </tr>
@@ -146,7 +147,7 @@ const RiskMatrix: React.FC<{ allRisks: Risk[] }> = ({ allRisks }) => {
   };
   
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <div className="risk-heatmap bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-8">
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 text-center">Risk Heatmap</h2>
       <div className="flex justify-center items-start gap-4">
         <div className="flex flex-col items-center justify-center pt-8 self-stretch">
@@ -204,9 +205,10 @@ interface RiskAssessmentPageProps {
     onInitiate: () => void;
     onComplete: () => void;
     permissions: Set<Permission>;
+    onStartAssistant: () => void;
 }
 
-export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, setRisks, status, onInitiate, onComplete, permissions }) => {
+export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, setRisks, status, onInitiate, onComplete, permissions, onStartAssistant }) => {
     const isEditable = status === 'in-progress' && permissions.has('riskAssessment:update');
 
     // FIX: Refactored categorizedRisks to use a simpler, single-pass grouping logic to fix a TypeScript error.
@@ -244,6 +246,59 @@ export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, s
     const handleDeleteRisk = (category: string, riskId: string) => {
         setRisks(prev => prev.filter(r => r.id !== riskId));
     };
+
+    const escapeCSV = (field: string | number) => {
+        if (field === null || field === undefined) return '';
+        let str = String(field);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+            str = `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    const handleExportCSV = () => {
+        if (risks.length === 0) {
+            alert("No risks to export.");
+            return;
+        }
+
+        const headers = ['Risk ID', 'Category', 'Risk Description', 'Likelihood (1-5)', 'Impact (1-5)', 'Risk Score', 'Risk Level', 'Mitigation Strategy', 'Owner'];
+        const csvRows = [headers.join(',')];
+
+        risks.forEach(risk => {
+            const score = risk.likelihood * risk.impact;
+            const scoreInfo = getRiskScoreInfo(score);
+            const match = risk.id.match(/^[a-zA-Z]+/);
+            const prefix = match ? match[0] : 'unknown';
+            let category = 'General';
+            switch (prefix) {
+                case 'ns': category = 'Network Security'; break;
+                case 'ds': category = 'Data Security'; break;
+                case 'es': category = 'Endpoint Security'; break;
+                case 'ac': category = 'Access Control'; break;
+            }
+
+            const row = [
+                escapeCSV(risk.id), escapeCSV(category), escapeCSV(risk.description),
+                risk.likelihood, risk.impact, score, scoreInfo.text,
+                escapeCSV(risk.mitigation), escapeCSV(risk.owner)
+            ].join(',');
+            csvRows.push(row);
+        });
+
+        const csvContent = csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `risk_assessment_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
     
     if (status === 'idle') {
         return (
@@ -264,13 +319,27 @@ export const RiskAssessmentPage: React.FC<RiskAssessmentPageProps> = ({ risks, s
     }
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 risk-assessment-page">
             <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
                     <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Risk Assessment Register</h1>
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Identify, analyze, and manage organizational risks in a centralized register.</p>
                 </div>
-                <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
+                <div className="flex-shrink-0 flex items-center gap-2 flex-wrap no-print">
+                    {isEditable && (
+                        <button onClick={onStartAssistant} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700">
+                            <MicrophoneIcon className="w-5 h-5 mr-2" />
+                            AI Assistant
+                        </button>
+                    )}
+                    <button onClick={handlePrint} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <PrinterIcon className="w-5 h-5" />
+                        Print
+                    </button>
+                    <button onClick={handleExportCSV} className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                        <DownloadIcon className="w-5 h-5" />
+                        Download CSV
+                    </button>
                     <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                         Complete Assessment
                     </button>

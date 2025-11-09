@@ -357,7 +357,7 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                     <div className="flex flex-col items-center">
                         <div className="w-40 h-40 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600">
                         {formData.logo ? (
-                            <img src={formData.logo} alt="Company Logo Preview" className="w-full h-full object-cover" />
+                            <img src={formData.logo} alt="Company Logo Preview" className="w-full h-full object-contain" />
                         ) : (
                             <span className="text-gray-500 text-sm">No Logo</span>
                         )}

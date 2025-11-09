@@ -109,6 +109,9 @@ export type Permission =
   | 'hrsdAssessment:read'
   | 'hrsdAssessment:update';
 
+// FIX: Moved View type from App.tsx and exported it to be used across components.
+export type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'controlMapping';
+
 
 // User interface with all fields for custom auth
 export interface User {
@@ -255,6 +258,7 @@ export interface PolicyDocument {
   generatedBy?: 'user' | 'AI Agent';
   qrCodeDataUrl?: string;
   barcodeDataUrl?: string;
+  type?: 'policy' | 'risk_report';
 }
 
 export interface PrebuiltPolicyTemplate {
@@ -361,6 +365,7 @@ export interface Task {
   controlId?: string;
   status: TaskStatus;
   createdAt: number;
+  dueDate?: number;
 }
 
 // FIX: Added missing ChatMessage type for the AI chat widget.
@@ -387,7 +392,8 @@ export interface AgentLogEntry {
   status: 'info' | 'working' | 'success' | 'error';
 }
 
-// --- NEW: Risk Assessment ---
+// --- UPDATED: Risk Assessment ---
+export type RiskStatus = 'To Do' | 'In Progress' | 'Assessed' | 'Mitigated';
 export type Risk = {
   id: string;
   description: string;
@@ -395,7 +401,16 @@ export type Risk = {
   impact: number;     // 1-5
   mitigation: string;
   owner: string;
+  status: RiskStatus;
+  assessmentNotes: string;
+  evidence: {
+    fileName: string;
+    dataUrl: string;
+  } | null;
+  assessedBy?: string;
+  assessedAt?: number;
 };
+
 
 // --- NEW: Control Mapping ---
 export type FrameworkName = 'NCA ECC' | 'PDPL' | 'SAMA CSF' | 'CMA' | 'HRSD';

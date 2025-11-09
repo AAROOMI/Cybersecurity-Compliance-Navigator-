@@ -1,3 +1,5 @@
+
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ContentView } from './components/ContentView';
@@ -29,7 +31,8 @@ import { initialHrsdAssessmentData } from './data/hrsdAssessmentData';
 import { initialRiskData } from './data/riskAssessmentData';
 import { trainingCourses } from './data/trainingData';
 import { mappingData } from './data/mappingData';
-import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk, AssessmentRecord } from './types';
+// FIX: Import the 'View' type from 'types.ts' to make it available globally.
+import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk, AssessmentRecord, GeneratedContent, View } from './types';
 import { rolePermissions } from './types';
 
 // Import pages for custom auth flow
@@ -39,6 +42,8 @@ import { MfaSetupPage } from './components/MfaSetupPage';
 import { MfaVerifyPage } from './components/MfaVerifyPage';
 import { UserManagementPage } from './components/UserManagementPage';
 
+
+declare const QRCode: any;
 
 // Mock user data with passwords for the custom RBAC system
 const initialUsers: User[] = [
@@ -99,8 +104,7 @@ const tourSteps = [
   { target: 'body', title: 'Tour Complete!', content: "You've seen the main features. You can restart this tour anytime from the Help & Support page. Now you're ready to take control of your compliance!" }
 ];
 
-type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'controlMapping';
-
+// FIX: Removed local 'View' type definition as it's now imported from 'types.ts'.
 type AppState = 'login' | 'setup' | 'app' | 'mfa_verify' | 'mfa_setup';
 
 const NotificationComponent: React.FC<{ notification: Notification; onDismiss: () => void }> = ({ notification, onDismiss }) => {
@@ -193,7 +197,12 @@ const App: React.FC = () => {
   const [nooraCurrentControlIndex, setNooraCurrentControlIndex] = useState(0);
   const [nooraActiveField, setNooraActiveField] = useState<{ controlCode: string | null, field: keyof AssessmentItem | null }>({ controlCode: null, field: null });
   const [nooraEvidenceRequest, setNooraEvidenceRequest] = useState<string | null>(null);
-  const [isRiskAssistantOpen, setIsRiskAssistantOpen] = useState(false);
+  
+  // Risk Assistant State
+  const [assessingRisk, setAssessingRisk] = useState<Risk | null>(null);
+  const [riskAssistantActiveField, setRiskAssistantActiveField] = useState<{ riskId: string | null; field: keyof Risk | null }>({ riskId: null, field: null });
+  const [riskEvidenceRequest, setRiskEvidenceRequest] = useState<Risk | null>(null);
+
 
   const currentCompany = useMemo(() => companies.find(c => c.id === currentCompanyId), [companies, currentCompanyId]);
   const documentRepository = useMemo(() => allCompanyData[currentCompanyId || '']?.documents || [], [allCompanyData, currentCompanyId]);
@@ -430,7 +439,7 @@ const App: React.FC = () => {
 
         let sourceData: AssessmentItem[] | Risk[];
         let key: keyof CompanyData;
-        let historyKey: keyof CompanyData;
+        let historyKey: keyof CompanyData | undefined;
         
         switch (type) {
             case 'ecc': sourceData = initialAssessmentData; key = 'eccAssessment'; historyKey = 'eccAssessmentHistory'; break;
@@ -581,12 +590,58 @@ const App: React.FC = () => {
       addNotification('Company profile saved successfully.', 'success');
   };
 
-  const handleAddDocumentToRepo = useCallback((control: Control, subdomain: Subdomain, domain: Domain, generatedContent: { policy: string; procedure: string; guideline: string }) => {
+    const generateBarcodeDataURL = (text: string): string => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 280;
+        canvas.height = 80;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return '';
+        
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        let x = 10;
+        // Simple visual representation, not a real barcode standard
+        for (let i = 0; i < text.length; i++) {
+        const charCode = text.charCodeAt(i);
+        const isBlack = (charCode + i) % 2 === 0;
+        const width = 1 + (charCode % 3); // bar width 1, 2, or 3
+        
+        if (x + width > canvas.width - 10) break;
+
+        if (isBlack) {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x, 10, width, 50);
+        }
+        x += width;
+        }
+        return canvas.toDataURL('image/png');
+    };
+
+  const handleAddDocumentToRepo = useCallback(async (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent' = 'user') => {
     if(!currentCompanyId) return;
     const now = Date.now();
+    const docId = `policy-${control.id}-${now}`;
+
+    const qrCodeDataUrl = await new Promise<string>((resolve, reject) => {
+        if (typeof QRCode === 'undefined') {
+            console.error("QRCode library not loaded");
+            return resolve('');
+        }
+        QRCode.toDataURL(docId, { width: 112, margin: 1 }, (err: any, url: string) => {
+            if (err) reject(err);
+            else resolve(url);
+        });
+    });
+
+    const barcodeDataUrl = generateBarcodeDataURL(docId);
+
     const newDocument: PolicyDocument = {
-      id: `policy-${control.id}-${now}`, controlId: control.id, domainName: domain.name, subdomainTitle: subdomain.title, controlDescription: control.description,
+      id: docId, controlId: control.id, domainName: domain.name, subdomainTitle: subdomain.title, controlDescription: control.description,
       status: 'Pending CISO Approval', content: generatedContent, approvalHistory: [], createdAt: now, updatedAt: now,
+      generatedBy,
+      qrCodeDataUrl,
+      barcodeDataUrl,
     };
     setDocumentRepositoryForCurrentCompany(prevRepo => [...prevRepo, newDocument]);
     
@@ -1130,11 +1185,11 @@ const App: React.FC = () => {
     if (isContentViewLoading) return <ContentViewSkeleton />;
     switch (currentView) {
         case 'dashboard': return <DashboardPage repository={documentRepository} currentUser={currentUser!} allControls={allControls} domains={eccData} onSetView={handleSetView} trainingProgress={trainingProgress} eccAssessment={eccAssessment} pdplAssessment={pdplAssessment} samaCsfAssessment={samaCsfAssessment} cmaAssessment={cmaAssessment} hrsdAssessment={hrsdAssessment} tasks={tasks} setTasks={setTasksForCurrentCompany} />;
-        case 'navigator': return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={handleSetView} />;
+        case 'navigator': return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={handleSetView as (view: View) => void} />;
         case 'documents': return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
         case 'companyProfile': return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} currentUser={currentUser} onSetupCompany={handleCreateNewCompany} />;
         case 'auditLog': return <AuditLogPage auditLog={auditLog} />;
-        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView} onStartNoora={() => handleStartNoora('ecc')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'ecc' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
+        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView as (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void} onStartNoora={() => handleStartNoora('ecc')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'ecc' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
         case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('pdpl')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'pdpl' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
         case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('sama')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'sama' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
         case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('cma')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'cma' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
@@ -1143,7 +1198,7 @@ const App: React.FC = () => {
         case 'userProfile': return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfa} onDisableMfa={handleDisableMfa} />;
         case 'help': return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
         case 'training': return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
-        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} onStartAssistant={() => setIsRiskAssistantOpen(true)} />;
+        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} onStartAssistant={(risk) => setAssessingRisk(risk)} setRepository={setDocumentRepositoryForCurrentCompany} currentUser={currentUser} company={currentCompany!} addNotification={addNotification} />;
         case 'controlMapping': return <ControlMappingPage eccData={eccData} pdplData={pdplAssessment} samaData={samaCsfAssessment} cmaData={cmaAssessment} hrsdData={hrsdAssessment} mappingData={mappingData} />;
         default: return <div>View not found</div>;
     }
@@ -1209,13 +1264,14 @@ const App: React.FC = () => {
             />
           )}
 
-          {isRiskAssistantOpen && (
+          {assessingRisk && (
             <RiskAssistant
-                isOpen={isRiskAssistantOpen}
-                onClose={() => setIsRiskAssistantOpen(false)}
-                risks={riskAssessmentData}
-                setRisks={setRiskAssessmentDataForCurrentCompany}
-                onInitiate={() => handleInitiateAssessment('riskAssessment')}
+                isOpen={assessingRisk !== null}
+                onClose={() => setAssessingRisk(null)}
+                riskToAssess={assessingRisk}
+                onUpdateRisk={(updatedRisk) => setRiskAssessmentDataForCurrentCompany(prev => prev.map(r => r.id === updatedRisk.id ? updatedRisk : r))}
+                onSetActiveField={(riskId, field) => setRiskAssistantActiveField({ riskId, field })}
+                onRequestEvidenceUpload={(risk) => setRiskEvidenceRequest(risk)}
             />
           )}
 

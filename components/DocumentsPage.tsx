@@ -51,7 +51,7 @@ const renderMarkdown = (markdown: string) => {
         html += '</ul>'.repeat(listCount - endListCount);
     }
     
-    return `<div class="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">${html.replace(/<br\/><br\/>/g, '</p><p>').replace(/<br\/>/g, '')}</div>`;
+    return `<div class="prose max-w-none text-gray-800">${html.replace(/<br\/><br\/>/g, '</p><p>').replace(/<br\/>/g, '')}</div>`;
 };
 
 interface DocumentHeaderProps {
@@ -234,10 +234,10 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
         const exportElement = await prepareExportableElement(doc);
         if (!exportElement) return;
 
-        const htmlToDocx = (window as any).htmlToDocx;
+        const htmlToDocxLib = (window as any).htmlToDocx;
 
-        if (typeof htmlToDocx !== 'function') {
-            console.error('htmlToDocx function not found. The library may not be loaded.');
+        if (!htmlToDocxLib || typeof htmlToDocxLib.asBlob !== 'function') {
+            console.error('html-to-docx-ts library not found or asBlob method is missing.');
             alert('Error: Word export functionality is unavailable.');
             cleanupExportableElement(exportElement);
             return;
@@ -248,12 +248,11 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
         cleanupExportableElement(exportElement);
 
         try {
-            const fileBuffer = await htmlToDocx(htmlContent, undefined, {
+            const blob = await htmlToDocxLib.asBlob(htmlContent, {
                 footer: true,
                 pageNumber: true,
             });
 
-            const blob = new Blob([fileBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `policy-${doc.controlId}.docx`;
@@ -311,7 +310,7 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
                                 ))}
                             </nav>
                         </div>
-                        <div className="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900/50 max-h-[45vh] overflow-y-auto">
+                        <div className="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 max-h-[45vh] overflow-y-auto">
                            <div dangerouslySetInnerHTML={{ __html: renderMarkdown(doc.content[activeTab]) }} />
                         </div>
                     </div>
@@ -387,10 +386,12 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
     );
 };
 
-const TemplatesView: React.FC<{
-    onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
+interface TemplatesViewProps {
+    onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
     permissions: Set<Permission>;
-}> = ({ onAddDocument, permissions }) => {
+}
+
+const TemplatesView: React.FC<TemplatesViewProps> = ({ onAddDocument, permissions }) => {
     const [selectedTemplate, setSelectedTemplate] = useState<PrebuiltPolicyTemplate | null>(null);
     const [selectedControl, setSelectedControl] = useState<string>('');
     const [previewTab, setPreviewTab] = useState<'policy' | 'procedure' | 'guideline'>('policy');
@@ -501,7 +502,7 @@ interface DocumentsPageProps {
   repository: PolicyDocument[];
   currentUser: User;
   onApprovalAction: (documentId: string, decision: 'Approved' | 'Rejected', comments?: string) => void;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
   permissions: Set<Permission>;
   company: CompanyProfile;
 }

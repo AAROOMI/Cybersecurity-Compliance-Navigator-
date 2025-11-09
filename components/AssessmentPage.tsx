@@ -97,9 +97,10 @@ interface AssessmentPageProps {
     nooraActiveField: { controlCode: string | null, field: keyof AssessmentItem | null };
     evidenceRequestControlCode: string | null;
     onEvidenceRequestHandled: () => void;
+    onGenerateReport: () => void;
 }
 
-export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView, onStartNoora, nooraActiveField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
+export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions, onSetView, onStartNoora, nooraActiveField, evidenceRequestControlCode, onEvidenceRequestHandled, onGenerateReport }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
@@ -293,6 +294,11 @@ export const AssessmentPage: React.FC<AssessmentPageProps> = ({ assessmentData, 
                         {status === 'in-progress' && (
                             <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                                 Complete Assessment
+                            </button>
+                        )}
+                        {status === 'idle' && (
+                            <button onClick={onGenerateReport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                                Generate Report
                             </button>
                         )}
                         <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">

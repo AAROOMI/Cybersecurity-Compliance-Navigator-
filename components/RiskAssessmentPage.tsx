@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { TrashIcon, MicrophoneIcon, DownloadIcon, PrinterIcon } from './Icons';
 import type { Risk, Permission } from '../types';

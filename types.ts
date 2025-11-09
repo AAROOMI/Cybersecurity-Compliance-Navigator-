@@ -253,6 +253,8 @@ export interface PolicyDocument {
   createdAt: number;
   updatedAt: number;
   generatedBy?: 'user' | 'AI Agent';
+  qrCodeDataUrl?: string;
+  barcodeDataUrl?: string;
 }
 
 export interface PrebuiltPolicyTemplate {

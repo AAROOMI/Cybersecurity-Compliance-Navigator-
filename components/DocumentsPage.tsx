@@ -122,6 +122,24 @@ const ExportableDocumentContent: React.FC<{ doc: PolicyDocument, company: Compan
 
             <h2 className="text-2xl font-bold mt-8 mb-4 border-b pb-2 text-gray-800">Guideline</h2>
             <div dangerouslySetInnerHTML={{ __html: renderMarkdown(doc.content.guideline) }} />
+
+            <footer className="mt-12 pt-6 border-t">
+                <h3 className="text-lg font-semibold text-gray-700 mb-4">Document Verification</h3>
+                <div className="flex items-center justify-between gap-4" style={{ pageBreakInside: 'avoid' }}>
+                    {doc.qrCodeDataUrl && (
+                        <div className="text-center">
+                            <img src={doc.qrCodeDataUrl} alt="QR Code" style={{ width: '112px', height: '112px', margin: '0 auto' }} />
+                            <p className="text-xs text-gray-500 mt-1">Scan for Document ID</p>
+                        </div>
+                    )}
+                    {doc.barcodeDataUrl && (
+                        <div className="text-center flex-1">
+                            <img src={doc.barcodeDataUrl} alt="Barcode" style={{ height: '80px', margin: '0 auto' }} />
+                            <p className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'monospace' }}>{doc.id}</p>
+                        </div>
+                    )}
+                </div>
+            </footer>
         </div>
     );
 };
@@ -322,6 +340,23 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
                             <p className="text-sm text-gray-500 dark:text-gray-400 italic">No approval history yet.</p>
                         )}
                     </div>
+                    <footer className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Document Verification</h3>
+                        <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                            {doc.qrCodeDataUrl && (
+                                <div className="text-center">
+                                    <img src={doc.qrCodeDataUrl} alt="QR Code for Document ID" className="w-28 h-28 mx-auto bg-white p-1" />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Scan for Document ID</p>
+                                </div>
+                            )}
+                            {doc.barcodeDataUrl && (
+                                <div className="text-center flex-1">
+                                    <img src={doc.barcodeDataUrl} alt="Barcode for Document ID" className="h-20 mx-auto bg-white p-2 rounded" />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{doc.id}</p>
+                                </div>
+                            )}
+                        </div>
+                    </footer>
                 </main>
                 <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
                     <div className="flex items-center gap-2">

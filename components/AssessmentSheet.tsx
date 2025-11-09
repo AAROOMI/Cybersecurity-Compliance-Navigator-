@@ -1,8 +1,6 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
-import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';
+import { UploadIcon, PaperClipIcon, CloseIcon, MicrophoneIcon } from './Icons';
 
 const allStatuses: ControlStatus[] = ['Implemented', 'Partially Implemented', 'Not Implemented', 'Not Applicable'];
 
@@ -26,6 +24,10 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
     const fileInputRef = useRef<HTMLInputElement>(null);
     const rowRef = useRef<HTMLDivElement>(null);
     const [highlightedField, setHighlightedField] = useState<keyof AssessmentItem | null>(null);
+
+    // Speech-to-text state
+    const [isListeningFor, setIsListeningFor] = useState<keyof AssessmentItem | null>(null);
+    const recognitionRef = useRef<any>(null); // SpeechRecognition
 
     useEffect(() => {
         setLocalItem(item);
@@ -107,6 +109,51 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
             onUpdateItem(newItem.controlCode, newItem);
         }
     };
+
+    const toggleSpeechToText = (field: keyof AssessmentItem) => {
+        if (isListeningFor === field) {
+            recognitionRef.current?.stop();
+            setIsListeningFor(null);
+            return;
+        }
+
+        // FIX: Cast `window` to `any` to resolve TypeScript error for the non-standard SpeechRecognition API.
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("Speech recognition is not supported by your browser.");
+            return;
+        }
+
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = false;
+        recognitionRef.current.interimResults = false;
+
+        recognitionRef.current.onstart = () => setIsListeningFor(field);
+        recognitionRef.current.onend = () => {
+            setIsListeningFor(null);
+            handleBlur(); // Trigger save on transcription end
+        };
+        recognitionRef.current.onerror = (event: any) => {
+            console.error('Speech recognition error:', event.error);
+            setIsListeningFor(null);
+        };
+
+        recognitionRef.current.onresult = (event: any) => {
+            const transcript = event.results[event.results.length - 1][0].transcript.trim();
+            if (transcript) {
+                setLocalItem(prev => ({
+                    ...prev,
+                    [field]: (prev[field] ? prev[field] + ' ' : '') + transcript
+                }));
+            }
+        };
+
+        recognitionRef.current.start();
+    };
     
     const isDisabled = !isEditable || !canUpdate;
     
@@ -134,7 +181,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                     <p className="mt-1 text-sm text-gray-800 dark:text-gray-200">{item.controlName}</p>
 
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                        <div className="md:col-span-2">
+                        <div className="md:col-span-2 relative">
                             <label htmlFor={`currentStatusDescription-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Current Status Description</label>
                             <textarea
                                 id={`currentStatusDescription-${item.controlCode}`}
@@ -144,8 +191,13 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={getFieldClass('currentStatusDescription')}
+                                className={getFieldClass('currentStatusDescription') + ' pr-8'}
                             />
+                             {!isDisabled && (
+                                <button onClick={() => toggleSpeechToText('currentStatusDescription')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
+                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'currentStatusDescription' ? 'text-red-500 animate-pulse' : ''}`} />
+                                </button>
+                            )}
                         </div>
                         <div>
                              <label htmlFor={`controlStatus-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Control Status</label>
@@ -193,7 +245,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 />
                             </div>
                         </div>
-                         <div className="md:col-span-2">
+                         <div className="md:col-span-2 relative">
                             <label htmlFor={`recommendation-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Recommendation</label>
                             <textarea
                                 id={`recommendation-${item.controlCode}`}
@@ -203,10 +255,15 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled || isGenerating}
                                 rows={2}
-                                className={`${getFieldClass('recommendation')} ${isGenerating ? 'animate-pulse' : ''}`}
+                                className={`${getFieldClass('recommendation')} ${isGenerating ? 'animate-pulse' : ''} pr-8`}
                             />
+                            {!isDisabled && !isGenerating && (
+                                <button onClick={() => toggleSpeechToText('recommendation')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
+                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'recommendation' ? 'text-red-500 animate-pulse' : ''}`} />
+                                </button>
+                            )}
                         </div>
-                        <div>
+                        <div className="relative">
                              <label htmlFor={`managementResponse-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Management Response</label>
                             <textarea
                                 id={`managementResponse-${item.controlCode}`}
@@ -216,8 +273,13 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={getFieldClass('managementResponse')}
+                                className={getFieldClass('managementResponse') + ' pr-8'}
                             />
+                            {!isDisabled && (
+                                <button onClick={() => toggleSpeechToText('managementResponse')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
+                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'managementResponse' ? 'text-red-500 animate-pulse' : ''}`} />
+                                </button>
+                            )}
                         </div>
                         <div>
                              <label htmlFor={`targetDate-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Target Date</label>

@@ -3,7 +3,7 @@ import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type, Func
 import type { AssessmentItem, ControlStatus } from '../types';
 import { CloseIcon, MicrophoneIcon } from './Icons';
 
-const nooraAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeYAAAHxCAYAAABa23SIAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAP+lSURBVHhe7J0FWFzVtwdwAgIggoAIIoACIiAoKAhIsiAoKChIkqCCoiiwgggoiAqIoCAgIIoggoCCCIIgKAgICAgICAgICAgICCIIgn901929Xj9n5s2beTN/T3dPd09V1VVPVfX2mXGGMQxjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQ-all';
+const nooraAvatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeYAAAHxCAYAAABa23SIAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAP+lSURBVHhe7J0FWFzVtwdwAgIggoAIIoACIiAoKAhIsiAoKChIkqCCoiiwgggoiAqIoCAgIIoggoCCCIIgKAgICAgICAgICAgICCIIgn901929Xj9n5s2beTN/T3dPd09V1VVPVfX2mXGGMQxjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQhjGMMYxjCGgQ-all';
 
 // Audio utility functions
 function encode(bytes: Uint8Array) {
@@ -117,6 +117,18 @@ const requestEvidenceUploadDeclaration: FunctionDeclaration = {
     }
 };
 
+const goToNextControlDeclaration: FunctionDeclaration = {
+    name: 'go_to_next_control',
+    description: 'Moves the assessment to the next control in the list.',
+    parameters: { type: Type.OBJECT, properties: {} },
+};
+
+const goToPreviousControlDeclaration: FunctionDeclaration = {
+    name: 'go_to_previous_control',
+    description: 'Moves the assessment to the previous control in the list.',
+    parameters: { type: Type.OBJECT, properties: {} },
+};
+
 interface NooraAssistantProps {
     isAssessing: boolean;
     onClose: () => void;
@@ -124,6 +136,7 @@ interface NooraAssistantProps {
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     currentControlIndex: number;
     onNextControl: () => void;
+    onPreviousControl: () => void;
     assessmentType: string;
     onInitiate: () => void;
     onActiveFieldChange: (controlCode: string | null, field: keyof AssessmentItem | null) => void;
@@ -133,7 +146,7 @@ interface NooraAssistantProps {
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let nextStartTime = 0;
 
-export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onClose, assessmentData, onUpdateItem, currentControlIndex, onNextControl, assessmentType, onInitiate, onActiveFieldChange, onRequestEvidenceUpload }) => {
+export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onClose, assessmentData, onUpdateItem, currentControlIndex, onNextControl, onPreviousControl, assessmentType, onInitiate, onActiveFieldChange, onRequestEvidenceUpload }) => {
     const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
     const [error, setError] = useState<string | null>(null);
     const [conversation, setConversation] = useState<{ speaker: 'user' | 'assistant', text: string, id: string }[]>([]);
@@ -141,84 +154,67 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
     const currentTurnId = useRef<string | null>(null);
 
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
-    const inputAudioContextRef = useRef<AudioContext | null>(null);
-    const outputAudioContextRef = useRef<AudioContext | null>(null);
     const sources = useRef(new Set<AudioBufferSourceNode>());
-    const streamRef = useRef<MediaStream | null>(null);
-    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
     
     const updateFunctionDeclaration = useMemo(() => createUpdateFunctionDeclaration(assessmentType), [assessmentType]);
 
-    const stopMicrophone = useCallback(() => {
-        if (streamRef.current) {
-            streamRef.current.getTracks().forEach(track => track.stop());
-            streamRef.current = null;
-        }
-        if (scriptProcessorRef.current) {
-            scriptProcessorRef.current.disconnect();
-            scriptProcessorRef.current = null;
-        }
-        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
-            inputAudioContextRef.current.close().catch(console.error);
-        }
-    }, []);
-
     const cleanup = useCallback(() => {
         setStatus('idle');
-        stopMicrophone();
         onActiveFieldChange(null, null);
-        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-            outputAudioContextRef.current.close().catch(console.error);
-        }
         sessionPromise.current = null;
-    }, [stopMicrophone, onActiveFieldChange]);
+    }, [onActiveFieldChange]);
 
 
     useEffect(() => {
         if (isAssessing) {
+            let stream: MediaStream | null = null;
+            let scriptProcessor: ScriptProcessorNode | null = null;
+            let inputAudioContext: AudioContext | null = null;
+            let outputAudioContext: AudioContext | null = null;
+
             const startSession = async () => {
                 try {
-                    if (!process.env.API_KEY) {
-                        throw new Error("API key is not configured.");
-                    }
-                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                        throw new Error("Your browser does not support audio recording.");
-                    }
+                    if (!process.env.API_KEY) throw new Error("API key is not configured.");
+                    if (!navigator.mediaDevices?.getUserMedia) throw new Error("Your browser does not support audio recording.");
+                    
                     setConversation([]);
                     conversationRef.current = [];
 
-                    inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                    outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                    inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                    outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
                     
-                    streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    // Resume contexts after user gesture (opening the assistant)
+                    await inputAudioContext.resume();
+                    await outputAudioContext.resume();
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
                     const currentControl = assessmentData[currentControlIndex];
-                    const systemInstruction = `You are Noora, an agentic AI consultant conducting a ${assessmentType} assessment. You will guide the user through each control via a voice conversation. Your primary goal is to gather feedback and immediately update the assessment sheet using the provided functions.
+                    const systemInstruction = `You are Noora, an AI consultant conducting a ${assessmentType} assessment. You guide the user through each control via voice, gather their feedback, and immediately update the assessment sheet using functions.
 
 **Your Process for Each Control:**
-1.  **Introduce:** Start by greeting the user and clearly stating the current control you are assessing. Read its code and name: "**${currentControl.controlCode}: ${currentControl.controlName}**".
-2.  **Question:** Ask the user for their assessment of this control. Prompt them for details on the current status, implementation level, recommendations, and management response.
-3.  **Listen & Narrate:** As the user speaks, listen carefully. Before you call a function to update the sheet, you **MUST** provide explicit verbal narration of the action you are about to take. This is critical for transparency.
-    *   *Example Narration:* "Okay, thank you. I'm now updating the 'Current Status Description' to reflect that 'a basic email system is in place but lacks tracking'."
-    *   *Example Narration:* "Understood. I'll set the 'Control Status' to 'Partially Implemented'."
-4.  **Function Call:** Immediately after narrating, call the \`update_assessment_control\` function to record the data. The \`controlCode\` for this control is **'${currentControl.controlCode}'**. You must infer the \`controlStatus\` from the user's language (e.g., "we're fully compliant" means 'Implemented').
-5.  **Evidence Prompt:** If the user mentions providing a document, file, or screenshot as evidence, you must verbally confirm and then call the \`request_evidence_upload\` function.
-    *   *Example Narration:* "Okay, you mentioned a policy document. I'll prompt you to upload that now." Then, call the function.
-6.  **Confirmation & Transition:** After the function call is confirmed, verbally state that the sheet has been updated. Then, smoothly transition to the next step. Say, "The sheet is updated. When you're ready for the next control, just say 'next' or click the 'Next Control' button."
+1.  **Introduce:** Start by greeting the user and clearly stating the current control: "**${currentControl.controlCode}: ${currentControl.controlName}**".
+2.  **Question (One by one):** Ask for one piece of information at a time. Start with: "What is the current status description for this control?".
+3.  **Listen & Update:** Listen to the response. Once they finish, **immediately narrate and call the \`update_assessment_control\` function** with just the field you asked for (e.g., 'currentStatusDescription'). Example narration: "Got it. Updating the status description now."
+4.  **Repeat:** After the update, move to the next field. Ask, "What would you assess the control status to be: Implemented, Partially Implemented, Not Implemented, or Not Applicable?". Listen, then narrate and call the function with the 'controlStatus' field.
+5.  **Continue this pattern** for 'Recommendation', 'Management Response', and 'Target Date'. This field-by-field flow makes the assistant feel responsive and "live".
+6.  **Evidence Prompt:** If the user mentions a document or file as evidence, call the \`request_evidence_upload\` function.
+7.  **Transition:** After all fields are discussed, say "The sheet is updated. When you're ready, just say 'next' or 'previous'". When the user says "next", you **MUST** call the \`go_to_next_control\` function. When they say "previous", you **MUST** call the \`go_to_previous_control\` function.
 
 **Other Functions:**
 *   If the user wants to start over, use the \`initiate_new_assessment\` function.
 
-Be conversational, professional, and efficient. Your primary function is to act as a scribe, visibly and audibly recording the user's assessment in real-time.`;
+Be conversational and efficient. Your primary function is to act as a scribe, audibly confirming and recording the user's assessment in real-time.`;
 
                     sessionPromise.current = ai.live.connect({
                         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                         callbacks: {
                             onopen: () => {
+                                if (!stream || !inputAudioContext) return;
                                 setStatus('listening');
-                                const source = inputAudioContextRef.current!.createMediaStreamSource(streamRef.current!);
-                                scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-                                scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
+                                const source = inputAudioContext.createMediaStreamSource(stream);
+                                scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
+                                scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
                                     const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
                                     const pcmBlob = createBlob(inputData);
                                     if (sessionPromise.current) {
@@ -227,8 +223,8 @@ Be conversational, professional, and efficient. Your primary function is to act 
                                         });
                                     }
                                 };
-                                source.connect(scriptProcessorRef.current);
-                                scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
+                                source.connect(scriptProcessor);
+                                scriptProcessor.connect(inputAudioContext.destination);
                             },
                             onmessage: async (message: LiveServerMessage) => {
                                  if (message.serverContent?.inputTranscription) {
@@ -301,13 +297,29 @@ Be conversational, professional, and efficient. Your primary function is to act 
                                                 });
                                             });
                                         }
+                                        if (fc.name === 'go_to_next_control') {
+                                            onNextControl();
+                                            sessionPromise.current?.then(session => {
+                                                session.sendToolResponse({
+                                                    functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, moved to the next control." } }
+                                                });
+                                            });
+                                        }
+                                        if (fc.name === 'go_to_previous_control') {
+                                            onPreviousControl();
+                                            sessionPromise.current?.then(session => {
+                                                session.sendToolResponse({
+                                                    functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, moved to the previous control." } }
+                                                });
+                                            });
+                                        }
                                     }
                                 }
 
                                 const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                                 if (base64Audio) {
                                     setStatus('speaking');
-                                    const audioCtx = outputAudioContextRef.current;
+                                    const audioCtx = outputAudioContext;
                                     if(audioCtx) {
                                         nextStartTime = Math.max(nextStartTime, audioCtx.currentTime);
                                         const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
@@ -346,7 +358,7 @@ Be conversational, professional, and efficient. Your primary function is to act 
                             outputAudioTranscription: {},
                             speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
                             systemInstruction: systemInstruction,
-                            tools: [{ functionDeclarations: [updateFunctionDeclaration, initiateNewAssessmentDeclaration, requestEvidenceUploadDeclaration] }],
+                            tools: [{ functionDeclarations: [updateFunctionDeclaration, initiateNewAssessmentDeclaration, requestEvidenceUploadDeclaration, goToNextControlDeclaration, goToPreviousControlDeclaration] }],
                         },
                     });
                 } catch (err: any) {
@@ -359,10 +371,14 @@ Be conversational, professional, and efficient. Your primary function is to act 
             
             return () => {
                 sessionPromise.current?.then(session => session.close());
+                stream?.getTracks().forEach(track => track.stop());
+                scriptProcessor?.disconnect();
+                inputAudioContext?.close().catch(console.error);
+                outputAudioContext?.close().catch(console.error);
                 cleanup();
             };
         }
-    }, [isAssessing, currentControlIndex, assessmentData, onUpdateItem, onInitiate, cleanup, onActiveFieldChange, onRequestEvidenceUpload, assessmentType, updateFunctionDeclaration]);
+    }, [isAssessing, currentControlIndex, assessmentData, onUpdateItem, onInitiate, cleanup, onActiveFieldChange, onRequestEvidenceUpload, assessmentType, updateFunctionDeclaration, onNextControl, onPreviousControl]);
 
     if (!isAssessing) return null;
 
@@ -379,9 +395,12 @@ Be conversational, professional, and efficient. Your primary function is to act 
                             <p className="text-xs text-gray-500 dark:text-gray-400">Live Voice Assessment for {assessmentType}</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                         <button onClick={onNextControl} disabled={currentControlIndex >= assessmentData.length - 1} className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400">
-                            Next Control &rarr;
+                    <div className="flex items-center gap-2">
+                        <button onClick={onPreviousControl} disabled={currentControlIndex === 0} className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50">
+                            &larr; Previous
+                        </button>
+                        <button onClick={onNextControl} disabled={currentControlIndex >= assessmentData.length - 1} className="px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400">
+                            Next &rarr;
                         </button>
                         <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
                             <CloseIcon className="w-6 h-6 text-gray-500" />

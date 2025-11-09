@@ -1028,6 +1028,15 @@ const App: React.FC = () => {
             return prev;
         });
     };
+
+    const handleNooraPreviousControl = () => {
+        setNooraCurrentControlIndex(prev => {
+            if (prev > 0) {
+                return prev - 1;
+            }
+            return prev;
+        });
+    };
     
     const handleNooraEvidenceRequestHandled = () => {
         setNooraEvidenceRequest(null);
@@ -1192,6 +1201,7 @@ const App: React.FC = () => {
                 onUpdateItem={(controlCode, updatedItem) => handleUpdateAssessmentItem(nooraAssessmentType, controlCode, updatedItem)}
                 currentControlIndex={nooraCurrentControlIndex}
                 onNextControl={handleNooraNextControl}
+                onPreviousControl={handleNooraPreviousControl}
                 assessmentType={nooraAssessmentType.toUpperCase()}
                 onInitiate={() => handleInitiateAssessment(nooraAssessmentType as keyof AssessmentStatuses)}
                 onActiveFieldChange={(controlCode, field) => setNooraActiveField({ controlCode, field })}
@@ -1250,5 +1260,4 @@ const App: React.FC = () => {
   );
 };
 
-// FIX: Add default export to make the App component available for import in index.tsx.
 export default App;

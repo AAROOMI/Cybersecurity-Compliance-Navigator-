@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { ContentView } from './components/ContentView';
@@ -1199,6 +1200,19 @@ const App: React.FC = () => {
         case 'help': return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
         case 'training': return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
         case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} onStartAssistant={(risk) => setAssessingRisk(risk)} setRepository={setDocumentRepositoryForCurrentCompany} currentUser={currentUser} company={currentCompany!} addNotification={addNotification} />;
+        case 'riskRegister':
+            return (
+                <div>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">AI-Powered Risk Register</h1>
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">An interactive dashboard for managing and visualizing risks.</p>
+                    <iframe
+                        src="https://ai-powered-risk-assessment-register-442027961273.us-west1.run.app"
+                        className="mt-6 w-full h-[calc(100vh-12rem)] border-0 rounded-lg shadow-lg"
+                        title="AI-Powered Risk Register"
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    ></iframe>
+                </div>
+            );
         case 'controlMapping': return <ControlMappingPage eccData={eccData} pdplData={pdplAssessment} samaData={samaCsfAssessment} cmaData={cmaAssessment} hrsdData={hrsdAssessment} mappingData={mappingData} />;
         default: return <div>View not found</div>;
     }

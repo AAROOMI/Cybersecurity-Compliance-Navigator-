@@ -105,12 +105,13 @@ export type Permission =
   | 'training:read'
   | 'riskAssessment:read'
   | 'riskAssessment:update'
+  | 'riskRegister:read'
   | 'mapping:read'
   | 'hrsdAssessment:read'
   | 'hrsdAssessment:update';
 
 // FIX: Moved View type from App.tsx and exported it to be used across components.
-export type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'controlMapping';
+export type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'riskRegister' | 'userManagement' | 'controlMapping';
 
 
 // User interface with all fields for custom auth
@@ -158,6 +159,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'riskRegister:read',
     'mapping:read',
     'hrsdAssessment:read',
     'hrsdAssessment:update',
@@ -185,13 +187,14 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'riskRegister:read',
     'mapping:read',
     'hrsdAssessment:read',
     'hrsdAssessment:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'mapping:read', 'hrsdAssessment:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -213,6 +216,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'riskRegister:read',
     'mapping:read',
     'hrsdAssessment:read',
     'hrsdAssessment:update',

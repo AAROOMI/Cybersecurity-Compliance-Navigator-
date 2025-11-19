@@ -8,11 +8,6 @@ interface CompanyProfilePageProps {
   onSave: (profile: CompanyProfile) => void;
   canEdit: boolean;
   addNotification: (message: string, type?: 'success' | 'info') => void;
-  currentUser: User;
-  onSetupCompany: (
-    profileData: Omit<CompanyProfile, 'id' | 'license'>,
-    adminData: Omit<User, 'id' | 'isVerified' | 'role'>
-  ) => void;
 }
 
 const LicenseStatus: React.FC<{ license?: License }> = ({ license }) => {
@@ -158,7 +153,7 @@ const LicenseGenerator: React.FC<LicenseGeneratorProps> = ({ company, onKeyGener
     );
 };
 
-export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company, onSave, canEdit, addNotification, currentUser, onSetupCompany }) => {
+export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company, onSave, canEdit, addNotification }) => {
   const [formData, setFormData] = useState<Omit<CompanyProfile, 'id' | 'license'>>({
     name: '',
     logo: '',
@@ -174,7 +169,6 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [newLicenseKey, setNewLicenseKey] = useState('');
   const [generatedKey, setGeneratedKey] = useState<{ key: string; tier: License['tier']; expiresAt: number } | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
 
   useEffect(() => {
@@ -271,14 +265,6 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
     setNewLicenseKey('');
     if (generatedKey) setGeneratedKey(null);
   };
-
-  const handleSetupNewCompany = (
-    profileData: Omit<CompanyProfile, 'id' | 'license'>,
-    adminData: Omit<User, 'id' | 'isVerified' | 'role'>
-  ) => {
-    onSetupCompany(profileData, adminData);
-    setIsCreateModalOpen(false);
-  };
   
   const pageContent = (
     <div className="space-y-8">
@@ -287,11 +273,6 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                 <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Company Profile</h1>
                 <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Manage your company information, logo, and subscription.</p>
             </div>
-             {currentUser.role === 'Administrator' && (
-                <button onClick={() => setIsCreateModalOpen(true)} className="ml-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                    Create New Company
-                </button>
-             )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -357,7 +338,7 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                     <div className="flex flex-col items-center">
                         <div className="w-40 h-40 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600">
                         {formData.logo ? (
-                            <img src={formData.logo} alt="Company Logo Preview" className="w-full h-full object-contain" />
+                            <img src={formData.logo} alt="Company Logo Preview" className="w-full h-full object-cover" />
                         ) : (
                             <span className="text-gray-500 text-sm">No Logo</span>
                         )}
@@ -449,12 +430,6 @@ export const CompanyProfilePage: React.FC<CompanyProfilePageProps> = ({ company,
                 generatedKey={generatedKey}
                 onClose={() => setGeneratedKey(null)}
                 onActivate={handleActivateLicense}
-            />
-        )}
-        {isCreateModalOpen && (
-            <CreateCompanyModal 
-                onSetup={handleSetupNewCompany}
-                onClose={() => setIsCreateModalOpen(false)}
             />
         )}
     </>

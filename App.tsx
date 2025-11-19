@@ -1,7 +1,7 @@
 
 
-
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { GoogleGenAI } from '@google/genai';
 import { Sidebar } from './components/Sidebar';
 import { ContentView } from './components/ContentView';
 import { ContentViewSkeleton } from './components/ContentViewSkeleton';
@@ -13,28 +13,17 @@ import { AssessmentPage } from './components/AssessmentPage';
 import { PDPLAssessmentPage } from './components/PDPLAssessmentPage';
 import { SamaCsfAssessmentPage } from './components/SamaCsfAssessmentPage';
 import { CMAAssessmentPage } from './components/CMAAssessmentPage';
-import { HRSDAssessmentPage } from './components/HRSDAssessmentPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { HelpSupportPage } from './components/HelpSupportPage';
 import { TrainingPage } from './components/TrainingPage';
 import { RiskAssessmentPage } from './components/RiskAssessmentPage';
-import { ControlMappingPage } from './components/ControlMappingPage';
 import { TourGuide } from './components/TourGuide';
-import { NooraAssistant } from './components/NooraAssistant';
-import { RiskAssistant } from './components/RiskAssistant';
-import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, DownloadIcon, ExclamationTriangleIcon, LockClosedIcon, LogoutIcon } from './components/Icons';
+import { LogoIcon, SearchIcon, ArrowUpRightIcon, SunIcon, MoonIcon, CheckCircleIcon, InformationCircleIcon, CloseIcon, DownloadIcon, ExclamationTriangleIcon, LockClosedIcon, LogoutIcon, ChevronDownIcon, CheckIcon, BuildingOfficeIcon, ChatBotIcon, SendIcon } from './components/Icons';
 import { eccData } from './data/controls';
-import { assessmentData as initialAssessmentData } from './data/assessmentData';
-import { initialPdplAssessmentData } from './data/pdplAssessmentData';
-import { samaCsfAssessmentData as initialSamaCsfAssessmentData } from './data/samaCsfAssessmentData';
-import { cmaAssessmentData as initialCmaAssessmentData } from './data/cmaAssessmentData';
-import { initialHrsdAssessmentData } from './data/hrsdAssessmentData';
-import { initialRiskData } from './data/riskAssessmentData';
 import { trainingCourses } from './data/trainingData';
-import { mappingData } from './data/mappingData';
-// FIX: Import the 'View' type from 'types.ts' to make it available globally.
-import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk, AssessmentRecord, GeneratedContent, View } from './types';
+import type { Domain, Control, Subdomain, SearchResult, PolicyDocument, UserRole, DocumentStatus, User, CompanyProfile, AuditLogEntry, AuditAction, License, AssessmentItem, UserTrainingProgress, Task, ComplianceGap, Risk, ChatMessage } from './types';
 import { rolePermissions } from './types';
+import { ChatWidget } from './components/ChatWidget';
 
 // Import pages for custom auth flow
 import { LoginPage } from './components/LoginPage';
@@ -42,40 +31,11 @@ import { CompanySetupPage } from './components/CompanySetupPage';
 import { MfaSetupPage } from './components/MfaSetupPage';
 import { MfaVerifyPage } from './components/MfaVerifyPage';
 import { UserManagementPage } from './components/UserManagementPage';
+import { CreateCompanyModal } from './components/CreateCompanyModal';
 
 
-declare const QRCode: any;
+import * as api from './components/api';
 
-// Mock user data with passwords for the custom RBAC system
-const initialUsers: User[] = [
-  { id: 'user-1', name: 'Super Administrator', email: 'aaroomi@gmail.com', role: 'Administrator', isVerified: true, password: 'password123', mfaEnabled: false, mfaSecret: 'JBSWY3DPEHPK3PXP' },
-  { id: 'user-2', name: 'Samia Ahmed (CISO)', email: 's.ahmed@example.com', role: 'CISO', isVerified: true, password: 'password123', mfaEnabled: false },
-  { id: 'user-3', name: 'John Doe (CTO)', email: 'j.doe@example.com', role: 'CTO', isVerified: true, password: 'password123', mfaEnabled: false },
-  { id: 'user-4', name: 'Fatima Khan (CIO)', email: 'f.khan@example.com', role: 'CIO', isVerified: true, password: 'password123', mfaEnabled: false },
-  { id: 'user-5', name: 'Michael Chen (CEO)', email: 'm.chen@example.com', role: 'CEO', isVerified: true, password: 'password123', mfaEnabled: false },
-  { id: 'user-6', name: 'David Lee (Analyst)', email: 'd.lee@example.com', role: 'Security Analyst', accessExpiresAt: new Date(new Date().setDate(new Date().getDate() + 30)).getTime(), isVerified: true, password: 'password123', mfaEnabled: false },
-  { id: 'user-7', name: 'Regular Employee', email: 'employee@example.com', role: 'Employee', isVerified: true, password: 'password123', mfaEnabled: false },
-];
-
-type CompanyData = {
-  users: User[];
-  documents: PolicyDocument[];
-  auditLog: AuditLogEntry[];
-  eccAssessment?: AssessmentItem[];
-  pdplAssessment?: AssessmentItem[];
-  samaCsfAssessment?: AssessmentItem[];
-  cmaAssessment?: AssessmentItem[];
-  hrsdAssessment?: AssessmentItem[];
-  riskAssessmentData?: Risk[];
-  assessmentStatuses?: AssessmentStatuses;
-  trainingProgress?: UserTrainingProgress;
-  tasks?: Task[];
-  eccAssessmentHistory?: AssessmentRecord[];
-  pdplAssessmentHistory?: AssessmentRecord[];
-  samaCsfAssessmentHistory?: AssessmentRecord[];
-  cmaAssessmentHistory?: AssessmentRecord[];
-  hrsdAssessmentHistory?: AssessmentRecord[];
-};
 
 interface Notification {
   id: number;
@@ -88,7 +48,6 @@ interface AssessmentStatuses {
     pdpl: 'idle' | 'in-progress';
     sama: 'idle' | 'in-progress';
     cma: 'idle' | 'in-progress';
-    hrsd: 'idle' | 'in-progress';
     riskAssessment: 'idle' | 'in-progress';
 }
 
@@ -105,37 +64,9 @@ const tourSteps = [
   { target: 'body', title: 'Tour Complete!', content: "You've seen the main features. You can restart this tour anytime from the Help & Support page. Now you're ready to take control of your compliance!" }
 ];
 
-// FIX: Removed local 'View' type definition as it's now imported from 'types.ts'.
+type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement';
+
 type AppState = 'login' | 'setup' | 'app' | 'mfa_verify' | 'mfa_setup';
-
-const NotificationComponent: React.FC<{ notification: Notification; onDismiss: () => void }> = ({ notification, onDismiss }) => {
-    const Icon = notification.type === 'success' ? CheckCircleIcon : InformationCircleIcon;
-    const colors = notification.type === 'success'
-        ? 'bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-200 border-green-200 dark:border-green-600'
-        : 'bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-200 border-blue-200 dark:border-blue-600';
-
-    return (
-        <div className={`max-w-sm w-full rounded-lg shadow-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border ${colors}`}>
-            <div className="p-4">
-                <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                        <Icon className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div className="ml-3 w-0 flex-1 pt-0.5">
-                        <p className="text-sm font-medium">{notification.message}</p>
-                    </div>
-                    <div className="ml-4 flex-shrink-0 flex">
-                        <button onClick={onDismiss} className="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-800">
-                            <span className="sr-only">Close</span>
-                            <CloseIcon className="h-5 w-5" aria-hidden="true" />
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
 
 const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -173,10 +104,11 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('dashboard');
 
   const [companies, setCompanies] = useState<CompanyProfile[]>([]);
-  const [allCompanyData, setAllCompanyData] = useState<Record<string, CompanyData>>({});
+  const [allCompanyData, setAllCompanyData] = useState<Record<string, api.CompanyData>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const [isContentViewLoading, setIsContentViewLoading] = useState(false);
+  const [appIsLoading, setAppIsLoading] = useState(true);
 
   const [isIdleWarningVisible, setIsIdleWarningVisible] = useState(false);
   const [countdown, setCountdown] = useState(WARNING_DURATION_MS / 1000);
@@ -190,31 +122,46 @@ const App: React.FC = () => {
   
   const [showInitiateConfirmModal, setShowInitiateConfirmModal] = useState<keyof AssessmentStatuses | null>(null);
   const [isTourOpen, setIsTourOpen] = useState(false);
-  
-  // Noora AI Assistant State
-  const [isNooraAssessing, setIsNooraAssessing] = useState(false);
-  type NooraAssessmentType = 'ecc' | 'pdpl' | 'sama' | 'cma' | 'hrsd';
-  const [nooraAssessmentType, setNooraAssessmentType] = useState<NooraAssessmentType | null>(null);
-  const [nooraCurrentControlIndex, setNooraCurrentControlIndex] = useState(0);
-  const [nooraActiveField, setNooraActiveField] = useState<{ controlCode: string | null, field: keyof AssessmentItem | null }>({ controlCode: null, field: null });
-  const [nooraEvidenceRequest, setNooraEvidenceRequest] = useState<string | null>(null);
-  
-  // Risk Assistant State
-  const [assessingRisk, setAssessingRisk] = useState<Risk | null>(null);
-  const [riskAssistantActiveField, setRiskAssistantActiveField] = useState<{ riskId: string | null; field: keyof Risk | null }>({ riskId: null, field: null });
-  const [riskEvidenceRequest, setRiskEvidenceRequest] = useState<Risk | null>(null);
+  const [isCreateCompanyModalOpen, setIsCreateCompanyModalOpen] = useState(false);
+  const [isCompanySwitcherOpen, setIsCompanySwitcherOpen] = useState(false);
 
+  // Chat Widget State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+      { role: 'assistant', content: "Hello! I'm Noora, your AI assistant. How can I help you with the Cybersecurity Controls Navigator today?" }
+  ]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const checkInitialSetup = async () => {
+        try {
+            const hasCompanies = await api.hasCompanies();
+            if (!hasCompanies) {
+                setAppState('setup');
+            } else {
+                setAppState('login');
+            }
+        } catch (error) {
+            console.error("Error checking for companies:", error);
+            // Default to login on error, maybe show a notification
+            setAppState('login');
+        } finally {
+            setAppIsLoading(false);
+        }
+    };
+    checkInitialSetup();
+  }, []);
 
   const currentCompany = useMemo(() => companies.find(c => c.id === currentCompanyId), [companies, currentCompanyId]);
   const documentRepository = useMemo(() => allCompanyData[currentCompanyId || '']?.documents || [], [allCompanyData, currentCompanyId]);
   const auditLog = useMemo(() => allCompanyData[currentCompanyId || '']?.auditLog || [], [allCompanyData, currentCompanyId]);
-  const eccAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.eccAssessment || initialAssessmentData, [allCompanyData, currentCompanyId]);
-  const pdplAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.pdplAssessment || initialPdplAssessmentData, [allCompanyData, currentCompanyId]);
-  const samaCsfAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.samaCsfAssessment || initialSamaCsfAssessmentData, [allCompanyData, currentCompanyId]);
-  const cmaAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.cmaAssessment || initialCmaAssessmentData, [allCompanyData, currentCompanyId]);
-  const hrsdAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.hrsdAssessment || initialHrsdAssessmentData, [allCompanyData, currentCompanyId]);
-  const riskAssessmentData = useMemo(() => allCompanyData[currentCompanyId || '']?.riskAssessmentData || initialRiskData, [allCompanyData, currentCompanyId]);
-  const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' }, [allCompanyData, currentCompanyId]);
+  const eccAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.eccAssessment || [], [allCompanyData, currentCompanyId]);
+  const pdplAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.pdplAssessment || [], [allCompanyData, currentCompanyId]);
+  const samaCsfAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.samaCsfAssessment || [], [allCompanyData, currentCompanyId]);
+  const cmaAssessment = useMemo(() => allCompanyData[currentCompanyId || '']?.cmaAssessment || [], [allCompanyData, currentCompanyId]);
+  const riskAssessmentData = useMemo(() => allCompanyData[currentCompanyId || '']?.riskAssessmentData || [], [allCompanyData, currentCompanyId]);
+  const assessmentStatuses = useMemo(() => allCompanyData[currentCompanyId || '']?.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', riskAssessment: 'idle' }, [allCompanyData, currentCompanyId]);
   const trainingProgress = useMemo(() => allCompanyData[currentCompanyId || '']?.trainingProgress || {}, [allCompanyData, currentCompanyId]);
   const tasks = useMemo(() => allCompanyData[currentCompanyId || '']?.tasks || [], [allCompanyData, currentCompanyId]);
   const usersForCurrentCompany = useMemo(() => allCompanyData[currentCompanyId || '']?.users || [], [allCompanyData, currentCompanyId]);
@@ -240,65 +187,15 @@ const App: React.FC = () => {
       });
     }
   };
-
-  const addAuditLog = useCallback((action: AuditAction, details: string, targetId?: string) => {
-    const userForLog = currentUser;
-    const companyIdForLog = currentCompanyId;
-
-    if (!companyIdForLog || !userForLog) return;
-
-    const newLogEntry: AuditLogEntry = {
-      id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      timestamp: Date.now(),
-      userId: userForLog.id,
-      userName: userForLog.name,
-      action,
-      details,
-      targetId
-    };
-
-    setAllCompanyData(prevData => {
-      const currentData = prevData[companyIdForLog] || { users: [], documents: [], auditLog: [], tasks: [] };
-      const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])]; 
-      return { ...prevData, [companyIdForLog]: { ...currentData, auditLog: newAuditLog } };
-    });
-  }, [currentUser, currentCompanyId]);
   
-  const setUsersForCurrentCompany = (updater: React.SetStateAction<User[]>) => {
-    if (!currentCompanyId) return;
-    setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
-      const newUsers = typeof updater === 'function' ? updater(currentData.users) : updater;
-      return { ...prevData, [currentCompanyId]: { ...currentData, users: newUsers } };
-    });
-  };
-  
-  const setDocumentRepositoryForCurrentCompany = (updater: React.SetStateAction<PolicyDocument[]>) => {
-    if (!currentCompanyId) return;
-    setAllCompanyData(prevData => {
-      const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
-      const newDocuments = typeof updater === 'function' ? updater(currentData.documents) : updater;
-      return { ...prevData, [currentCompanyId]: { ...currentData, documents: newDocuments } };
-    });
-  };
-  
-    const setRiskAssessmentDataForCurrentCompany = (updater: React.SetStateAction<Risk[]>) => {
-        if (!currentCompanyId) return;
-        setAllCompanyData(prevData => {
+    const addAuditLogEntry = useCallback((newLogEntry: AuditLogEntry | null) => {
+        if (!currentCompanyId || !newLogEntry) return;
+         setAllCompanyData(prevData => {
             const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
-            const newData = typeof updater === 'function' ? updater(currentData.riskAssessmentData || []) : updater;
-            return { ...prevData, [currentCompanyId]: { ...currentData, riskAssessmentData: newData } };
+            const newAuditLog = [newLogEntry, ...(currentData.auditLog || [])]; 
+            return { ...prevData, [currentCompanyId]: { ...currentData, auditLog: newAuditLog } };
         });
-    };
-
-    const setTasksForCurrentCompany = (updater: React.SetStateAction<Task[]>) => {
-        if (!currentCompanyId) return;
-        setAllCompanyData(prevData => {
-            const currentData = prevData[currentCompanyId] || { users: [], documents: [], auditLog: [], tasks: [] };
-            const newTasks = typeof updater === 'function' ? updater(currentData.tasks || []) : updater;
-            return { ...prevData, [currentCompanyId]: { ...currentData, tasks: newTasks } };
-        });
-    };
+    }, [currentCompanyId]);
 
   const removeNotification = (id: number) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -328,6 +225,7 @@ const App: React.FC = () => {
             } else {
                 setIsLicensed(false);
                 if (license && license.status === 'active' && license.expiresAt <= Date.now()) {
+                    // In a real app, the backend would manage this. We simulate it here.
                     const updatedLicense: License = { ...license, status: 'expired' };
                     const updatedProfile: CompanyProfile = { ...currentCompany, license: updatedLicense };
                     setCompanies(prev => prev.map(c => c.id === updatedProfile.id ? updatedProfile : c));
@@ -338,367 +236,124 @@ const App: React.FC = () => {
         }
     }, [currentCompany, currentUser]);
 
-  useEffect(() => {
-    try {
-        const savedCompaniesData = window.localStorage.getItem('companies');
-        if (!savedCompaniesData || savedCompaniesData === '[]') {
-            console.log("No companies found in localStorage. Seeding with default data.");
-            setAppState('login'); // Can be 'setup' if we want first user to setup
-            const defaultCompanyId = 'default-company-1';
-            const defaultCompany: CompanyProfile = {
-                id: defaultCompanyId, name: 'Example Corp', logo: '', ceoName: 'Michael Chen', cioName: 'Fatima Khan', cisoName: 'Samia Ahmed', ctoName: 'John Doe',
-                cybersecurityOfficerName: 'Ali Hassan', dpoName: 'Nora Saleh', complianceOfficerName: 'Omar Abdullah',
-                license: { key: 'default-starter-key', status: 'active', tier: 'yearly', expiresAt: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).getTime() }
-            };
-            const defaultCompanyData: CompanyData = {
-                users: initialUsers, documents: [], auditLog: [], eccAssessment: initialAssessmentData, pdplAssessment: initialPdplAssessmentData, samaCsfAssessment: initialSamaCsfAssessmentData,
-                cmaAssessment: initialCmaAssessmentData, hrsdAssessment: initialHrsdAssessmentData, riskAssessmentData: initialRiskData, assessmentStatuses: { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' },
-                trainingProgress: {}, tasks: [],
-            };
-            setCompanies([defaultCompany]);
-            setAllCompanyData({ [defaultCompanyId]: defaultCompanyData });
-            
-            const { logo, ...companyToStore } = defaultCompany;
-            window.localStorage.setItem('companies', JSON.stringify([companyToStore]));
-            window.localStorage.setItem('companyLogos', JSON.stringify({}));
-            window.localStorage.setItem(`companyData-${defaultCompanyId}`, JSON.stringify(defaultCompanyData));
-            return;
-        }
 
-        const companiesWithoutLogos: Omit<CompanyProfile, 'logo'>[] = JSON.parse(savedCompaniesData);
-        if (companiesWithoutLogos.length > 0) {
-            const savedLogosData = window.localStorage.getItem('companyLogos');
-            const companyLogos: Record<string, string> = savedLogosData ? JSON.parse(savedLogosData) : {};
-            const hydratedCompanies: CompanyProfile[] = companiesWithoutLogos.map(c => ({ ...c, logo: companyLogos[c.id] || '' }));
-            setCompanies(hydratedCompanies);
-            
-            const loadedCompanyData: Record<string, CompanyData> = {};
-            for (const company of hydratedCompanies) {
-                const data = window.localStorage.getItem(`companyData-${company.id}`);
-                const parsedData = data ? JSON.parse(data) : { users: [], documents: [], auditLog: [], tasks: [] };
-                loadedCompanyData[company.id] = {
-                    ...parsedData, eccAssessment: parsedData.eccAssessment || initialAssessmentData, pdplAssessment: parsedData.pdplAssessment || initialPdplAssessmentData,
-                    samaCsfAssessment: parsedData.samaCsfAssessment || initialSamaCsfAssessmentData, cmaAssessment: parsedData.cmaAssessment || initialCmaAssessmentData,
-                    hrsdAssessment: parsedData.hrsdAssessment || initialHrsdAssessmentData,
-                    riskAssessmentData: parsedData.riskAssessmentData || initialRiskData, assessmentStatuses: parsedData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' },
-                    trainingProgress: parsedData.trainingProgress || {}, tasks: parsedData.tasks || [],
-                };
+    const handleUpdateUsers = (updatedUsers: User[]) => {
+        if (!currentCompanyId) return;
+        setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], users: updatedUsers }
+        }));
+    };
+    
+    const handleUpdateDocuments = (updatedDocuments: PolicyDocument[]) => {
+        if (!currentCompanyId) return;
+         setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], documents: updatedDocuments }
+        }));
+    };
+    
+    const handleUpdateRisks = (updatedRisks: Risk[]) => {
+        if (!currentCompanyId) return;
+         setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], riskAssessmentData: updatedRisks }
+        }));
+    };
+
+    const handleUpdateTasks = (updatedTasks: Task[]) => {
+        if (!currentCompanyId) return;
+         setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], tasks: updatedTasks }
+        }));
+    };
+
+    const executeInitiateAssessment = async (type: keyof AssessmentStatuses) => {
+        if (!currentCompanyId) return;
+        setShowInitiateConfirmModal(null);
+
+        const { data, assessmentStatuses: newStatuses } = await api.initiateAssessment(currentCompanyId, type);
+
+        setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: {
+                ...prev[currentCompanyId],
+                [`${type}Assessment`]: data,
+                assessmentStatuses: newStatuses
             }
-            setAllCompanyData(loadedCompanyData);
-        } else {
-             setAppState('setup');
-        }
-    } catch (error) { console.error("Failed to load data from localStorage", error); }
-  }, []);
-
-  useEffect(() => {
-    if (companies.length > 0) {
-      try {
-        const companiesToStore = companies.map(({ logo, ...rest }) => rest);
-        const logosToStore = companies.reduce((acc, company) => {
-            if (company.logo) acc[company.id] = company.logo;
-            return acc;
-        }, {} as Record<string, string>);
-
-        window.localStorage.setItem('companies', JSON.stringify(companiesToStore));
-        window.localStorage.setItem('companyLogos', JSON.stringify(logosToStore));
-      } catch (error) {
-        console.error("Failed to save companies to localStorage", error);
-        if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-            addNotification("Storage limit reached. Could not save all company data. You may need to remove large company logos.", "info");
-        }
-      }
-    }
-  }, [companies, addNotification]);
-
-  useEffect(() => {
-    // This effect persists ALL company data to localStorage whenever it changes.
-    // This is more robust and fixes issues where data was not saved when logged out (e.g., password reset).
-    if (Object.keys(allCompanyData).length > 0) {
-        Object.keys(allCompanyData).forEach(companyId => {
-            try {
-                const dataToSave = allCompanyData[companyId];
-                if (dataToSave) {
-                     window.localStorage.setItem(`companyData-${companyId}`, JSON.stringify(dataToSave));
-                }
-            } catch (error) {
-                console.error(`Failed to save data for company ${companyId} to localStorage`, error);
-            }
-        });
-    }
-  }, [allCompanyData]);
-
-  // ... (All other handlers like handleInitiateAssessment, handleCompleteAssessment, etc. remain the same)
+        }));
+        addNotification(`${type.toUpperCase()} assessment has been initiated.`, 'success');
+    };
+    
     const handleInitiateAssessment = (type: keyof AssessmentStatuses) => {
         if (!currentCompanyId) return;
         setShowInitiateConfirmModal(type);
     };
 
-    const executeInitiateAssessment = (type: keyof AssessmentStatuses) => {
-        if (!currentCompanyId) return;
-        setShowInitiateConfirmModal(null);
-
-        let sourceData: AssessmentItem[] | Risk[];
-        let key: keyof CompanyData;
-        let historyKey: keyof CompanyData | undefined;
-        
-        switch (type) {
-            case 'ecc': sourceData = initialAssessmentData; key = 'eccAssessment'; historyKey = 'eccAssessmentHistory'; break;
-            case 'pdpl': sourceData = initialPdplAssessmentData; key = 'pdplAssessment'; historyKey = 'pdplAssessmentHistory'; break;
-            case 'sama': sourceData = initialSamaCsfAssessmentData; key = 'samaCsfAssessment'; historyKey = 'samaCsfAssessmentHistory'; break;
-            case 'cma': sourceData = initialCmaAssessmentData; key = 'cmaAssessment'; historyKey = 'cmaAssessmentHistory'; break;
-            case 'hrsd': sourceData = initialHrsdAssessmentData; key = 'hrsdAssessment'; historyKey = 'hrsdAssessmentHistory'; break;
-            case 'riskAssessment': sourceData = initialRiskData; key = 'riskAssessmentData'; historyKey = undefined; break; // No history for risk yet
-            default: return;
-        }
-
-        const resetData = JSON.parse(JSON.stringify(sourceData));
-        if (type !== 'riskAssessment') {
-            (resetData as AssessmentItem[]).forEach(item => {
-                item.currentStatusDescription = '';
-                item.controlStatus = 'Not Implemented';
-                item.recommendation = '';
-                item.managementResponse = '';
-                item.targetDate = '';
-            });
-        }
-        
-        setAllCompanyData(prev => {
-            const currentData = prev[currentCompanyId!];
-            if (!currentData) return prev;
-
-            const updatedData = { ...currentData };
-
-            if (historyKey) {
-                const existingAssessment = currentData[key as keyof CompanyData] as AssessmentItem[] | undefined;
-                const currentHistory = (currentData[historyKey] as AssessmentRecord[] | undefined) || [];
-                const newHistory = [...currentHistory];
-
-                if (existingAssessment && existingAssessment.some(item => item.controlStatus !== 'Not Implemented' || item.currentStatusDescription !== '')) {
-                    newHistory.push({ timestamp: Date.now(), data: existingAssessment });
-                    updatedData[historyKey] = newHistory;
-                }
-            }
-
-            updatedData[key] = resetData;
-            updatedData.assessmentStatuses = { ...(currentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' }), [type]: 'in-progress' };
-            
-            return { ...prev, [currentCompanyId!]: updatedData };
-        });
-        addNotification(`${type.toUpperCase()} assessment has been initiated.`, 'success');
-    };
-
     const handleCompleteAssessment = async (type: keyof AssessmentStatuses) => {
         if (!currentCompanyId) return;
-
+        const newStatuses = await api.completeAssessment(currentCompanyId, type);
+        setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], assessmentStatuses: newStatuses }
+        }));
         addNotification(`${type.toUpperCase()} assessment has been completed.`, 'success');
-
-        setAllCompanyData(prev => {
-            const updatedCurrentData = prev[currentCompanyId];
-            if (!updatedCurrentData) return prev;
-            return {
-                ...prev,
-                [currentCompanyId]: {
-                    ...updatedCurrentData,
-                    assessmentStatuses: { ...(updatedCurrentData.assessmentStatuses || { ecc: 'idle', pdpl: 'idle', sama: 'idle', cma: 'idle', hrsd: 'idle', riskAssessment: 'idle' }), [type]: 'idle' }
-                }
-            };
-        });
     };
 
-    const handleUpdateAssessmentItem = (type: 'ecc' | 'pdpl' | 'sama' | 'cma' | 'hrsd', controlCode: string, updatedItem: AssessmentItem) => {
+    const handleUpdateAssessmentItem = async (type: keyof Omit<AssessmentStatuses, 'riskAssessment'>, controlCode: string, updatedItem: AssessmentItem) => {
         if (!currentCompanyId) return;
-        
-        setAllCompanyData(prev => {
-            const currentData = prev[currentCompanyId];
-            const key = type === 'ecc' ? 'eccAssessment' : type === 'pdpl' ? 'pdplAssessment' : type === 'sama' ? 'samaCsfAssessment' : type === 'cma' ? 'cmaAssessment' : 'hrsdAssessment';
-            const currentAssessmentData = currentData[key as 'eccAssessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment'] || [];
-
-            const newData = currentAssessmentData.map(item => 
-                item.controlCode === controlCode ? updatedItem : item
-            );
-
-            return {
-                ...prev,
-                [currentCompanyId]: {
-                    ...currentData,
-                    [key as 'eccAssessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment']: newData
-                }
-            };
-        });
+        const result = await api.updateAssessmentItem(currentCompanyId, type, updatedItem);
+        const key = `${type}Assessment`;
+        setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: {
+                ...prev[currentCompanyId],
+                [key]: result
+            }
+        }));
     };
     
-    const handleUpdateTrainingProgress = (courseId: string, lessonId: string, score?: number) => {
-        if (!currentCompanyId) return;
-        
-        setAllCompanyData(prev => {
-            const companyData = prev[currentCompanyId];
-            if (!companyData) return prev;
-
-            const progress = companyData.trainingProgress || {};
-            const courseProgress = progress[courseId] || { completedLessons: [], badgeEarned: false, badgeId: '' };
-
-            if (!courseProgress.completedLessons.includes(lessonId)) {
-                courseProgress.completedLessons.push(lessonId);
-            }
-            
-            const course = trainingCourses.find(c => c.id === courseId);
-            if (course && course.lessons.every(l => courseProgress.completedLessons.includes(l.id))) {
-                if (!courseProgress.badgeEarned) {
-                     addNotification(`Congratulations! You've earned the ${course.title} badge!`, 'success');
-                }
-                courseProgress.badgeEarned = true;
-                courseProgress.badgeId = course.badgeId;
-            }
-
-            return {
-                ...prev,
-                [currentCompanyId]: {
-                    ...companyData,
-                    trainingProgress: {
-                        ...progress,
-                        [courseId]: courseProgress,
-                    }
-                }
-            };
-        });
+    const handleUpdateTrainingProgress = async (courseId: string, lessonId: string, score?: number) => {
+        if (!currentCompanyId || !currentUser) return;
+        const result = await api.updateTrainingProgress(currentCompanyId, currentUser.id, courseId, lessonId, score);
+        setAllCompanyData(prev => ({
+            ...prev,
+            [currentCompanyId]: { ...prev[currentCompanyId], trainingProgress: result.progress }
+        }));
+        if (result.badgeEarned) {
+             addNotification(`Congratulations! You've earned the ${result.courseTitle} badge!`, 'success');
+        }
     };
 
   const allControls = useMemo((): SearchResult[] => eccData.flatMap(domain => domain.subdomains.flatMap(subdomain => subdomain.controls.map(control => ({ control, subdomain, domain })))), []);
 
-  const handleSaveCompanyProfile = (profile: CompanyProfile) => {
-      const existing = companies.find(c => c.id === profile.id);
-      if (existing) {
-          if (JSON.stringify(existing.license) !== JSON.stringify(profile.license) && profile.license) {
-               addAuditLog('LICENSE_UPDATED', `Company license updated to ${profile.license.tier} plan, expires ${new Date(profile.license.expiresAt).toLocaleDateString()}`, profile.id);
-          } 
-          const changes: string[] = [];
-          if (existing.name !== profile.name) changes.push(`Name changed to "${profile.name}"`);
-          if (existing.ceoName !== profile.ceoName) changes.push(`CEO Name changed to "${profile.ceoName}"`);
-          if (existing.cioName !== profile.cioName) changes.push(`CIO Name changed to "${profile.cioName}"`);
-          if (existing.cisoName !== profile.cisoName) changes.push(`CISO Name changed to "${profile.cisoName}"`);
-          if (existing.ctoName !== profile.ctoName) changes.push(`CTO Name changed to "${profile.ctoName}"`);
-          if (existing.cybersecurityOfficerName !== profile.cybersecurityOfficerName) changes.push(`Cybersecurity Officer changed to "${profile.cybersecurityOfficerName}"`);
-          if (existing.dpoName !== profile.dpoName) changes.push(`DPO Name changed to "${profile.dpoName}"`);
-          if (existing.complianceOfficerName !== profile.complianceOfficerName) changes.push(`Compliance Officer changed to "${profile.complianceOfficerName}"`);
-          if (existing.logo !== profile.logo) changes.push(`Company logo was updated`);
-  
-          if (changes.length > 0) {
-              addAuditLog('COMPANY_PROFILE_UPDATED', `Company profile updated: ${changes.join('; ')}.`, profile.id);
-          }
-          setCompanies(prev => prev.map(c => (c.id === profile.id ? profile : c)));
-      }
+  const handleSaveCompanyProfile = async (profile: CompanyProfile) => {
+      const updatedProfile = await api.updateCompanyProfile(profile.id, profile);
+      setCompanies(prev => prev.map(c => c.id === updatedProfile.id ? updatedProfile : c));
+      addAuditLogEntry(updatedProfile.auditLogEntry);
       addNotification('Company profile saved successfully.', 'success');
   };
 
-    const generateBarcodeDataURL = (text: string): string => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 280;
-        canvas.height = 80;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return '';
-        
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        let x = 10;
-        // Simple visual representation, not a real barcode standard
-        for (let i = 0; i < text.length; i++) {
-        const charCode = text.charCodeAt(i);
-        const isBlack = (charCode + i) % 2 === 0;
-        const width = 1 + (charCode % 3); // bar width 1, 2, or 3
-        
-        if (x + width > canvas.width - 10) break;
-
-        if (isBlack) {
-            ctx.fillStyle = 'black';
-            ctx.fillRect(x, 10, width, 50);
-        }
-        x += width;
-        }
-        return canvas.toDataURL('image/png');
-    };
-
-  const handleAddDocumentToRepo = useCallback(async (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy: 'user' | 'AI Agent' = 'user') => {
-    if(!currentCompanyId) return;
-    const now = Date.now();
-    const docId = `policy-${control.id}-${now}`;
-
-    const qrCodeDataUrl = await new Promise<string>((resolve, reject) => {
-        if (typeof QRCode === 'undefined') {
-            console.error("QRCode library not loaded");
-            return resolve('');
-        }
-        QRCode.toDataURL(docId, { width: 112, margin: 1 }, (err: any, url: string) => {
-            if (err) reject(err);
-            else resolve(url);
-        });
-    });
-
-    const barcodeDataUrl = generateBarcodeDataURL(docId);
-
-    const newDocument: PolicyDocument = {
-      id: docId, controlId: control.id, domainName: domain.name, subdomainTitle: subdomain.title, controlDescription: control.description,
-      status: 'Pending CISO Approval', content: generatedContent, approvalHistory: [], createdAt: now, updatedAt: now,
-      generatedBy,
-      qrCodeDataUrl,
-      barcodeDataUrl,
-    };
-    setDocumentRepositoryForCurrentCompany(prevRepo => [...prevRepo, newDocument]);
+  const handleAddDocumentToRepo = async (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: { policy: string; procedure: string; guideline: string }) => {
+    if(!currentCompanyId || !currentUser) return;
+    const result = await api.addDocument(currentCompanyId, { control, subdomain, domain, generatedContent, user: currentUser });
     
-    const companyUsers = allCompanyData[currentCompanyId]?.users || [];
-    const cisoUsers = companyUsers.filter(u => u.role === 'CISO');
-    if (cisoUsers.length > 0) {
-        cisoUsers.forEach(ciso => addNotification(`Email notification sent to ${ciso.name} (${ciso.email}) for new document ${newDocument.controlId}.`));
-    } else {
-        addNotification(`New document ${newDocument.controlId} is pending CISO approval, but no user with that role was found.`, 'info');
+    handleUpdateDocuments(result.documents);
+    addAuditLogEntry(result.auditLogEntry);
+
+    if (result.notifications.length > 0) {
+        result.notifications.forEach(n => addNotification(n.message, n.type));
     }
-  }, [allCompanyData, currentCompanyId, addNotification]);
+  };
   
-  const approvalOrder: { role: UserRole; status: DocumentStatus }[] = [
-    { role: 'CISO', status: 'Pending CISO Approval' }, { role: 'CTO', status: 'Pending CTO Approval' },
-    { role: 'CIO', status: 'Pending CIO Approval' }, { role: 'CEO', status: 'Pending CEO Approval' },
-  ];
+  const handleApprovalAction = async (documentId: string, decision: 'Approved' | 'Rejected', comments?: string) => {
+    if (!currentUser || !currentCompanyId) return;
+    const result = await api.updateDocumentApproval(currentCompanyId, documentId, currentUser, decision, comments);
 
-  const handleApprovalAction = (documentId: string, decision: 'Approved' | 'Rejected', comments?: string) => {
-    if (!currentUser) return;
-    const doc = documentRepository.find(d => d.id === documentId);
-    if (!doc) return;
-    
-    const now = Date.now();
-    const newHistory = [...doc.approvalHistory, { role: currentUser.role, decision, timestamp: now, comments }];
-    let newStatus: DocumentStatus;
-    
-    if (decision === 'Rejected') {
-        newStatus = 'Rejected';
-        addAuditLog('DOCUMENT_REJECTED', `Document ${doc.controlId} was rejected. Comments: ${comments || 'N/A'}`, documentId);
-    } else {
-        const currentStepIndex = approvalOrder.findIndex(step => step.status === doc.status);
-        if (currentStepIndex === -1 || approvalOrder[currentStepIndex].role !== currentUser.role) return; 
-        const nextStepIndex = currentStepIndex + 1;
-        newStatus = nextStepIndex < approvalOrder.length ? approvalOrder[nextStepIndex].status : 'Approved';
-        addAuditLog('DOCUMENT_APPROVED', `Document ${doc.controlId} was approved at the ${currentUser.role} level. Comments: ${comments || 'N/A'}`, documentId);
-    }
-    
-    setDocumentRepositoryForCurrentCompany(prevRepo => prevRepo.map(d => d.id === documentId ? { ...d, status: newStatus, approvalHistory: newHistory, updatedAt: now } : d));
-
-    if (newStatus === 'Rejected') {
-        addNotification(`Document ${doc.controlId} has been rejected.`, 'info');
-    } else if (newStatus === 'Approved') {
-        addNotification(`Document ${doc.controlId} has been fully approved!`, 'success');
-    } else if (newStatus.startsWith('Pending')) {
-        const nextStepIndex = approvalOrder.findIndex(step => step.status === newStatus);
-        if (nextStepIndex !== -1) {
-            const nextApproverRole = approvalOrder[nextStepIndex].role;
-            const companyUsers = allCompanyData[currentCompanyId || '']?.users || [];
-            const nextApprovers = companyUsers.filter(u => u.role === nextApproverRole);
-            if (nextApprovers.length > 0) {
-                nextApprovers.forEach(approver => addNotification(`Email notification sent to ${approver.name} (${approver.email}) for document ${doc.controlId}.`));
-            } else {
-                addNotification(`Document ${doc.controlId} is pending ${nextApproverRole} approval, but no user with that role was found.`, 'info');
-            }
-        }
-    }
+    handleUpdateDocuments(result.documents);
+    addAuditLogEntry(result.auditLogEntry);
+    result.notifications.forEach(n => addNotification(n.message, n.type));
   };
 
   useEffect(() => {
@@ -796,323 +451,226 @@ const App: React.FC = () => {
   // --- AUTHENTICATION LOGIC ---
 
     const handleLogin = async (email: string, password: string): Promise<{error: string, code?: string} | null> => {
-        let foundUser: User | undefined;
-        let foundCompanyId: string | undefined;
-
-        for (const company of companies) {
-            const userInCompany = allCompanyData[company.id]?.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-            if (userInCompany) {
-                foundUser = userInCompany;
-                foundCompanyId = company.id;
-                break;
+       try {
+            const { user, companies: userCompanies, initialCompanyData, auditLogEntry } = await api.login(email, password);
+            const firstCompany = userCompanies[0];
+            
+            if (user.mfaEnabled) {
+                setMfaRequiredUser(user);
+                setCurrentCompanyId(firstCompany.id); // Still need company context for MFA verification
+                setCompanies(userCompanies);
+                setAppState('mfa_verify');
+                return null;
             }
-        }
 
-        if (!foundUser) {
-            return { error: "Invalid email or password." };
-        }
-        if (foundUser.password !== password) {
-            return { error: "Invalid email or password." };
-        }
-        if (!foundUser.isVerified) {
-            return { error: "Your account is not verified. A new verification link has been sent to your email.", code: 'unverified' };
-        }
-        
-        if (foundUser.mfaEnabled) {
-            setMfaRequiredUser(foundUser);
-            setCurrentCompanyId(foundCompanyId!);
-            setAppState('mfa_verify');
+            setCurrentUser(user);
+            setCompanies(userCompanies);
+            setCurrentCompanyId(firstCompany.id);
+            setAllCompanyData({ [firstCompany.id]: initialCompanyData });
+            setAppState('app');
+            addAuditLogEntry(auditLogEntry);
             return null;
-        }
-
-        setCurrentUser(foundUser);
-        setCurrentCompanyId(foundCompanyId!);
-        setAppState('app');
-        addAuditLog('USER_LOGIN', `User ${foundUser.name} logged in successfully.`);
-        return null;
+       } catch (error: any) {
+           return { error: error.message, code: error.code };
+       }
     };
 
     const handleMfaVerify = async (userId: string, verificationCode: string): Promise<{ success: boolean, message?: string }> => {
-        // In a real app, this would involve a library like 'otpauth' to verify the TOTP code against the user's secret.
-        // For this mock, we'll use a simple check.
-        if (verificationCode === '123456' && mfaRequiredUser) {
-            setCurrentUser(mfaRequiredUser);
+        try {
+            const { user, companies: userCompanies, initialCompanyData, auditLogEntry } = await api.verifyMfa(userId, verificationCode);
+            const firstCompany = userCompanies[0];
+
+            setCurrentUser(user);
+            setCompanies(userCompanies);
+            setCurrentCompanyId(firstCompany.id);
+            setAllCompanyData({ [firstCompany.id]: initialCompanyData });
             setAppState('app');
-            addAuditLog('USER_LOGIN', `User ${mfaRequiredUser.name} logged in successfully via MFA.`);
+            addAuditLogEntry(auditLogEntry);
             setMfaRequiredUser(null);
             return { success: true };
-        } else {
-            return { success: false, message: "Invalid verification code." };
+        } catch (error: any) {
+            return { success: false, message: error.message };
         }
     };
 
     const handleEnableMfa = () => {
         if (!currentUser || !currentCompanyId) return;
-        
-        // Generate a mock base32 secret. Real app would use a library.
-        const secret = 'JBSWY3DPEHPK3PXP'; // Mock secret for 'test@example.com'
-        const userToUpdate = { ...currentUser, mfaSecret: secret };
-
-        setMfaSetupUser(userToUpdate);
+        setMfaSetupUser(currentUser);
         setAppState('mfa_setup');
     };
 
     const handleMfaSetupVerified = async (userId: string, verificationCode: string): Promise<{ success: boolean, message?: string }> => {
-        if (verificationCode === '123456' && mfaSetupUser) {
-            const updatedUser = { ...mfaSetupUser, mfaEnabled: true };
-            
-            setUsersForCurrentCompany(prev => prev.map(u => u.id === userId ? updatedUser : u));
-            setCurrentUser(updatedUser);
-            addAuditLog('MFA_ENABLED', `User ${updatedUser.name} enabled MFA.`);
+       try {
+            const { user, auditLogEntry } = await api.finalizeMfaSetup(userId, verificationCode);
+            setCurrentUser(user); // Update with MFA enabled flag
+            handleUpdateUsers(usersForCurrentCompany.map(u => u.id === user.id ? user : u));
+            addAuditLogEntry(auditLogEntry);
             addNotification("MFA enabled successfully!", "success");
             setMfaSetupUser(null);
             setAppState('app');
             return { success: true };
-        } else {
-            return { success: false, message: "Invalid verification code." };
-        }
+       } catch (error: any) {
+           return { success: false, message: error.message };
+       }
     };
     
     const handleDisableMfa = async (password: string): Promise<{ success: boolean, message: string }> => {
-        if (!currentUser || currentUser.password !== password) {
-            return { success: false, message: "Incorrect password." };
+        if (!currentUser) return { success: false, message: "No user logged in." };
+        try {
+            const { user, auditLogEntry } = await api.disableMfa(currentUser.id, password);
+            setCurrentUser(user);
+            handleUpdateUsers(usersForCurrentCompany.map(u => u.id === user.id ? user : u));
+            addAuditLogEntry(auditLogEntry);
+            addNotification("MFA disabled successfully.", "success");
+            return { success: true, message: "MFA disabled." };
+        } catch (error: any) {
+            return { success: false, message: error.message };
         }
-        const updatedUser = { ...currentUser, mfaEnabled: false };
-        setUsersForCurrentCompany(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-        setCurrentUser(updatedUser);
-        addAuditLog('MFA_DISABLED', `User ${updatedUser.name} disabled MFA.`);
-        addNotification("MFA disabled successfully.", "success");
-        return { success: true, message: "MFA disabled." };
     };
     
     const handleChangePassword = async (currentPassword: string, newPassword: string): Promise<{ success: boolean, message: string }> => {
-        if (!currentUser || currentUser.password !== currentPassword) {
-            return { success: false, message: "Your current password was incorrect." };
+        if (!currentUser) return { success: false, message: "No user logged in." };
+        try {
+            const { user, auditLogEntry } = await api.changePassword(currentUser.id, currentPassword, newPassword);
+            setCurrentUser(user); // Password is not stored on frontend, but we get the updated user object
+            handleUpdateUsers(usersForCurrentCompany.map(u => u.id === user.id ? user : u));
+            addAuditLogEntry(auditLogEntry);
+            return { success: true, message: "Password updated successfully." };
+        } catch (error: any) {
+            return { success: false, message: error.message };
         }
-        const updatedUser = { ...currentUser, password: newPassword };
-        setUsersForCurrentCompany(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
-        setCurrentUser(updatedUser);
-        addAuditLog('PASSWORD_CHANGED', `User ${updatedUser.name} changed their password.`);
-        return { success: true, message: "Password updated successfully." };
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (currentUser) {
-            addAuditLog('USER_LOGOUT', `User ${currentUser.name} logged out.`);
+            const { auditLogEntry } = await api.logout(currentUser.id);
+            addAuditLogEntry(auditLogEntry);
         }
         setCurrentUser(null);
         setCurrentCompanyId(null);
+        setCompanies([]);
+        setAllCompanyData({});
         setAppState('login');
     };
 
-    const handleVerifyUser = (email: string): boolean => {
-         let found = false;
-         setAllCompanyData(prev => {
-            const newData = {...prev};
-            for (const companyId in newData) {
-                newData[companyId].users = newData[companyId].users.map(u => {
-                    if (u.email.toLowerCase() === email.toLowerCase()) {
-                        found = true;
-                        return { ...u, isVerified: true };
-                    }
-                    return u;
-                });
-            }
-            return newData;
-        });
-        if(found) {
+    const handleVerifyUser = async (email: string): Promise<boolean> => {
+        try {
+            await api.verifyUser(email);
             addNotification(`Email ${email} has been verified. You can now log in.`, 'success');
+            return true;
+        } catch (error) {
+            return false;
         }
-        return found;
     };
     
      const handleForgotPassword = async (email: string): Promise<{ success: boolean; message: string; token?: string }> => {
-        let foundUser: User | undefined;
-        let foundCompanyId: string | undefined;
-
-        for (const company of companies) {
-            const userInCompany = allCompanyData[company.id]?.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-            if (userInCompany) {
-                foundUser = userInCompany;
-                foundCompanyId = company.id;
-                break;
+        try {
+            const result = await api.forgotPassword(email);
+            if (result.success) {
+                if (result.auditLogEntry) {
+                     addAuditLogEntry(result.auditLogEntry);
+                }
+                return { success: true, message: result.message, token: result.token };
+            } else {
+                return { success: false, message: result.message };
             }
+        } catch(error: any) {
+            return { success: false, message: error.message };
         }
-        if (!foundUser || !foundCompanyId) {
-            return { success: false, message: "If an account with that email exists, a reset link has been sent." };
-        }
-        
-        const token = `reset-${Date.now()}`;
-        const expires = Date.now() + 3600000; // 1 hour
-        const updatedUser = { ...foundUser, passwordResetToken: token, passwordResetExpires: expires };
-
-        setAllCompanyData(prev => ({
-            ...prev,
-            [foundCompanyId!]: {
-                ...prev[foundCompanyId!],
-                users: prev[foundCompanyId!].users.map(u => u.id === updatedUser.id ? updatedUser : u),
-            }
-        }));
-
-        addAuditLog('PASSWORD_RESET_REQUESTED', `Password reset requested for ${foundUser.name}.`);
-        // In a real app, you would email the link. Here we provide the token directly.
-        return { success: true, message: "A password reset token has been generated below (for demo purposes).", token };
     };
     
     const handleResetPassword = async (token: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
-        let foundUser: User | undefined;
-        let foundCompanyId: string | undefined;
-
-        for (const company of companies) {
-            const userInCompany = allCompanyData[company.id]?.users.find(u => u.passwordResetToken === token);
-            if (userInCompany) {
-                foundUser = userInCompany;
-                foundCompanyId = company.id;
-                break;
-            }
+        try {
+            const result = await api.resetPassword(token, newPassword);
+            return { success: true, message: result.message };
+        } catch(error: any) {
+            return { success: false, message: error.message };
         }
-        if (!foundUser || !foundCompanyId || !foundUser.passwordResetExpires || foundUser.passwordResetExpires < Date.now()) {
-            return { success: false, message: "Invalid or expired reset token." };
-        }
-
-        const updatedUser: User = { ...foundUser, password: newPassword, passwordResetToken: undefined, passwordResetExpires: undefined };
-         setAllCompanyData(prev => ({
-            ...prev,
-            [foundCompanyId!]: {
-                ...prev[foundCompanyId!],
-                users: prev[foundCompanyId!].users.map(u => u.id === updatedUser.id ? updatedUser : u),
-            }
-        }));
-        
-        addAuditLog('PASSWORD_RESET_COMPLETED', `Password was reset for ${foundUser.name}.`);
-        return { success: true, message: "Password has been reset successfully. You will be redirected to the login page." };
     };
 
-    const handleSetupCompany = (
+    const handleSetupCompany = async (
         profileData: Omit<CompanyProfile, 'id' | 'license'>,
         adminData: Omit<User, 'id' | 'isVerified' | 'role'>
     ) => {
-        const companyId = `company-${Date.now()}`;
-        const newCompany: CompanyProfile = {
-            id: companyId,
-            ...profileData,
-        };
-        const newAdmin: User = {
-            id: `user-${Date.now()}`,
-            ...adminData,
-            role: 'Administrator',
-            isVerified: true, // First admin is auto-verified
-            mfaEnabled: false,
-        };
-
-        const newCompanyData: CompanyData = {
-            users: [newAdmin],
-            documents: [],
-            auditLog: [],
-            tasks: [],
-        };
-
-        setCompanies(prev => [...prev, newCompany]);
-        setAllCompanyData(prev => ({ ...prev, [companyId]: newCompanyData }));
-        addNotification("Company and administrator account created successfully! Please log in.", "success");
-        setAppState('login');
+        try {
+            await api.setupCompany(profileData, adminData);
+            addNotification("Company and administrator account created successfully! Please log in.", "success");
+            setAppState('login');
+        } catch (error: any) {
+            // Re-throw the error so the calling component can catch it and display it in the form.
+            throw error;
+        }
     };
 
-    const handleCreateNewCompany = (
+    const handleCreateNewCompany = async (
         profileData: Omit<CompanyProfile, 'id' | 'license'>,
         adminData: Omit<User, 'id' | 'isVerified' | 'role'>
     ) => {
-        const companyId = `company-${Date.now()}`;
-        const trialExpiresAt = new Date();
-        trialExpiresAt.setDate(trialExpiresAt.getDate() + 7);
-
-        const newLicense: License = {
-            key: `trial-${companyId}-${Date.now()}`,
-            status: 'active',
-            tier: 'trial',
-            expiresAt: trialExpiresAt.getTime(),
-        };
-
-        const newCompany: CompanyProfile = {
-            id: companyId,
-            ...profileData,
-            license: newLicense,
-        };
-        const newAdmin: User = {
-            id: `user-${companyId}-${Date.now()}`,
-            ...adminData,
-            role: 'Administrator',
-            isVerified: true, // Auto-verified for creation by super-admin
-            mfaEnabled: false,
-        };
-
-        const newCompanyData: CompanyData = {
-            users: [newAdmin],
-            documents: [],
-            auditLog: [],
-            tasks: [],
-        };
-        
-        if (currentUser) {
-            addAuditLog('COMPANY_CREATED', `User ${currentUser.name} created new company: ${newCompany.name}.`, newCompany.id);
-        }
-
-        setCompanies(prev => [...prev, newCompany]);
-        setAllCompanyData(prev => ({ ...prev, [companyId]: newCompanyData }));
-        addNotification(`Company "${newCompany.name}" created with a 7-day trial.`, "success");
-    };
-
-    // --- NOORA AI ASSISTANT LOGIC ---
-    const handleStartNoora = (type: NooraAssessmentType) => {
-        setNooraAssessmentType(type);
-        setNooraCurrentControlIndex(0); // Start from the beginning
-        setNooraActiveField({ controlCode: null, field: null });
-        setIsNooraAssessing(true);
-    };
-
-    const handleCloseNoora = () => {
-        setIsNooraAssessing(false);
-        setNooraAssessmentType(null);
-    };
-
-    const handleNooraNextControl = () => {
-        setNooraCurrentControlIndex(prev => {
-            const data = getNooraAssessmentData();
-            if (data && prev < data.length - 1) {
-                return prev + 1;
-            }
-            return prev;
-        });
-    };
-
-    const handleNooraPreviousControl = () => {
-        setNooraCurrentControlIndex(prev => {
-            if (prev > 0) {
-                return prev - 1;
-            }
-            return prev;
-        });
-    };
-    
-    const handleNooraEvidenceRequestHandled = () => {
-        setNooraEvidenceRequest(null);
-    }
-
-    const getNooraAssessmentData = () => {
-        switch (nooraAssessmentType) {
-            case 'ecc': return eccAssessment;
-            case 'pdpl': return pdplAssessment;
-            case 'sama': return samaCsfAssessment;
-            case 'cma': return cmaAssessment;
-            case 'hrsd': return hrsdAssessment;
-            default: return [];
+        if (!currentUser) return;
+        try {
+            const { newCompany, auditLogEntry } = await api.createNewCompany(profileData, adminData, currentUser.id);
+            setCompanies(prev => [...prev, newCompany]);
+            addAuditLogEntry(auditLogEntry);
+            addNotification(`Company "${newCompany.name}" created with a 7-day trial.`, "success");
+        } catch (error: any) {
+             addNotification(error.message, 'info');
         }
     };
     
-    if (appState === 'login' && companies.length === 0) {
-        setAppState('setup');
-    }
+    const handleSwitchCompany = async (newCompanyId: string) => {
+        if (!currentUser || newCompanyId === currentCompanyId) return;
 
+        setIsCompanySwitcherOpen(false);
+        setIsContentViewLoading(true);
+
+        try {
+            // Check if data is already cached
+            if (!allCompanyData[newCompanyId]) {
+                 const { companyData } = await api.getCompanyData(newCompanyId, currentUser.id);
+                 setAllCompanyData(prev => ({ ...prev, [newCompanyId]: companyData }));
+            }
+            setCurrentCompanyId(newCompanyId);
+            setCurrentView('dashboard'); // Always return to dashboard on switch
+        } catch(error: any) {
+            addNotification(`Error switching company: ${error.message}`, 'info');
+        } finally {
+            setIsContentViewLoading(false);
+        }
+    };
+
+    // --- CHAT WIDGET LOGIC ---
+    const handleSendMessage = async (message: string) => {
+        setChatMessages(prev => [...prev, { role: 'user', content: message }]);
+        setIsChatLoading(true);
+        setChatError(null);
+
+        try {
+            if (!process.env.API_KEY) {
+                throw new Error("API key is not configured.");
+            }
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `System: You are Noora, an AI assistant for the Cybersecurity Controls Navigator app. Your goal is to provide helpful, concise answers about the NCA ECC framework based on the provided data. Be friendly and professional.
+              
+              User: ${message}`
+            });
+
+            const text = response.text;
+            setChatMessages(prev => [...prev, { role: 'assistant', content: text }]);
+        } catch (error: any) {
+            console.error("Gemini API error:", error);
+            setChatError("Sorry, I couldn't get a response. Please check the console for details.");
+        } finally {
+            setIsChatLoading(false);
+        }
+    };
+
+    
+    if (appIsLoading) {
+         return <div id="loading-indicator"><LogoIcon /><p>Loading application...</p></div>;
+    }
+    
     if(appState === 'login') {
         return <LoginPage 
             onLogin={handleLogin} 
@@ -1140,9 +698,10 @@ const App: React.FC = () => {
     }
 
     if(appState === 'mfa_setup' && mfaSetupUser && currentCompanyId) {
+        const setupCompanyName = companies.find(c => c.id === currentCompanyId)?.name || '';
         return <MfaSetupPage
             user={mfaSetupUser}
-            companyName={companies.find(c => c.id === currentCompanyId)?.name || ''}
+            companyName={setupCompanyName}
             onVerified={handleMfaSetupVerified}
             onCancel={() => setAppState('app')}
             theme={theme}
@@ -1156,12 +715,13 @@ const App: React.FC = () => {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-3z" />
         </svg>
-        <p>Loading application...</p>
+        <p>Redirecting to login...</p>
       </div>
     );
   }
 
   const renderView = () => {
+    if (!currentCompany) return <ContentViewSkeleton />;
     if (!isLicensed) {
         return (
              <main className="flex-1 flex items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-900 overflow-y-auto">
@@ -1185,35 +745,20 @@ const App: React.FC = () => {
     }
     if (isContentViewLoading) return <ContentViewSkeleton />;
     switch (currentView) {
-        case 'dashboard': return <DashboardPage repository={documentRepository} currentUser={currentUser!} allControls={allControls} domains={eccData} onSetView={handleSetView} trainingProgress={trainingProgress} eccAssessment={eccAssessment} pdplAssessment={pdplAssessment} samaCsfAssessment={samaCsfAssessment} cmaAssessment={cmaAssessment} hrsdAssessment={hrsdAssessment} tasks={tasks} setTasks={setTasksForCurrentCompany} />;
-        case 'navigator': return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={handleSetView as (view: View) => void} />;
+        case 'dashboard': return <DashboardPage repository={documentRepository} currentUser={currentUser!} allControls={allControls} domains={eccData} onSetView={handleSetView} trainingProgress={trainingProgress} eccAssessment={eccAssessment} pdplAssessment={pdplAssessment} samaCsfAssessment={samaCsfAssessment} cmaAssessment={cmaAssessment} tasks={tasks} setTasks={handleUpdateTasks} />;
+        case 'navigator': return <ContentView domain={selectedDomain} activeControlId={activeControlId} setActiveControlId={setActiveControlId} onAddDocument={handleAddDocumentToRepo} documentRepository={documentRepository} permissions={currentUserPermissions} onSetView={handleSetView} />;
         case 'documents': return <DocumentsPage repository={documentRepository} currentUser={currentUser!} onApprovalAction={handleApprovalAction} onAddDocument={handleAddDocumentToRepo} permissions={currentUserPermissions} company={currentCompany!} />;
-        case 'companyProfile': return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} currentUser={currentUser} onSetupCompany={handleCreateNewCompany} />;
+        case 'companyProfile': return <CompanyProfilePage company={currentCompany} onSave={handleSaveCompanyProfile} canEdit={currentUserPermissions.has('company:update')} addNotification={addNotification} />;
         case 'auditLog': return <AuditLogPage auditLog={auditLog} />;
-        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView as (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void} onStartNoora={() => handleStartNoora('ecc')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'ecc' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
-        case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('pdpl')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'pdpl' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
-        case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('sama')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'sama' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
-        case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('cma')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'cma' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
-        case 'hrsdAssessment': return <HRSDAssessmentPage assessmentData={hrsdAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('hrsd', c, u)} status={assessmentStatuses.hrsd} onInitiate={() => handleInitiateAssessment('hrsd')} onComplete={() => handleCompleteAssessment('hrsd')} permissions={currentUserPermissions} onStartNoora={() => handleStartNoora('hrsd')} nooraActiveField={nooraActiveField} evidenceRequestControlCode={nooraAssessmentType === 'hrsd' ? nooraEvidenceRequest : null} onEvidenceRequestHandled={handleNooraEvidenceRequestHandled} />;
-        case 'userManagement': return <UserManagementPage users={usersForCurrentCompany} setUsers={setUsersForCurrentCompany} currentUser={currentUser} addNotification={addNotification} addAuditLog={addAuditLog} />;
+        case 'assessment': return <AssessmentPage assessmentData={eccAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('ecc', c, u)} status={assessmentStatuses.ecc} onInitiate={() => handleInitiateAssessment('ecc')} onComplete={() => handleCompleteAssessment('ecc')} permissions={currentUserPermissions} onSetView={handleSetView} />;
+        case 'pdplAssessment': return <PDPLAssessmentPage assessmentData={pdplAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('pdpl', c, u)} status={assessmentStatuses.pdpl} onInitiate={() => handleInitiateAssessment('pdpl')} onComplete={() => handleCompleteAssessment('pdpl')} permissions={currentUserPermissions} />;
+        case 'samaCsfAssessment': return <SamaCsfAssessmentPage assessmentData={samaCsfAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('sama', c, u)} status={assessmentStatuses.sama} onInitiate={() => handleInitiateAssessment('sama')} onComplete={() => handleCompleteAssessment('sama')} permissions={currentUserPermissions} />;
+        case 'cmaAssessment': return <CMAAssessmentPage assessmentData={cmaAssessment} onUpdateItem={(c, u) => handleUpdateAssessmentItem('cma', c, u)} status={assessmentStatuses.cma} onInitiate={() => handleInitiateAssessment('cma')} onComplete={() => handleCompleteAssessment('cma')} permissions={currentUserPermissions} />;
+        case 'userManagement': return <UserManagementPage users={usersForCurrentCompany} setUsers={handleUpdateUsers} currentUser={currentUser} addNotification={addNotification} addAuditLog={addAuditLogEntry} companyId={currentCompanyId} allCompanies={companies} />;
         case 'userProfile': return <UserProfilePage currentUser={currentUser!} onChangePassword={handleChangePassword} onEnableMfa={handleEnableMfa} onDisableMfa={handleDisableMfa} />;
         case 'help': return <HelpSupportPage onStartTour={() => setIsTourOpen(true)} />;
         case 'training': return <TrainingPage userProgress={trainingProgress} onUpdateProgress={handleUpdateTrainingProgress} />;
-        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={setRiskAssessmentDataForCurrentCompany} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} onStartAssistant={(risk) => setAssessingRisk(risk)} setRepository={setDocumentRepositoryForCurrentCompany} currentUser={currentUser} company={currentCompany!} addNotification={addNotification} />;
-        case 'riskRegister':
-            return (
-                <div>
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">AI-Powered Risk Register</h1>
-                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">An interactive dashboard for managing and visualizing risks.</p>
-                    <iframe
-                        src="https://ai-powered-risk-assessment-register-442027961273.us-west1.run.app"
-                        className="mt-6 w-full h-[calc(100vh-12rem)] border-0 rounded-lg shadow-lg"
-                        title="AI-Powered Risk Register"
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    ></iframe>
-                </div>
-            );
-        case 'controlMapping': return <ControlMappingPage eccData={eccData} pdplData={pdplAssessment} samaData={samaCsfAssessment} cmaData={cmaAssessment} hrsdData={hrsdAssessment} mappingData={mappingData} />;
+        case 'riskAssessment': return <RiskAssessmentPage risks={riskAssessmentData} setRisks={handleUpdateRisks} status={assessmentStatuses.riskAssessment} onInitiate={() => handleInitiateAssessment('riskAssessment')} onComplete={() => handleCompleteAssessment('riskAssessment')} permissions={currentUserPermissions} />;
         default: return <div>View not found</div>;
     }
   };
@@ -1243,6 +788,35 @@ const App: React.FC = () => {
                               )}
                           </div>
                           <div className="flex items-center space-x-4">
+                            <div className="relative">
+                                <button onClick={() => setIsCompanySwitcherOpen(!isCompanySwitcherOpen)} className="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <span className="font-semibold text-sm">{currentCompany?.name}</span>
+                                    <ChevronDownIcon className={`w-4 h-4 transition-transform ${isCompanySwitcherOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                {isCompanySwitcherOpen && (
+                                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                                        <div className="p-2 text-xs font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">SWITCH COMPANY</div>
+                                        <ul className="py-1">
+                                            {companies.map(company => (
+                                                <li key={company.id}>
+                                                    <button onClick={() => handleSwitchCompany(company.id)} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between">
+                                                        <span>{company.name}</span>
+                                                        {company.id === currentCompanyId && <CheckIcon className="w-5 h-5 text-teal-500" />}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {currentUserPermissions.has('company:update') && (
+                                            <div className="border-t border-gray-200 dark:border-gray-700 p-1">
+                                                <button onClick={() => { setIsCreateCompanyModalOpen(true); setIsCompanySwitcherOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center">
+                                                    <BuildingOfficeIcon className="w-5 h-5 mr-2 text-gray-500"/>
+                                                    Create New Company
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                               <div className="text-right">
                                 <div className="font-semibold text-sm">{currentUser.name}</div>
                                 <div className="text-xs text-gray-500 dark:text-gray-400">{currentUser.role}</div>
@@ -1262,72 +836,66 @@ const App: React.FC = () => {
               </div>
           </div>
           
-          {isNooraAssessing && nooraAssessmentType && (
-            <NooraAssistant
-                isAssessing={isNooraAssessing}
-                onClose={handleCloseNoora}
-                assessmentData={getNooraAssessmentData()}
-                onUpdateItem={(controlCode, updatedItem) => handleUpdateAssessmentItem(nooraAssessmentType, controlCode, updatedItem)}
-                currentControlIndex={nooraCurrentControlIndex}
-                onNextControl={handleNooraNextControl}
-                onPreviousControl={handleNooraPreviousControl}
-                assessmentType={nooraAssessmentType.toUpperCase()}
-                onInitiate={() => handleInitiateAssessment(nooraAssessmentType as keyof AssessmentStatuses)}
-                onActiveFieldChange={(controlCode, field) => setNooraActiveField({ controlCode, field })}
-                onRequestEvidenceUpload={(controlCode) => setNooraEvidenceRequest(controlCode)}
-            />
-          )}
-
-          {assessingRisk && (
-            <RiskAssistant
-                isOpen={assessingRisk !== null}
-                onClose={() => setAssessingRisk(null)}
-                riskToAssess={assessingRisk}
-                onUpdateRisk={(updatedRisk) => setRiskAssessmentDataForCurrentCompany(prev => prev.map(r => r.id === updatedRisk.id ? updatedRisk : r))}
-                onSetActiveField={(riskId, field) => setRiskAssistantActiveField({ riskId, field })}
-                onRequestEvidenceUpload={(risk) => setRiskEvidenceRequest(risk)}
-            />
-          )}
-
           <TourGuide isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} steps={tourSteps} />
           
+           {isCreateCompanyModalOpen && (
+                <CreateCompanyModal 
+                    onSetup={handleCreateNewCompany}
+                    onClose={() => setIsCreateCompanyModalOpen(false)}
+                />
+            )}
+
           <div className="fixed top-5 right-5 z-[200] space-y-3">
-            {notifications.map((n) => (
-                <NotificationComponent key={n.id} notification={n} onDismiss={() => removeNotification(n.id)} />
-            ))}
+              {notifications.map(n => (
+                  <div key={n.id} className={`flex items-start p-4 rounded-lg shadow-lg border animate-fade-in-down ${n.type === 'success' ? 'bg-green-50 dark:bg-green-900 border-green-200 dark:border-green-700' : 'bg-blue-50 dark:bg-blue-900 border-blue-200 dark:border-blue-700'}`}>
+                      {n.type === 'success' ? <CheckCircleIcon className="w-6 h-6 text-green-500" /> : <InformationCircleIcon className="w-6 h-6 text-blue-500" />}
+                      <div className="ml-3 flex-1"><p className={`text-sm font-medium ${n.type === 'success' ? 'text-green-800 dark:text-green-100' : 'text-blue-800 dark:text-blue-100'}`}>{n.message}</p></div>
+                      <button onClick={() => removeNotification(n.id)} className="ml-4 p-1 rounded-full hover:bg-black/10"><CloseIcon className="w-4 h-4 text-gray-500" /></button>
+                  </div>
+              ))}
           </div>
-          
+
+          {isIdleWarningVisible && (
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-[250] flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+                      <ExclamationTriangleIcon className="w-12 h-12 text-yellow-500 mx-auto" />
+                      <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Are you still there?</h3>
+                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">You've been inactive for a while. For your security, you will be logged out in <span className="font-bold">{countdown}</span> seconds.</p>
+                      <div className="mt-6"><button onClick={resetIdleTimers} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-teal-600 text-base font-medium text-white hover:bg-teal-700">I'm still here</button></div>
+                  </div>
+              </div>
+          )}
+
           {showInitiateConfirmModal && (
-              <div className="fixed inset-0 bg-black bg-opacity-60 z-[150] flex items-center justify-center p-4" onClick={() => setShowInitiateConfirmModal(null)}>
-                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
-                      <div className="p-6 text-center">
-                          <ExclamationTriangleIcon className="w-16 h-16 mx-auto text-yellow-500" />
-                          <h3 className="mt-4 text-xl font-bold text-gray-800 dark:text-gray-100">Confirm New Assessment</h3>
-                          <p className="mt-2 text-gray-600 dark:text-gray-400">
-                              Are you sure you want to start a new <span className="font-semibold uppercase">{showInitiateConfirmModal.replace('Assessment', '')}</span> assessment? All current progress for this framework will be erased. This action cannot be undone.
-                          </p>
+              <div className="fixed inset-0 bg-black bg-opacity-60 z-[250] flex items-center justify-center p-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-sm w-full p-6">
+                      <div className="sm:flex sm:items-start">
+                          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10"><ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-300" aria-hidden="true" /></div>
+                          <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">Initiate New Assessment</h3>
+                              <div className="mt-2"><p className="text-sm text-gray-500 dark:text-gray-400">Are you sure? This will delete all current progress for the {showInitiateConfirmModal.toUpperCase()} assessment and start over with a fresh template. This action cannot be undone.</p></div>
+                          </div>
                       </div>
-                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-3 rounded-b-lg">
-                          <button
-                              type="button"
-                              onClick={() => setShowInitiateConfirmModal(null)}
-                              className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none"
-                          >
-                              Cancel
-                          </button>
-                          <button
-                              type="button"
-                              onClick={() => executeInitiateAssessment(showInitiateConfirmModal)}
-                              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none"
-                          >
-                              Confirm & Erase
-                          </button>
+                      <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                          <button type="button" className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:ml-3 sm:w-auto sm:text-sm" onClick={() => executeInitiateAssessment(showInitiateConfirmModal)}>Yes, Initiate</button>
+                          <button type="button" className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-500 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 sm:mt-0 sm:w-auto sm:text-sm" onClick={() => setShowInitiateConfirmModal(null)}>Cancel</button>
                       </div>
                   </div>
               </div>
           )}
+          
+          <ChatWidget 
+            isOpen={isChatOpen}
+            onToggle={() => setIsChatOpen(!isChatOpen)}
+            messages={chatMessages}
+            onSendMessage={handleSendMessage}
+            isLoading={isChatLoading}
+            error={chatError}
+          />
+
+          <style>{`@keyframes fade-in-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-down { animation: fade-in-down 0.3s ease-out forwards; }`}</style>
       </>
   );
-};
+}
 
 export default App;

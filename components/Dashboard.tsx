@@ -1,3 +1,6 @@
+
+
+
 import React, { useEffect, useRef, useMemo, useState } from 'react';
 import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
 import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon, SecureCodingBadgeIcon, IncidentResponseBadgeIcon, DataPrivacyBadgeIcon } from './Icons';
@@ -10,13 +13,12 @@ interface DashboardPageProps {
     currentUser: User;
     allControls: SearchResult[];
     domains: Domain[];
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'riskAssessment') => void;
+    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'riskAssessment') => void;
     trainingProgress?: UserTrainingProgress;
     eccAssessment: AssessmentItem[];
     pdplAssessment: AssessmentItem[];
     samaCsfAssessment: AssessmentItem[];
     cmaAssessment: AssessmentItem[];
-    hrsdAssessment: AssessmentItem[];
     tasks: Task[];
     setTasks: (updater: React.SetStateAction<Task[]>) => void;
 }
@@ -357,7 +359,6 @@ const TaskManager: React.FC<{
 }> = ({ tasks, setTasks, controls }) => {
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [newTaskControlId, setNewTaskControlId] = useState('');
-    const [newTaskDueDate, setNewTaskDueDate] = useState('');
 
     const handleAddTask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -369,19 +370,25 @@ const TaskManager: React.FC<{
             controlId: newTaskControlId || undefined,
             status: 'To Do',
             createdAt: Date.now(),
-            dueDate: newTaskDueDate ? new Date(newTaskDueDate).getTime() + (new Date().getTimezoneOffset() * 60000) : undefined,
         };
 
         setTasks(prev => [newTask, ...prev]);
         setNewTaskTitle('');
         setNewTaskControlId('');
-        setNewTaskDueDate('');
     };
     
-    const handleToggleComplete = (taskId: string, isCompleted: boolean) => {
-        setTasks(prev => prev.map(task => 
-            task.id === taskId ? { ...task, status: isCompleted ? 'Done' : 'To Do' } : task
-        ));
+    const handleToggleStatus = (taskId: string) => {
+        setTasks(prev => prev.map(task => {
+            if (task.id === taskId) {
+                const nextStatus: Record<TaskStatus, TaskStatus> = {
+                    'To Do': 'In Progress',
+                    'In Progress': 'Done',
+                    'Done': 'To Do',
+                };
+                return { ...task, status: nextStatus[task.status] };
+            }
+            return task;
+        }));
     };
 
     const handleDeleteTask = (taskId: string) => {
@@ -389,86 +396,56 @@ const TaskManager: React.FC<{
     };
 
     const sortedTasks = useMemo(() => {
-        const grouped: { Pending: Task[], Done: Task[] } = { Pending: [], Done: [] };
-        tasks.forEach(task => {
-            if (task.status === 'Done') {
-                grouped.Done.push(task);
-            } else {
-                grouped.Pending.push(task);
-            }
-        });
-
-        // Sort Pending tasks by due date (soonest first), then creation date
-        grouped.Pending.sort((a, b) => {
-            if (a.dueDate && b.dueDate) return a.dueDate - b.dueDate;
-            if (a.dueDate) return -1; // a has due date, b doesn't, so a comes first
-            if (b.dueDate) return 1; // b has due date, a doesn't, so b comes first
-            return b.createdAt - a.createdAt; // neither has due date, sort by newness
-        });
-
-        // Sort Done tasks by creation date (newest first)
-        grouped.Done.sort((a, b) => b.createdAt - a.createdAt);
-
+        const grouped: Record<TaskStatus, Task[]> = { 'To Do': [], 'In Progress': [], 'Done': [] };
+        tasks.forEach(task => grouped[task.status].push(task));
+        // Sort within groups by creation date
+        Object.values(grouped).forEach(group => group.sort((a, b) => b.createdAt - a.createdAt));
         return grouped;
     }, [tasks]);
 
-    const isOverdue = (task: Task) => task.dueDate && task.status !== 'Done' && task.dueDate < new Date().setHours(0, 0, 0, 0);
+    const statusConfig: Record<TaskStatus, { color: string; ringColor: string; title: string }> = {
+        'To Do': { color: 'bg-gray-400', ringColor: 'ring-gray-300', title: 'To Do' },
+        'In Progress': { color: 'bg-blue-500', ringColor: 'ring-blue-300', title: 'In Progress' },
+        'Done': { color: 'bg-green-500', ringColor: 'ring-green-300', title: 'Done' },
+    };
 
     return (
         <Card className="flex flex-col h-full">
             <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">My Tasks</h3>
-            <form onSubmit={handleAddTask} className="flex flex-wrap items-center gap-2 mb-4">
+            <form onSubmit={handleAddTask} className="flex items-center gap-2 mb-4">
                 <input
                     type="text"
                     value={newTaskTitle}
                     onChange={(e) => setNewTaskTitle(e.target.value)}
                     placeholder="Add a new task..."
-                    className="flex-grow min-w-[150px] block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
+                    className="flex-grow block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
                 />
                 <select
                     value={newTaskControlId}
                     onChange={(e) => setNewTaskControlId(e.target.value)}
-                    className="block w-full sm:w-48 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
+                    className="block w-48 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
                 >
                     <option value="">Link Control (Optional)</option>
                     {controls.map(c => <option key={c.control.id} value={c.control.id}>{c.control.id}</option>)}
                 </select>
-                <input
-                    type="date"
-                    value={newTaskDueDate}
-                    onChange={(e) => setNewTaskDueDate(e.target.value)}
-                    className="block w-full sm:w-auto px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
-                    title="Due date"
-                />
                 <button type="submit" className="px-4 py-2 text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">Add</button>
             </form>
             <div className="flex-grow overflow-y-auto pr-2 min-h-[300px]">
-                {(['Pending', 'Done'] as const).map(statusGroup => (
-                    sortedTasks[statusGroup].length > 0 && (
-                        <div key={statusGroup} className="mb-4">
-                             <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">{statusGroup}</h4>
+                {(['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(status => (
+                    sortedTasks[status].length > 0 && (
+                        <div key={status} className="mb-4">
+                             <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">{status}</h4>
                             <ul className="space-y-2">
-                                {sortedTasks[statusGroup].map(task => (
+                                {sortedTasks[status].map(task => (
                                     <li key={task.id} className="flex items-center gap-3 p-2 rounded-md bg-gray-50 dark:bg-gray-900/50">
-                                        <input
-                                            type="checkbox"
-                                            checked={task.status === 'Done'}
-                                            onChange={(e) => handleToggleComplete(task.id, e.target.checked)}
-                                            className="w-5 h-5 rounded text-teal-600 border-gray-300 dark:border-gray-600 dark:bg-gray-900 focus:ring-teal-500 focus:ring-offset-gray-50 dark:focus:ring-offset-gray-900/50 flex-shrink-0"
-                                            aria-label={`Mark task '${task.title}' as complete`}
-                                        />
-                                        <div className="flex-grow min-w-0">
-                                            <p className={`text-sm text-gray-800 dark:text-gray-200 truncate ${task.status === 'Done' ? 'line-through text-gray-500 dark:text-gray-400' : ''}`}>{task.title}</p>
-                                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                                {task.controlId && <span className="text-xs font-mono px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded flex-shrink-0">{task.controlId}</span>}
-                                                {task.dueDate && 
-                                                    <span className={`text-xs ${isOverdue(task) ? 'text-red-500 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                                                        Due: {new Date(task.dueDate).toLocaleDateString()}
-                                                    </span>
-                                                }
-                                            </div>
+                                        <button onClick={() => handleToggleStatus(task.id)} title={`Change status from ${task.status}`}>
+                                            <div className={`w-5 h-5 rounded-full ${statusConfig[task.status].color} ring-2 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-900/50 ${statusConfig[task.status].ringColor}`}></div>
+                                        </button>
+                                        <div className="flex-grow">
+                                            <p className="text-sm text-gray-800 dark:text-gray-200">{task.title}</p>
+                                            {task.controlId && <span className="text-xs font-mono px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">{task.controlId}</span>}
                                         </div>
-                                        <button onClick={() => handleDeleteTask(task.id)} className="text-gray-400 hover:text-red-500 flex-shrink-0">
+                                        <button onClick={() => handleDeleteTask(task.id)} className="text-gray-400 hover:text-red-500">
                                             <CloseIcon className="w-4 h-4" />
                                         </button>
                                     </li>
@@ -482,7 +459,7 @@ const TaskManager: React.FC<{
     );
 };
 
-export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, hrsdAssessment, tasks, setTasks }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, tasks, setTasks }) => {
     const stats = useMemo(() => {
         const approvedCount = repository.filter(doc => doc.status === 'Approved').length;
         const pendingCount = repository.filter(doc => doc.status.startsWith('Pending')).length;
@@ -542,7 +519,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
     const pdplCompliance = useMemo(() => calculateCompliance(pdplAssessment), [pdplAssessment]);
     const samaCsfCompliance = useMemo(() => calculateCompliance(samaCsfAssessment), [samaCsfAssessment]);
     const cmaCompliance = useMemo(() => calculateCompliance(cmaAssessment), [cmaAssessment]);
-    const hrsdCompliance = useMemo(() => calculateCompliance(hrsdAssessment), [hrsdAssessment]);
 
     return (
         <div className="space-y-8">
@@ -560,7 +536,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
 
             <div className="space-y-4">
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Frameworks Compliance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <FrameworkMeter 
                         title="NCA ECC" 
                         percentage={eccCompliance} 
@@ -580,12 +556,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                         title="CMA" 
                         percentage={cmaCompliance} 
                         onNavigate={() => onSetView('cmaAssessment')}
-                        disabled={false}
-                    />
-                    <FrameworkMeter 
-                        title="HRSD" 
-                        percentage={hrsdCompliance} 
-                        onNavigate={() => onSetView('hrsdAssessment')}
                         disabled={false}
                     />
                 </div>

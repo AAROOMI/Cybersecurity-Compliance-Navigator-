@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { CompanyProfile, User } from '../types';
 import { LogoIcon, MoonIcon, SunIcon, EyeIcon, EyeSlashIcon } from './Icons';
@@ -6,7 +7,7 @@ interface CompanySetupPageProps {
   onSetup: (
     profileData: Omit<CompanyProfile, 'id' | 'license'>,
     adminData: Omit<User, 'id' | 'isVerified' | 'role'>
-  ) => void;
+  ) => Promise<void>;
   onCancel: () => void;
   theme: 'light' | 'dark';
   toggleTheme: () => void;
@@ -31,6 +32,8 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     confirmPassword: '',
   });
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -44,17 +47,41 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
     setAdminData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+
     if (adminData.password !== adminData.confirmPassword) {
-      alert("Administrator passwords do not match.");
+      setError("Administrator passwords do not match.");
+      return;
+    }
+    if (adminData.password.length < 8) {
+      setError("Password must be at least 8 characters long.");
       return;
     }
     
-    const { confirmPassword, ...adminPayload } = adminData;
-    const profilePayload = { ...companyData, logo: '' }; // Logo can be added later
-
-    onSetup(profilePayload, adminPayload);
+    setIsLoading(true);
+    try {
+        const { confirmPassword, ...adminPayload } = adminData;
+        const profilePayload = { ...companyData, logo: '' }; // Logo can be added later
+        await onSetup(profilePayload, adminPayload);
+    } catch (err: any) {
+        // Prioritize specific, user-friendly messages for common setup errors.
+        if (err.code === 'auth/email-already-in-use') {
+            setError("This email address is already registered. Please use a different email for the administrator.");
+        } else if (err.code === 'auth/weak-password') {
+            setError("The provided password is too weak. Please choose a stronger password.");
+        } 
+        // This is the most likely error the user is seeing. Provide a very clear, actionable message.
+        else if (err.code === 'permission-denied' || (err.message && err.message.toLowerCase().includes('permission'))) {
+            setError("Account setup failed due to server security rules. This indicates a backend configuration issue in your Firebase project. Please ensure your Firestore Security Rules allow the initial company and user documents to be created without requiring authentication, as this is the first write to the database.");
+        } else {
+            // Fallback for any other unexpected errors.
+            setError(err.message || "An unexpected error occurred during setup.");
+        }
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
@@ -82,57 +109,57 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="p-6 space-y-8">
-                 <fieldset className="space-y-4">
+                 <fieldset className="space-y-4" disabled={isLoading}>
                     <legend className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">Company Details</legend>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company Name</label>
+                            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company Name <span className="text-red-500">*</span></label>
                             <input type="text" name="name" id="companyName" value={companyData.name} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
                         </div>
                          <div>
                             <label htmlFor="cisoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CISO Name</label>
-                            <input type="text" name="cisoName" id="cisoName" value={companyData.cisoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="cisoName" id="cisoName" value={companyData.cisoName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="ceoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CEO Name</label>
-                            <input type="text" name="ceoName" id="ceoName" value={companyData.ceoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="ceoName" id="ceoName" value={companyData.ceoName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="cioName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CIO Name</label>
-                            <input type="text" name="cioName" id="cioName" value={companyData.cioName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="cioName" id="cioName" value={companyData.cioName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                          <div>
                             <label htmlFor="ctoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">CTO Name</label>
-                            <input type="text" name="ctoName" id="ctoName" value={companyData.ctoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="ctoName" id="ctoName" value={companyData.ctoName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="cybersecurityOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Cybersecurity Officer</label>
-                            <input type="text" name="cybersecurityOfficerName" id="cybersecurityOfficerName" value={companyData.cybersecurityOfficerName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="cybersecurityOfficerName" id="cybersecurityOfficerName" value={companyData.cybersecurityOfficerName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="dpoName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Data Protection Officer (DPO)</label>
-                            <input type="text" name="dpoName" id="dpoName" value={companyData.dpoName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="dpoName" id="dpoName" value={companyData.dpoName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                         <div>
                             <label htmlFor="complianceOfficerName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Compliance Officer</label>
-                            <input type="text" name="complianceOfficerName" id="complianceOfficerName" value={companyData.complianceOfficerName} onChange={handleCompanyChange} required className="mt-1 block w-full input-style" />
+                            <input type="text" name="complianceOfficerName" id="complianceOfficerName" value={companyData.complianceOfficerName} onChange={handleCompanyChange} className="mt-1 block w-full input-style" />
                         </div>
                     </div>
                  </fieldset>
 
-                <fieldset className="space-y-4">
+                <fieldset className="space-y-4" disabled={isLoading}>
                     <legend className="text-lg font-semibold text-gray-900 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2 mb-4">Administrator Account</legend>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                            <label htmlFor="adminName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name <span className="text-red-500">*</span></label>
                             <input type="text" name="name" id="adminName" value={adminData.name} onChange={handleAdminChange} required className="mt-1 block w-full input-style" />
                         </div>
                         <div>
-                            <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address</label>
+                            <label htmlFor="adminEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email Address <span className="text-red-500">*</span></label>
                             <input type="email" name="email" id="adminEmail" value={adminData.email} onChange={handleAdminChange} required className="mt-1 block w-full input-style" />
                         </div>
                         <div>
-                            <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+                            <label htmlFor="adminPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password <span className="text-red-500">*</span></label>
                             <div className="relative mt-1">
                                 <input type={showPassword ? 'text' : 'password'} name="password" id="adminPassword" value={adminData.password} onChange={handleAdminChange} required className="block w-full input-style pr-10" />
                                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
@@ -141,7 +168,7 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
                             </div>
                         </div>
                         <div>
-                            <label htmlFor="adminConfirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
+                            <label htmlFor="adminConfirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password <span className="text-red-500">*</span></label>
                              <div className="relative mt-1">
                                 <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" id="adminConfirmPassword" value={adminData.confirmPassword} onChange={handleAdminChange} required className="block w-full input-style pr-10" />
                                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
@@ -151,10 +178,19 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
                         </div>
                     </div>
                 </fieldset>
+                
+                {error && (
+                    <div className="p-3 bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-500/50 rounded-md">
+                        <p className="text-sm text-center text-red-700 dark:text-red-200">{error}</p>
+                    </div>
+                )}
             </div>
             <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end items-center gap-4">
-                 <button type="button" onClick={onCancel} className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500">Cancel</button>
-                 <button type="submit" className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">Create Account</button>
+                 <button type="button" onClick={onCancel} disabled={isLoading} className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 disabled:opacity-50">Cancel</button>
+                 <button type="submit" disabled={isLoading} className="inline-flex justify-center items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                     {isLoading && <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                    {isLoading ? 'Creating...' : 'Create Account'}
+                 </button>
             </div>
         </form>
       </div>
@@ -177,6 +213,15 @@ export const CompanySetupPage: React.FC<CompanySetupPageProps> = ({ onSetup, onC
                 background-color: #374151;
                 border-color: #4b5563;
                 color: #f9fafb;
+            }
+            .input-style:disabled {
+                background-color: #f3f4f6;
+                color: #6b7280;
+                cursor: not-allowed;
+            }
+            .dark .input-style:disabled {
+                background-color: #4b5563;
+                color: #9ca3af;
             }
         `}</style>
     </div>

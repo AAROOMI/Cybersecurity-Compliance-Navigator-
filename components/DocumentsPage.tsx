@@ -51,7 +51,7 @@ const renderMarkdown = (markdown: string) => {
         html += '</ul>'.repeat(listCount - endListCount);
     }
     
-    return `<div class="prose max-w-none text-gray-800">${html.replace(/<br\/><br\/>/g, '</p><p>').replace(/<br\/>/g, '')}</div>`;
+    return `<div class="prose dark:prose-invert max-w-none text-gray-800 dark:text-gray-200">${html.replace(/<br\/><br\/>/g, '</p><p>').replace(/<br\/>/g, '')}</div>`;
 };
 
 interface DocumentHeaderProps {
@@ -122,24 +122,6 @@ const ExportableDocumentContent: React.FC<{ doc: PolicyDocument, company: Compan
 
             <h2 className="text-2xl font-bold mt-8 mb-4 border-b pb-2 text-gray-800">Guideline</h2>
             <div dangerouslySetInnerHTML={{ __html: renderMarkdown(doc.content.guideline) }} />
-
-            <footer className="mt-12 pt-6 border-t">
-                <h3 className="text-lg font-semibold text-gray-700 mb-4">Document Verification</h3>
-                <div className="flex items-center justify-between gap-4" style={{ pageBreakInside: 'avoid' }}>
-                    {doc.qrCodeDataUrl && (
-                        <div className="text-center">
-                            <img src={doc.qrCodeDataUrl} alt="QR Code" style={{ width: '112px', height: '112px', margin: '0 auto' }} />
-                            <p className="text-xs text-gray-500 mt-1">Scan for Document ID</p>
-                        </div>
-                    )}
-                    {doc.barcodeDataUrl && (
-                        <div className="text-center flex-1">
-                            <img src={doc.barcodeDataUrl} alt="Barcode" style={{ height: '80px', margin: '0 auto' }} />
-                            <p className="text-xs text-gray-500 mt-1" style={{ fontFamily: 'monospace' }}>{doc.id}</p>
-                        </div>
-                    )}
-                </div>
-            </footer>
         </div>
     );
 };
@@ -234,10 +216,10 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
         const exportElement = await prepareExportableElement(doc);
         if (!exportElement) return;
 
-        const htmlToDocxLib = (window as any).htmlToDocx;
+        const htmlToDocx = (window as any).htmlToDocx;
 
-        if (!htmlToDocxLib || typeof htmlToDocxLib.asBlob !== 'function') {
-            console.error('html-to-docx-ts library not found or asBlob method is missing.');
+        if (typeof htmlToDocx !== 'function') {
+            console.error('htmlToDocx function not found. The library may not be loaded.');
             alert('Error: Word export functionality is unavailable.');
             cleanupExportableElement(exportElement);
             return;
@@ -248,11 +230,12 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
         cleanupExportableElement(exportElement);
 
         try {
-            const blob = await htmlToDocxLib.asBlob(htmlContent, {
+            const fileBuffer = await htmlToDocx(htmlContent, undefined, {
                 footer: true,
                 pageNumber: true,
             });
 
+            const blob = new Blob([fileBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = `policy-${doc.controlId}.docx`;
@@ -310,7 +293,7 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
                                 ))}
                             </nav>
                         </div>
-                        <div className="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 max-h-[45vh] overflow-y-auto">
+                        <div className="mt-4 p-4 border border-gray-200 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900/50 max-h-[45vh] overflow-y-auto">
                            <div dangerouslySetInnerHTML={{ __html: renderMarkdown(doc.content[activeTab]) }} />
                         </div>
                     </div>
@@ -339,23 +322,6 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
                             <p className="text-sm text-gray-500 dark:text-gray-400 italic">No approval history yet.</p>
                         )}
                     </div>
-                    <footer className="mt-12 pt-6 border-t border-gray-200 dark:border-gray-700">
-                        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Document Verification</h3>
-                        <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                            {doc.qrCodeDataUrl && (
-                                <div className="text-center">
-                                    <img src={doc.qrCodeDataUrl} alt="QR Code for Document ID" className="w-28 h-28 mx-auto bg-white p-1" />
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Scan for Document ID</p>
-                                </div>
-                            )}
-                            {doc.barcodeDataUrl && (
-                                <div className="text-center flex-1">
-                                    <img src={doc.barcodeDataUrl} alt="Barcode for Document ID" className="h-20 mx-auto bg-white p-2 rounded" />
-                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">{doc.id}</p>
-                                </div>
-                            )}
-                        </div>
-                    </footer>
                 </main>
                 <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
                     <div className="flex items-center gap-2">
@@ -386,12 +352,10 @@ const DocumentDetailModal: React.FC<DocumentDetailModalProps> = ({ doc, onClose,
     );
 };
 
-interface TemplatesViewProps {
-    onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
+const TemplatesView: React.FC<{
+    onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
     permissions: Set<Permission>;
-}
-
-const TemplatesView: React.FC<TemplatesViewProps> = ({ onAddDocument, permissions }) => {
+}> = ({ onAddDocument, permissions }) => {
     const [selectedTemplate, setSelectedTemplate] = useState<PrebuiltPolicyTemplate | null>(null);
     const [selectedControl, setSelectedControl] = useState<string>('');
     const [previewTab, setPreviewTab] = useState<'policy' | 'procedure' | 'guideline'>('policy');
@@ -502,7 +466,7 @@ interface DocumentsPageProps {
   repository: PolicyDocument[];
   currentUser: User;
   onApprovalAction: (documentId: string, decision: 'Approved' | 'Rejected', comments?: string) => void;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => void;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
   permissions: Set<Permission>;
   company: CompanyProfile;
 }

@@ -1,6 +1,8 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { AssessmentItem, ControlStatus } from '../types';
-import { UploadIcon, PaperClipIcon, CloseIcon, MicrophoneIcon } from './Icons';
+import { UploadIcon, PaperClipIcon, CloseIcon } from './Icons';
 
 const allStatuses: ControlStatus[] = ['Implemented', 'Partially Implemented', 'Not Implemented', 'Not Applicable'];
 
@@ -11,41 +13,19 @@ interface EditableControlRowProps {
     canUpdate: boolean;
     index: number;
     isGenerating?: boolean;
-    activeField: { controlCode: string | null, field: keyof AssessmentItem | null };
-    evidenceRequestControlCode: string | null;
-    onEvidenceRequestHandled: () => void;
 }
 
 // A component for a single editable control row.
-const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isGenerating, activeField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
+const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateItem, isEditable, canUpdate, index, isGenerating }) => {
     const [localItem, setLocalItem] = useState(item);
     const [isSaving, setIsSaving] = useState(false);
     const timeoutRef = useRef<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const rowRef = useRef<HTMLDivElement>(null);
-    const [highlightedField, setHighlightedField] = useState<keyof AssessmentItem | null>(null);
-
-    // Speech-to-text state
-    const [isListeningFor, setIsListeningFor] = useState<keyof AssessmentItem | null>(null);
-    const recognitionRef = useRef<any>(null); // SpeechRecognition
 
     useEffect(() => {
         setLocalItem(item);
     }, [item]);
-    
-    useEffect(() => {
-        if (activeField.controlCode === item.controlCode && activeField.field) {
-            setHighlightedField(activeField.field);
-            setTimeout(() => setHighlightedField(null), 2000); // Highlight for 2 seconds
-        }
-    }, [activeField, item.controlCode]);
-    
-     useEffect(() => {
-        if (evidenceRequestControlCode === item.controlCode) {
-            fileInputRef.current?.click();
-            onEvidenceRequestHandled();
-        }
-    }, [evidenceRequestControlCode, item.controlCode, onEvidenceRequestHandled]);
 
     const handleBlur = () => {
         if (JSON.stringify(localItem) !== JSON.stringify(item)) {
@@ -109,61 +89,8 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
             onUpdateItem(newItem.controlCode, newItem);
         }
     };
-
-    const toggleSpeechToText = (field: keyof AssessmentItem) => {
-        if (isListeningFor === field) {
-            recognitionRef.current?.stop();
-            setIsListeningFor(null);
-            return;
-        }
-
-        // FIX: Cast `window` to `any` to resolve TypeScript error for the non-standard SpeechRecognition API.
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            alert("Speech recognition is not supported by your browser.");
-            return;
-        }
-
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = false;
-        recognitionRef.current.interimResults = false;
-
-        recognitionRef.current.onstart = () => setIsListeningFor(field);
-        recognitionRef.current.onend = () => {
-            setIsListeningFor(null);
-            handleBlur(); // Trigger save on transcription end
-        };
-        recognitionRef.current.onerror = (event: any) => {
-            console.error('Speech recognition error:', event.error);
-            setIsListeningFor(null);
-        };
-
-        recognitionRef.current.onresult = (event: any) => {
-            const transcript = event.results[event.results.length - 1][0].transcript.trim();
-            if (transcript) {
-                setLocalItem(prev => ({
-                    ...prev,
-                    [field]: (prev[field] ? prev[field] + ' ' : '') + transcript
-                }));
-            }
-        };
-
-        recognitionRef.current.start();
-    };
     
     const isDisabled = !isEditable || !canUpdate;
-    
-    const getFieldClass = (fieldName: keyof AssessmentItem) => {
-        let baseClass = `mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`;
-        if (highlightedField === fieldName) {
-            baseClass += ' ai-active-field';
-        }
-        return baseClass;
-    }
     
     return (
          <div ref={rowRef} className={`p-4 border rounded-lg transition-shadow duration-300 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 relative`}>
@@ -181,7 +108,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                     <p className="mt-1 text-sm text-gray-800 dark:text-gray-200">{item.controlName}</p>
 
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
-                        <div className="md:col-span-2 relative">
+                        <div className="md:col-span-2">
                             <label htmlFor={`currentStatusDescription-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Current Status Description</label>
                             <textarea
                                 id={`currentStatusDescription-${item.controlCode}`}
@@ -191,13 +118,8 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={getFieldClass('currentStatusDescription') + ' pr-8'}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
-                             {!isDisabled && (
-                                <button onClick={() => toggleSpeechToText('currentStatusDescription')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
-                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'currentStatusDescription' ? 'text-red-500 animate-pulse' : ''}`} />
-                                </button>
-                            )}
                         </div>
                         <div>
                              <label htmlFor={`controlStatus-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Control Status</label>
@@ -207,7 +129,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 value={localItem.controlStatus}
                                 onChange={handleStatusChange}
                                 disabled={isDisabled}
-                                className={getFieldClass('controlStatus')}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             >
                                 {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                             </select>
@@ -245,7 +167,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 />
                             </div>
                         </div>
-                         <div className="md:col-span-2 relative">
+                         <div className="md:col-span-2">
                             <label htmlFor={`recommendation-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Recommendation</label>
                             <textarea
                                 id={`recommendation-${item.controlCode}`}
@@ -255,15 +177,10 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled || isGenerating}
                                 rows={2}
-                                className={`${getFieldClass('recommendation')} ${isGenerating ? 'animate-pulse' : ''} pr-8`}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow ${isGenerating ? 'animate-pulse' : ''}`}
                             />
-                            {!isDisabled && !isGenerating && (
-                                <button onClick={() => toggleSpeechToText('recommendation')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
-                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'recommendation' ? 'text-red-500 animate-pulse' : ''}`} />
-                                </button>
-                            )}
                         </div>
-                        <div className="relative">
+                        <div>
                              <label htmlFor={`managementResponse-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Management Response</label>
                             <textarea
                                 id={`managementResponse-${item.controlCode}`}
@@ -273,13 +190,8 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
                                 rows={2}
-                                className={getFieldClass('managementResponse') + ' pr-8'}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
-                            {!isDisabled && (
-                                <button onClick={() => toggleSpeechToText('managementResponse')} className="absolute bottom-2 right-2 p-1 text-gray-400 hover:text-teal-500 rounded-full">
-                                    <MicrophoneIcon className={`w-5 h-5 ${isListeningFor === 'managementResponse' ? 'text-red-500 animate-pulse' : ''}`} />
-                                </button>
-                            )}
                         </div>
                         <div>
                              <label htmlFor={`targetDate-${item.controlCode}`} className={`font-medium text-gray-500 dark:text-gray-400 transition-colors`}>Target Date</label>
@@ -291,7 +203,7 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                                 onChange={handleChange}
                                 onBlur={handleBlur}
                                 disabled={isDisabled}
-                                className={getFieldClass('targetDate')}
+                                className={`mt-1 block w-full text-sm rounded-md bg-transparent border-gray-300 dark:border-gray-600 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-100 dark:disabled:bg-gray-700/50 transition-shadow`}
                             />
                         </div>
                     </div>
@@ -307,12 +219,15 @@ const EditableControlRow: React.FC<EditableControlRowProps> = ({ item, onUpdateI
                     animation: fade-out 2s ease-out forwards;
                 }
                  @keyframes pulse-glow {
-                  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
-                  50% { box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.4); }
+                  0% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.7); }
+                  70% { box-shadow: 0 0 0 10px rgba(13, 148, 136, 0); }
+                  100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0); }
                 }
                 .ai-active-field {
-                  animation: pulse-glow 1.5s ease-out;
+                  animation: pulse-glow 2s ease-out;
                   border-color: #0d9488 !important; /* teal-600 */
+                  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.4);
+                  border-radius: 6px;
                 }
             `}</style>
         </div>
@@ -325,12 +240,9 @@ interface AssessmentSheetProps {
     isEditable: boolean;
     canUpdate: boolean;
     generatingRecommendationFor?: string | null;
-    activeField: { controlCode: string | null, field: keyof AssessmentItem | null };
-    evidenceRequestControlCode: string | null;
-    onEvidenceRequestHandled: () => void;
 }
 
-export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, generatingRecommendationFor, activeField, evidenceRequestControlCode, onEvidenceRequestHandled }) => {
+export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomains, onUpdateItem, isEditable, canUpdate, generatingRecommendationFor }) => {
     
     let controlCounter = 0;
 
@@ -353,9 +265,6 @@ export const AssessmentSheet: React.FC<AssessmentSheetProps> = ({ filteredDomain
                                     canUpdate={canUpdate}
                                     index={domainStartIndex + index}
                                     isGenerating={generatingRecommendationFor === item.controlCode}
-                                    activeField={activeField}
-                                    evidenceRequestControlCode={evidenceRequestControlCode}
-                                    onEvidenceRequestHandled={onEvidenceRequestHandled}
                                 />
                             ))}
                         </div>

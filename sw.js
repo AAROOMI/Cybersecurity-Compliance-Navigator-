@@ -35,7 +35,6 @@ const URLS_TO_CACHE = [
   'https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js',
   'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
   'https://unpkg.com/html-to-docx-ts@1.8.0/dist/browser/html-to-docx.js',
-  'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
   'https://aistudiocdn.com/react@^19.1.1',
   'https://aistudiocdn.com/react-dom@^19.1.1/client',
   'https://aistudiocdn.com/@google/genai@^1.16.0'

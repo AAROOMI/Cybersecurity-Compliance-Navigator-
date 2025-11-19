@@ -1,13 +1,14 @@
+
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, ExclamationTriangleIcon, LineChartIcon, ArrowsRightLeftIcon, BriefcaseIcon } from './Icons';
-import type { Domain, Permission, View } from '../types';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, ExclamationTriangleIcon, LineChartIcon } from './Icons';
+import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
   domains: Domain[];
   selectedDomain: Domain;
   onSelectDomain: (domain: Domain) => void;
-  currentView: View;
-  onSetView: (view: View) => void;
+  currentView: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement';
+  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement') => void;
   permissions: Set<Permission>;
 }
 
@@ -93,21 +94,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 </button>
             </li>
           )}
-           {permissions.has('mapping:read') && (
-            <li className="mt-2">
-              <button
-                  onClick={() => onSetView('controlMapping')}
-                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
-                    currentView === 'controlMapping'
-                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
-                >
-                  <ArrowsRightLeftIcon className="w-5 h-5 mr-3" />
-                  <span>Control Mapping</span>
-                </button>
-            </li>
-          )}
           {permissions.has('training:read') && (
             <li className="mt-2">
               <button
@@ -135,21 +121,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 >
                   <ExclamationTriangleIcon className="w-5 h-5 mr-3" />
                   <span>Risk Assessment</span>
-                </button>
-            </li>
-          )}
-          {permissions.has('riskRegister:read') && (
-            <li className="mt-2">
-              <button
-                  onClick={() => onSetView('riskRegister')}
-                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
-                    currentView === 'riskRegister'
-                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
-                >
-                  <ClipboardListIcon className="w-5 h-5 mr-3" />
-                  <span>Risk Register</span>
                 </button>
             </li>
           )}
@@ -211,21 +182,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 >
                   <LineChartIcon className="w-5 h-5 mr-3" />
                   <span>CMA Assessment</span>
-                </button>
-            </li>
-          )}
-          {permissions.has('hrsdAssessment:read') && (
-            <li className="mt-2">
-              <button
-                  onClick={() => onSetView('hrsdAssessment')}
-                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
-                    currentView === 'hrsdAssessment'
-                      ? 'bg-teal-50 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 font-semibold'
-                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
-                  }`}
-                >
-                  <BriefcaseIcon className="w-5 h-5 mr-3" />
-                  <span>HRSD Assessment</span>
                 </button>
             </li>
           )}

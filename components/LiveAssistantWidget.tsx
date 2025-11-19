@@ -41,18 +41,6 @@ async function decodeAudioData(
     return buffer;
 }
 
-function createBlob(data: Float32Array): Blob {
-  const l = data.length;
-  const int16 = new Int16Array(l);
-  for (let i = 0; i < l; i++) {
-    int16[i] = data[i] * 32768;
-  }
-  return {
-    data: encode(new Uint8Array(int16.buffer)),
-    mimeType: 'audio/pcm;rate=16000',
-  };
-}
-
 
 const navigateToViewDeclaration: FunctionDeclaration = {
   name: 'navigate_to_view',
@@ -87,20 +75,33 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
     const [assistantTranscript, setAssistantTranscript] = useState('');
     
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
+    const inputAudioContextRef = useRef<AudioContext | null>(null);
+    const outputAudioContextRef = useRef<AudioContext | null>(null);
     const sources = useRef(new Set<AudioBufferSourceNode>());
+    const streamRef = useRef<MediaStream | null>(null);
+    const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
 
     const cleanup = useCallback(() => {
         setStatus('idle');
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+        }
+        if (scriptProcessorRef.current) {
+            scriptProcessorRef.current.disconnect();
+            scriptProcessorRef.current = null;
+        }
+        if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
+            inputAudioContextRef.current.close().catch(console.error);
+        }
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close().catch(console.error);
+        }
         sessionPromise.current = null;
     }, []);
 
     useEffect(() => {
         if (isOpen) {
-            let stream: MediaStream | null = null;
-            let scriptProcessor: ScriptProcessorNode | null = null;
-            let inputAudioContext: AudioContext | null = null;
-            let outputAudioContext: AudioContext | null = null;
-
             const startSession = async () => {
                 try {
                     if (!process.env.API_KEY) throw new Error("API key is not configured.");
@@ -110,29 +111,27 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                     setUserTranscript('');
                     setAssistantTranscript('');
                     
-                    inputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                    outputAudioContext = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-
-                    await inputAudioContext.resume();
-                    await outputAudioContext.resume();
-
-                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                    outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                    streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
 
                     sessionPromise.current = ai.live.connect({
                         model: 'gemini-2.5-flash-native-audio-preview-09-2025',
                         callbacks: {
                             onopen: () => {
-                                if (!stream || !inputAudioContext) return;
                                 setStatus('listening');
-                                const source = inputAudioContext.createMediaStreamSource(stream);
-                                scriptProcessor = inputAudioContext.createScriptProcessor(4096, 1, 1);
-                                scriptProcessor.onaudioprocess = (e) => {
+                                const source = inputAudioContextRef.current!.createMediaStreamSource(streamRef.current!);
+                                scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                                scriptProcessorRef.current.onaudioprocess = (e) => {
                                     const inputData = e.inputBuffer.getChannelData(0);
-                                    const pcmBlob = createBlob(inputData);
+                                    const pcmBlob: Blob = {
+                                        data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                                        mimeType: 'audio/pcm;rate=16000',
+                                    };
                                     sessionPromise.current?.then(session => session.sendRealtimeInput({ media: pcmBlob }));
                                 };
-                                source.connect(scriptProcessor);
-                                scriptProcessor.connect(inputAudioContext.destination);
+                                source.connect(scriptProcessorRef.current);
+                                scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
                             },
                             onmessage: async (message: LiveServerMessage) => {
                                 if (message.serverContent?.inputTranscription) {
@@ -161,13 +160,13 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
                                 }
 
                                 const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                                if (base64Audio && outputAudioContext) {
+                                if (base64Audio) {
                                     setStatus('speaking');
-                                    nextStartTime = Math.max(nextStartTime, outputAudioContext.currentTime);
-                                    const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContext, 24000, 1);
-                                    const sourceNode = outputAudioContext.createBufferSource();
+                                    nextStartTime = Math.max(nextStartTime, outputAudioContextRef.current!.currentTime);
+                                    const audioBuffer = await decodeAudioData(decode(base64Audio), outputAudioContextRef.current!, 24000, 1);
+                                    const sourceNode = outputAudioContextRef.current!.createBufferSource();
                                     sourceNode.buffer = audioBuffer;
-                                    sourceNode.connect(outputAudioContext.destination);
+                                    sourceNode.connect(outputAudioContextRef.current!.destination);
                                     sourceNode.addEventListener('ended', () => {
                                         sources.current.delete(sourceNode);
                                         if (sources.current.size === 0) setStatus('listening');
@@ -200,10 +199,6 @@ export const LiveAssistantWidget: React.FC<LiveAssistantWidgetProps> = ({ isOpen
 
             return () => {
                 sessionPromise.current?.then(session => session.close());
-                stream?.getTracks().forEach(track => track.stop());
-                scriptProcessor?.disconnect();
-                inputAudioContext?.close().catch(console.error);
-                outputAudioContext?.close().catch(console.error);
                 cleanup();
             };
         }

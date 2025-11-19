@@ -1,4 +1,4 @@
-// FIX: Removed self-import of types, which caused declaration conflicts with the types defined in this file.
+
 
 
 
@@ -52,6 +52,8 @@ export type AuditAction =
   | 'USER_DELETED'
   | 'DOCUMENT_APPROVED'
   | 'DOCUMENT_REJECTED'
+  // FIX: Add DOCUMENT_GENERATED to the list of valid audit actions.
+  | 'DOCUMENT_GENERATED'
   | 'COMPANY_PROFILE_UPDATED'
   | 'COMPANY_CREATED'
   | 'PASSWORD_RESET_REQUESTED'
@@ -59,7 +61,8 @@ export type AuditAction =
   | 'LICENSE_UPDATED'
   | 'PASSWORD_CHANGED'
   | 'MFA_ENABLED'
-  | 'MFA_DISABLED';
+  | 'MFA_DISABLED'
+  | 'USER_SWITCH_COMPANY';
 
 export interface AuditLogEntry {
   id: string;
@@ -104,14 +107,7 @@ export type Permission =
   | 'help:read'
   | 'training:read'
   | 'riskAssessment:read'
-  | 'riskAssessment:update'
-  | 'riskRegister:read'
-  | 'mapping:read'
-  | 'hrsdAssessment:read'
-  | 'hrsdAssessment:update';
-
-// FIX: Moved View type from App.tsx and exported it to be used across components.
-export type View = 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'hrsdAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'riskRegister' | 'userManagement' | 'controlMapping';
+  | 'riskAssessment:update';
 
 
 // User interface with all fields for custom auth
@@ -159,10 +155,6 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
-    'riskRegister:read',
-    'mapping:read',
-    'hrsdAssessment:read',
-    'hrsdAssessment:update',
   ],
   CISO: [
     'dashboard:read',
@@ -187,14 +179,10 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
-    'riskRegister:read',
-    'mapping:read',
-    'hrsdAssessment:read',
-    'hrsdAssessment:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'riskAssessment:read', 'riskRegister:read', 'mapping:read', 'hrsdAssessment:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
@@ -216,10 +204,6 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
-    'riskRegister:read',
-    'mapping:read',
-    'hrsdAssessment:read',
-    'hrsdAssessment:update',
   ],
   Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
 };
@@ -260,9 +244,6 @@ export interface PolicyDocument {
   createdAt: number;
   updatedAt: number;
   generatedBy?: 'user' | 'AI Agent';
-  qrCodeDataUrl?: string;
-  barcodeDataUrl?: string;
-  type?: 'policy' | 'risk_report';
 }
 
 export interface PrebuiltPolicyTemplate {
@@ -316,12 +297,6 @@ export interface AssessmentItem {
   };
 }
 
-// NEW: Assessment Versioning
-export interface AssessmentRecord {
-  timestamp: number;
-  data: AssessmentItem[];
-}
-
 // --- UPDATED: Training Module ---
 export interface QuizQuestion {
   question: string;
@@ -369,10 +344,8 @@ export interface Task {
   controlId?: string;
   status: TaskStatus;
   createdAt: number;
-  dueDate?: number;
 }
 
-// FIX: Added missing ChatMessage type for the AI chat widget.
 // --- NEW: Chat Widget ---
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -396,8 +369,7 @@ export interface AgentLogEntry {
   status: 'info' | 'working' | 'success' | 'error';
 }
 
-// --- UPDATED: Risk Assessment ---
-export type RiskStatus = 'To Do' | 'In Progress' | 'Assessed' | 'Mitigated';
+// --- NEW: Risk Assessment ---
 export type Risk = {
   id: string;
   description: string;
@@ -405,24 +377,4 @@ export type Risk = {
   impact: number;     // 1-5
   mitigation: string;
   owner: string;
-  status: RiskStatus;
-  assessmentNotes: string;
-  evidence: {
-    fileName: string;
-    dataUrl: string;
-  } | null;
-  assessedBy?: string;
-  assessedAt?: number;
 };
-
-
-// --- NEW: Control Mapping ---
-export type FrameworkName = 'NCA ECC' | 'PDPL' | 'SAMA CSF' | 'CMA' | 'HRSD';
-
-export interface ControlMapping {
-  sourceFramework: FrameworkName;
-  sourceControlId: string;
-  targetFramework: FrameworkName;
-  targetControlId: string;
-  justification: string;
-}

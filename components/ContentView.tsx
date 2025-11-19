@@ -1,12 +1,14 @@
 import React, { useMemo } from 'react';
 import { SubdomainAccordion } from './SubdomainAccordion';
-import type { Domain, Control, Subdomain, GeneratedContent, PolicyDocument, Permission, View } from '../types';
+import type { Domain, Control, Subdomain, GeneratedContent, PolicyDocument, Permission } from '../types';
+
+type View = 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup' | 'help' | 'training' | 'riskAssessment';
 
 interface ContentViewProps {
   domain: Domain;
   activeControlId: string | null;
   setActiveControlId: (id: string | null) => void;
-  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent, generatedBy?: 'user' | 'AI Agent') => Promise<void>;
+  onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
   onSetView: (view: View) => void;

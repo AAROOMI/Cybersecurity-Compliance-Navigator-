@@ -1,14 +1,14 @@
 
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, ExclamationTriangleIcon, LineChartIcon } from './Icons';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, QuestionMarkCircleIcon, GraduationCapIcon, ExclamationTriangleIcon, LineChartIcon, SparklesIcon } from './Icons';
 import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
   domains: Domain[];
   selectedDomain: Domain;
   onSelectDomain: (domain: Domain) => void;
-  currentView: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement';
-  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement') => void;
+  currentView: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'complianceAgent';
+  onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'userProfile' | 'help' | 'training' | 'riskAssessment' | 'userManagement' | 'complianceAgent') => void;
   permissions: Set<Permission>;
 }
 
@@ -197,6 +197,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
                 >
                   <ClipboardListIcon className="w-5 h-5 mr-3" />
                   <span>Audit Log</span>
+                </button>
+            </li>
+          )}
+          {permissions.has('assessment:update') && (
+            <li className="mt-2">
+              <button
+                  onClick={() => onSetView('complianceAgent')}
+                  className={`w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center ${
+                    currentView === 'complianceAgent'
+                      ? 'bg-purple-50 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-semibold'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100'
+                  }`}
+                >
+                  <SparklesIcon className="w-5 h-5 mr-3" />
+                  <span>Compliance Agent</span>
                 </button>
             </li>
           )}

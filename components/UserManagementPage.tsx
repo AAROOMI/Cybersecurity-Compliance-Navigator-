@@ -1,27 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import type { User, UserRole, AuditLogEntry, CompanyProfile } from '../types';
+// FIX: Add 'password' to the User type to resolve type errors.
+import type { User, UserRole, AuditAction } from '../types';
 import { rolePermissions } from '../types';
 import { CloseIcon, EyeIcon, EyeSlashIcon } from './Icons';
-import * as api from './api';
 
 const allRoles: UserRole[] = ['Administrator', 'CISO', 'CTO', 'CIO', 'CEO', 'Security Analyst', 'Employee'];
 
 interface UserFormModalProps {
     user: User | null;
     onClose: () => void;
-    onSave: (user: User, companyId: string) => void;
-    companies: CompanyProfile[];
-    currentCompanyId: string;
+    onSave: (user: User) => void;
 }
 
-const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave, companies, currentCompanyId }) => {
+const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave }) => {
     const [formData, setFormData] = useState<Omit<User, 'id' | 'accessExpiresAt' | 'password' | 'isVerified' | 'passwordResetToken' | 'passwordResetExpires'>>({
         name: user?.name || '',
         email: user?.email || '',
         role: user?.role || 'Employee',
     });
     
-    const [selectedCompanyId, setSelectedCompanyId] = useState(currentCompanyId);
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [expirationOption, setExpirationOption] = useState('permanent');
@@ -98,7 +95,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave, co
             password: password || undefined,
             isVerified: user?.isVerified ?? false,
         };
-        onSave(finalUser, user ? currentCompanyId : selectedCompanyId);
+        onSave(finalUser);
     };
 
     return (
@@ -112,14 +109,6 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave, co
                         </button>
                     </header>
                     <main className="p-6 space-y-4">
-                        {!user && companies.length > 1 && (
-                            <div>
-                                <label htmlFor="company" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Company</label>
-                                <select id="company" name="company" value={selectedCompanyId} onChange={(e) => setSelectedCompanyId(e.target.value)} className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200">
-                                    {companies.map(company => <option key={company.id} value={company.id}>{company.name}</option>)}
-                                </select>
-                            </div>
-                        )}
                         <div>
                             <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
                             <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200" />
@@ -198,15 +187,13 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave, co
 
 interface UserManagementPageProps {
     users: User[];
-    setUsers: (updatedUsers: User[]) => void;
+    setUsers: (updater: React.SetStateAction<User[]>) => void;
     currentUser: User;
     addNotification: (message: string, type?: 'success' | 'info') => void;
-    addAuditLog: (log: AuditLogEntry) => void;
-    companyId: string;
-    allCompanies: CompanyProfile[];
+    addAuditLog: (action: AuditAction, details: string, targetId?: string) => void;
 }
 
-export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, setUsers, currentUser, addNotification, addAuditLog, companyId, allCompanies }) => {
+export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, setUsers, currentUser, addNotification, addAuditLog }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<User | null>(null);
 
@@ -226,28 +213,63 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
         setIsModalOpen(true);
     };
 
-    const handleDelete = async (userId: string, targetCompanyId: string) => {
+    const handleDelete = (userId: string) => {
+        const userToDelete = users.find(u => u.id === userId);
         if (window.confirm('Are you sure you want to delete this user?')) {
-            const { updatedUsers, auditLogEntry } = await api.deleteUser(targetCompanyId, userId, currentUser.id);
-            if (targetCompanyId === companyId) {
-                setUsers(updatedUsers);
+            setUsers(prevUsers => prevUsers.filter(u => u.id !== userId));
+            if (userToDelete) {
+                addAuditLog('USER_DELETED', `Deleted user: ${userToDelete.name} (${userToDelete.email}).`, userId);
             }
-            addAuditLog(auditLogEntry);
-            addNotification('User deleted successfully.', 'success');
         }
     };
 
-    const handleSaveUser = async (user: User, targetCompanyId: string) => {
-        const { updatedUsers, auditLogEntry, notifications } = await api.saveUser(targetCompanyId, user, editingUser, currentUser.id);
-        
-        // If the user was added/edited in the currently viewed company, update the state
-        if (targetCompanyId === companyId) {
-            setUsers(updatedUsers);
+    const handleSaveUser = (user: User) => {
+        if (editingUser) {
+            // Update
+            const changes: string[] = [];
+            if (editingUser.name !== user.name) {
+                changes.push(`Name changed from "${editingUser.name}" to "${user.name}"`);
+            }
+            if (editingUser.email !== user.email) {
+                changes.push(`Email changed from "${editingUser.email}" to "${user.email}"`);
+            }
+            if (editingUser.role !== user.role) {
+                changes.push(`Role changed from "${editingUser.role}" to "${user.role}"`);
+            }
+            if (user.password) {
+                changes.push("Password was changed");
+            }
+            const oldExpires = editingUser.accessExpiresAt ? new Date(editingUser.accessExpiresAt).toLocaleDateString() : 'Permanent';
+            const newExpires = user.accessExpiresAt ? new Date(user.accessExpiresAt).toLocaleDateString() : 'Permanent';
+            if (oldExpires !== newExpires) {
+                changes.push(`Access expiration changed from ${oldExpires} to ${newExpires}`);
+            }
+    
+            const details = changes.length > 0 ? changes.join('; ') : 'No changes were made.';
+            addAuditLog('USER_UPDATED', `Updated user ${user.name}: ${details}`, user.id);
+    
+            setUsers(prevUsers => prevUsers.map(u => {
+                if (u.id === user.id) {
+                    return {
+                        ...u,
+                        ...user,
+                        password: user.password ? user.password : u.password,
+                    };
+                }
+                return u;
+            }));
+        } else {
+            // Create a new user
+            const newUser: User = { ...user };
+            setUsers(prevUsers => [...prevUsers, newUser]);
+            
+            const expires = newUser.accessExpiresAt ? ` until ${new Date(newUser.accessExpiresAt).toLocaleDateString()}` : '';
+            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}) with role ${newUser.role}. Access is ${newUser.accessExpiresAt ? 'temporary' : 'permanent'}${expires}.`, newUser.id);
+    
+            if (!newUser.isVerified) {
+                addNotification(`Verification email sent to ${newUser.email}. User must verify account before logging in.`, 'info');
+            }
         }
-
-        addAuditLog(auditLogEntry);
-        notifications.forEach(n => addNotification(n.message, n.type));
-        
         setIsModalOpen(false);
         setEditingUser(null);
     };
@@ -309,7 +331,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                                         {canPerformActions && (
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                                 {canUpdate && <button onClick={() => handleEdit(user)} className="text-teal-600 hover:text-teal-900 dark:text-teal-400 dark:hover:text-teal-200">{isExpired ? 'Re-activate' : 'Edit'}</button>}
-                                                {canDelete && user.id !== currentUser.id && <button onClick={() => handleDelete(user.id, companyId)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete</button>}
+                                                {canDelete && user.id !== currentUser.id && <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200">Delete</button>}
                                             </td>
                                         )}
                                     </tr>
@@ -320,7 +342,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                 </div>
             </div>
 
-            {isModalOpen && <UserFormModal user={editingUser} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} companies={allCompanies} currentCompanyId={companyId} />}
+            {isModalOpen && <UserFormModal user={editingUser} onClose={() => setIsModalOpen(false)} onSave={handleSaveUser} />}
         </div>
     );
 };

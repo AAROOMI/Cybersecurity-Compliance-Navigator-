@@ -1,8 +1,4 @@
 
-
-
-
-
 export interface ControlVersion {
   version: string;
   date: string;
@@ -52,8 +48,6 @@ export type AuditAction =
   | 'USER_DELETED'
   | 'DOCUMENT_APPROVED'
   | 'DOCUMENT_REJECTED'
-  // FIX: Add DOCUMENT_GENERATED to the list of valid audit actions.
-  | 'DOCUMENT_GENERATED'
   | 'COMPANY_PROFILE_UPDATED'
   | 'COMPANY_CREATED'
   | 'PASSWORD_RESET_REQUESTED'
@@ -61,8 +55,7 @@ export type AuditAction =
   | 'LICENSE_UPDATED'
   | 'PASSWORD_CHANGED'
   | 'MFA_ENABLED'
-  | 'MFA_DISABLED'
-  | 'USER_SWITCH_COMPANY';
+  | 'MFA_DISABLED';
 
 export interface AuditLogEntry {
   id: string;
@@ -107,7 +100,8 @@ export type Permission =
   | 'help:read'
   | 'training:read'
   | 'riskAssessment:read'
-  | 'riskAssessment:update';
+  | 'riskAssessment:update'
+  | 'complianceAgent:run';
 
 
 // User interface with all fields for custom auth
@@ -155,6 +149,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'complianceAgent:run'
   ],
   CISO: [
     'dashboard:read',
@@ -179,9 +174,10 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'complianceAgent:run'
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:run'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read', 'complianceAgent:run'],
   CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'cmaAssessment:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
   'Security Analyst': [
     'documents:read',
@@ -204,6 +200,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'training:read',
     'riskAssessment:read',
     'riskAssessment:update',
+    'complianceAgent:run'
   ],
   Employee: ['navigator:read', 'company:read', 'userProfile:read', 'userProfile:update', 'help:read', 'training:read'],
 };
@@ -346,6 +343,7 @@ export interface Task {
   createdAt: number;
 }
 
+// FIX: Added missing ChatMessage type for the AI chat widget.
 // --- NEW: Chat Widget ---
 export interface ChatMessage {
   role: 'user' | 'assistant';

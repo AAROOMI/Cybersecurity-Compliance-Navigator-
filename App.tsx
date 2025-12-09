@@ -226,6 +226,12 @@ const App: React.FC = () => {
     }
   }, [theme]);
 
+  // Handler to select domain and switch view simultaneously
+  const handleSelectDomain = (domain: Domain) => {
+    setSelectedDomain(domain);
+    setCurrentView('navigator');
+  };
+
   const addAuditLog = useCallback((
       action: AuditAction, 
       details: string, 
@@ -630,7 +636,7 @@ const App: React.FC = () => {
             <Sidebar
               domains={eccData}
               selectedDomain={selectedDomain}
-              onSelectDomain={setSelectedDomain}
+              onSelectDomain={handleSelectDomain}
               currentView={currentView}
               onSetView={setCurrentView}
               permissions={currentUserPermissions}

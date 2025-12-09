@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { ChatMessage } from '../types';
-import { ChatBotIcon, CloseIcon, SendIcon } from './Icons';
+import { CloseIcon, SendIcon } from './Icons';
 
 interface ChatWidgetProps {
   isOpen: boolean;
@@ -12,110 +11,124 @@ interface ChatWidgetProps {
   error: string | null;
 }
 
-const nooraAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d9488'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
+const nooraAvatar = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIbGNtcwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY3NwTVNGVAAAAABMbGNtcwAAAAAAAAAAAAAAAAAAAQALAQAAAAAATGlubwIQAABtbnRyUkdCIFhZWiAH4gADABQACQAOAB1hY---';
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ isOpen, onToggle, messages, onSendMessage, isLoading, error }) => {
-  const [inputValue, setInputValue] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+export const ChatWidget: React.FC<ChatWidgetProps> = ({
+  isOpen,
+  onToggle,
+  messages,
+  onSendMessage,
+  isLoading,
+  error,
+}) => {
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [messages, isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+        scrollToBottom();
+    }
+  }, [messages, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputValue.trim()) {
-      onSendMessage(inputValue.trim());
-      setInputValue('');
+    if (input.trim() && !isLoading) {
+      onSendMessage(input.trim());
+      setInput('');
     }
   };
 
+  const ChatIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+  );
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={onToggle}
+        className="fixed bottom-6 right-6 bg-teal-600 text-white rounded-full p-4 shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 z-50"
+        aria-label="Open AI Assistant"
+      >
+        <ChatIcon className="h-8 w-8"/>
+      </button>
+    );
+  }
+
   return (
-    <>
-        {/* Toggle Button */}
-        <div className={`fixed bottom-6 right-6 z-50 transition-transform duration-300 ${isOpen ? 'translate-y-20 opacity-0' : 'translate-y-0 opacity-100'}`}>
-            <button
-                onClick={onToggle}
-                className="bg-teal-600 hover:bg-teal-700 text-white rounded-full p-4 shadow-lg flex items-center justify-center transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-                aria-label="Open Chat"
-            >
-                <ChatBotIcon className="w-8 h-8" />
-            </button>
+    <div className="fixed bottom-6 right-6 w-full max-w-sm h-[70vh] bg-white dark:bg-gray-800 rounded-xl shadow-2xl flex flex-col z-50 border border-gray-200 dark:border-gray-700">
+      <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <img src={nooraAvatar} alt="Noora AI Assistant" className="w-10 h-10 rounded-full object-cover" />
+            <span className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-400 ring-2 ring-white dark:ring-gray-800"></span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Noora AI Assistant</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Online</p>
+          </div>
         </div>
-
-        {/* Chat Window */}
-        <div className={`fixed bottom-24 right-6 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 z-50 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`} style={{ maxHeight: '600px', height: '70vh' }}>
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-teal-600 rounded-t-lg">
-                <div className="flex items-center space-x-3">
-                    <div className="bg-white rounded-full p-1">
-                        <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full" />
-                    </div>
-                    <div>
-                        <h3 className="text-white font-semibold">Noora</h3>
-                        <p className="text-teal-100 text-xs">AI Cybersecurity Assistant</p>
+        <button onClick={onToggle} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+          <CloseIcon className="w-5 h-5 text-gray-500" />
+        </button>
+      </header>
+      
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.map((msg, index) => (
+          <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+            {msg.role === 'assistant' && (
+              <img src={nooraAvatar} alt="Assistant" className="w-8 h-8 rounded-full" />
+            )}
+            <div className={`max-w-[80%] rounded-lg p-3 text-sm break-words ${
+              msg.role === 'user' 
+                ? 'bg-teal-600 text-white' 
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+            }`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+        {isLoading && (
+            <div className="flex items-start gap-3">
+                <img src={nooraAvatar} alt="Assistant" className="w-8 h-8 rounded-full" />
+                <div className="max-w-[80%] rounded-lg p-3 text-sm bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                    <div className="flex items-center space-x-1">
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.3s]"></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse [animation-delay:-0.15s]"></span>
+                        <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse"></span>
                     </div>
                 </div>
-                <button onClick={onToggle} className="text-white hover:text-gray-200 focus:outline-none">
-                    <CloseIcon className="w-6 h-6" />
-                </button>
             </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-gray-900">
-                {messages.map((msg, index) => (
-                    <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        {msg.role === 'assistant' && (
-                             <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full mr-2 self-end mb-1" />
-                        )}
-                        <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-teal-600 text-white rounded-br-none' : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-bl-none'}`}>
-                            {msg.content}
-                        </div>
-                    </div>
-                ))}
-                {isLoading && (
-                    <div className="flex justify-start">
-                         <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full mr-2 self-end mb-1" />
-                        <div className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl rounded-bl-none px-4 py-3">
-                            <div className="flex space-x-2">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {error && (
-                    <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-md text-center">
-                        {error}
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-lg">
-                <div className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder="Ask a question..."
-                        className="flex-1 border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                        disabled={isLoading}
-                    />
-                    <button
-                        type="submit"
-                        disabled={isLoading || !inputValue.trim()}
-                        className="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                        <SendIcon className="w-5 h-5" />
-                    </button>
-                </div>
-            </form>
+      {error && (
+        <div className="p-2 mx-4 mb-2 text-xs text-red-700 bg-red-100 dark:bg-red-900/50 dark:text-red-200 border border-red-200 dark:border-red-500/50 rounded-md">
+          {error}
         </div>
-    </>
+      )}
+
+      <footer className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <form onSubmit={handleSend} className="flex items-center space-x-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask Noora anything..."
+            className="flex-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200"
+            disabled={isLoading}
+          />
+          <button type="submit" disabled={isLoading || !input.trim()} className="p-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <SendIcon className="w-5 h-5" />
+          </button>
+        </form>
+      </footer>
+    </div>
   );
 };

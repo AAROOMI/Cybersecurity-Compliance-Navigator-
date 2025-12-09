@@ -1,332 +1,186 @@
 import type { AssessmentItem } from '../types';
 
-export const initialPdplAssessmentData: AssessmentItem[] = [
-  // Article 4: Data Subject Rights
-  {
-    domainCode: "Article 4",
-    domainName: "Data Subject Rights",
-    subDomainCode: "4",
-    subdomainName: "Rights of the Data Subject",
-    controlCode: "PDPL-Art4-1",
-    controlName: "A process exists to inform the data subject about the legal basis and purpose of the collection of their Personal Data.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 4",
-    domainName: "Data Subject Rights",
-    subDomainCode: "4",
-    subdomainName: "Rights of the Data Subject",
-    controlCode: "PDPL-Art4-2",
-    controlName: "A process is in place for data subjects to access their Personal Data held by the Controller.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 4",
-    domainName: "Data Subject Rights",
-    subDomainCode: "4",
-    subdomainName: "Rights of the Data Subject",
-    controlCode: "PDPL-Art4-3",
-    controlName: "A process enables data subjects to request and obtain their Personal Data in a readable and clear format.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 4",
-    domainName: "Data Subject Rights",
-    subDomainCode: "4",
-    subdomainName: "Rights of the Data Subject",
-    controlCode: "PDPL-Art4-4",
-    controlName: "A process allows data subjects to request the correction, completion, or updating of their Personal Data.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 4",
-    domainName: "Data Subject Rights",
-    subDomainCode: "4",
-    subdomainName: "Rights of the Data Subject",
-    controlCode: "PDPL-Art4-5",
-    controlName: "A process is established for data subjects to request the destruction of their Personal Data when it is no longer needed.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 5: Consent
-  {
-    domainCode: "Article 5",
-    domainName: "Consent",
-    subDomainCode: "5",
-    subdomainName: "Consent Management",
-    controlCode: "PDPL-Art5-1",
-    controlName: "A mechanism is in place to obtain and record explicit consent from the data subject before processing their personal data.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 5",
-    domainName: "Consent",
-    subDomainCode: "5",
-    subdomainName: "Consent Management",
-    controlCode: "PDPL-Art5-2",
-    controlName: "A clear and accessible process allows data subjects to withdraw their consent at any time.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 7: Conditions of Consent
-  {
-    domainCode: "Article 7",
-    domainName: "Conditions of Consent",
-    subDomainCode: "7",
-    subdomainName: "Service Provision",
-    controlCode: "PDPL-Art7-1",
-    controlName: "Consent for data processing is not made a mandatory condition for providing a service or benefit unless the processing is directly related to that service or benefit.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 8: Processors
-  {
-    domainCode: "Article 8",
-    domainName: "Processors",
-    subDomainCode: "8",
-    subdomainName: "Third-Party Processing",
-    controlCode: "PDPL-Art8-1",
-    controlName: "A due diligence process is established to select Data Processors that provide the necessary guarantees to implement the provisions of the PDPL.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 8",
-    domainName: "Processors",
-    subDomainCode: "8",
-    subdomainName: "Third-Party Processing",
-    controlCode: "PDPL-Art8-2",
-    controlName: "A process is in place to monitor the compliance of Data Processors with the provisions of the PDPL.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  
-  // Article 11: Data Collection Principles
-  {
-    domainCode: "Article 11",
-    domainName: "Data Collection Principles",
-    subDomainCode: "11",
-    subdomainName: "Collection and Processing Principles",
-    controlCode: "PDPL-Art11-1",
-    controlName: "The purpose for which Personal Data is collected is directly related to the Controller's purposes and does not contravene any legal provisions.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
+export const pdplAssessmentData: AssessmentItem[] = [
     {
-    domainCode: "Article 11",
-    domainName: "Data Collection Principles",
-    subDomainCode: "11",
-    subdomainName: "Collection and Processing Principles",
-    controlCode: "PDPL-Art11-3",
-    controlName: "The content of the Personal Data collected is appropriate and limited to the minimum amount necessary to achieve the purpose of the Collection (Data Minimization).",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 12: Privacy Policy
-  {
-    domainCode: "Article 12",
-    domainName: "Privacy Policy",
-    subDomainCode: "12",
-    subdomainName: "Transparency",
-    controlCode: "PDPL-Art12-1",
-    controlName: "A privacy policy is established, documented, and made available to Data Subjects prior to collecting their Personal Data.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 13: Information upon Collection
-  {
-    domainCode: "Article 13",
-    domainName: "Information upon Collection",
-    subDomainCode: "13",
-    subdomainName: "Transparency",
-    controlCode: "PDPL-Art13-1",
-    controlName: "A process ensures that data subjects are informed of the legal basis, purpose, collection methods, and their rights upon collection of their personal data.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 14: Data Accuracy
-  {
-    domainCode: "Article 14",
-    domainName: "Data Accuracy",
-    subDomainCode: "14",
-    subdomainName: "Data Quality",
-    controlCode: "PDPL-Art14-1",
-    controlName: "Sufficient steps are taken to verify the accuracy, completeness, and timeliness of Personal Data before processing.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 17: Notification of Correction
-  {
-    domainCode: "Article 17",
-    domainName: "Notification of Correction",
-    subDomainCode: "17",
-    subdomainName: "Data Quality",
-    controlCode: "PDPL-Art17-1",
-    controlName: "A procedure is in place to notify all other entities to which Personal Data has been transferred of any corrections, completions, or updates.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 18: Data Destruction
-  {
-    domainCode: "Article 18",
-    domainName: "Data Destruction",
-    subDomainCode: "18",
-    subdomainName: "Data Lifecycle Management",
-    controlCode: "PDPL-Art18-1",
-    controlName: "A process is in place to destroy Personal Data, without undue delay, when it is no longer necessary for the purpose for which it was collected.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 19: Security Measures
-  {
-    domainCode: "Article 19",
-    domainName: "Security Measures",
-    subDomainCode: "19",
-    subdomainName: "Data Protection",
-    controlCode: "PDPL-Art19-1",
-    controlName: "Necessary organizational, administrative, and technical measures are implemented to protect Personal Data, including during transfer.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 20: Breach Notification
-  {
-    domainCode: "Article 20",
-    domainName: "Breach Notification",
-    subDomainCode: "20",
-    subdomainName: "Incident Response",
-    controlCode: "PDPL-Art20-1",
-    controlName: "A procedure is established to notify the Competent Authority upon knowing of any data breach.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-  {
-    domainCode: "Article 20",
-    domainName: "Breach Notification",
-    subDomainCode: "20",
-    subdomainName: "Incident Response",
-    controlCode: "PDPL-Art20-2",
-    controlName: "A procedure is established to notify the Data Subject of any breach that would cause damage to their data or prejudice their rights and interests.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 22: Impact Assessment
-  {
-    domainCode: "Article 22",
-    domainName: "Impact Assessment",
-    subDomainCode: "22",
-    subdomainName: "Privacy by Design",
-    controlCode: "PDPL-Art22-1",
-    controlName: "A Data Protection Impact Assessment (DPIA) is conducted for any new product or service, based on the nature of the processing activity.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 29: Cross-Border Data Transfer
-  {
-    domainCode: "Article 29",
-    domainName: "Cross-Border Data Transfer",
-    subDomainCode: "29",
-    subdomainName: "International Transfers",
-    controlCode: "PDPL-Art29-1",
-    controlName: "A process is in place to ensure that transfers of Personal Data outside the Kingdom meet legal conditions, such as ensuring an adequate level of protection.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  },
-
-  // Article 31: Record of Processing Activities
-  {
-    domainCode: "Article 31",
-    domainName: "Record of Processing Activities",
-    subDomainCode: "31",
-    subdomainName: "Accountability",
-    controlCode: "PDPL-Art31-1",
-    controlName: "A Record of Processing Activities (ROPA) is maintained and made available to the Competent Authority upon request.",
-    currentStatusDescription: "",
-    controlStatus: "Not Implemented",
-    recommendation: "",
-    managementResponse: "",
-    targetDate: ""
-  }
+        domainCode: "1",
+        domainName: "Data Subject Rights",
+        subDomainCode: "1.1",
+        subdomainName: "Right to Access",
+        controlCode: "PDPL-1.1.1",
+        controlName: "Establish a clear process for data subjects to request access to their personal data.",
+        saudiCeramicsCurrentStatus: "A basic email-based request system is in place, but it lacks a formal tracking mechanism and defined SLAs for response.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Implement a dedicated portal or ticketing system for data subject access requests (DSARs) with automated tracking and reporting.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    },
+    {
+        domainCode: "1",
+        domainName: "Data Subject Rights",
+        subDomainCode: "1.2",
+        subdomainName: "Right to Rectification",
+        controlCode: "PDPL-1.2.1",
+        controlName: "Provide a mechanism for data subjects to correct inaccurate personal data.",
+        saudiCeramicsCurrentStatus: "Requests are handled manually by the IT department upon email receipt, leading to inconsistent processing times.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Integrate a 'correct my data' feature into user profile pages and formalize the internal correction workflow.",
+        managementResponse: "Agree",
+        targetDate: "Q4 2025"
+    },
+    {
+        domainCode: "1",
+        domainName: "Data Subject Rights",
+        subDomainCode: "1.3",
+        subdomainName: "Right to Erasure",
+        controlCode: "PDPL-1.3.1",
+        controlName: "Implement a process for data subjects to request the deletion of their personal data.",
+        saudiCeramicsCurrentStatus: "No formal process exists. Deletion requests are handled on an ad-hoc basis by database administrators, with no formal record-keeping.",
+        controlStatus: "Not Implemented",
+        recommendation: "Develop and document a data erasure procedure, including identity verification, request logging, and a technical process for secure deletion from all systems.",
+        managementResponse: "Agree",
+        targetDate: "Q4 2025"
+    },
+    {
+        domainCode: "2",
+        domainName: "Lawful Basis and Consent",
+        subDomainCode: "2.1",
+        subdomainName: "Consent Management",
+        controlCode: "PDPL-2.1.1",
+        controlName: "Obtain explicit, freely given, and informed consent before processing personal data.",
+        saudiCeramicsCurrentStatus: "Consent is currently bundled with general terms and conditions, which is not considered explicit.",
+        controlStatus: "Not Implemented",
+        recommendation: "Implement granular consent checkboxes for different processing activities at the point of data collection and a central preference center for users.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    },
+    {
+        domainCode: "2",
+        domainName: "Lawful Basis and Consent",
+        subDomainCode: "2.1",
+        subdomainName: "Consent Management",
+        controlCode: "PDPL-2.1.2",
+        controlName: "Maintain a record of consents obtained from data subjects.",
+        saudiCeramicsCurrentStatus: "No centralized system exists to log and manage user consent.",
+        controlStatus: "Not Implemented",
+        recommendation: "Deploy a consent management platform (CMP) to record, timestamp, and manage the lifecycle of user consents.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    },
+     {
+        domainCode: "3",
+        domainName: "Data Security and Protection",
+        subDomainCode: "3.1",
+        subdomainName: "Data Protection Impact Assessment (DPIA)",
+        controlCode: "PDPL-3.1.1",
+        controlName: "Conduct DPIAs for new projects or processing activities involving high-risk data.",
+        saudiCeramicsCurrentStatus: "A DPIA has been conducted for the main ERP system, but no formal process exists for other projects.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Integrate a mandatory DPIA process into the project management lifecycle for all new initiatives handling personal data.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    },
+    {
+        domainCode: "3",
+        domainName: "Data Security and Protection",
+        subDomainCode: "3.2",
+        subdomainName: "Data Minimization",
+        controlCode: "PDPL-3.2.1",
+        controlName: "Ensure that personal data collected is adequate, relevant, and limited to what is necessary.",
+        saudiCeramicsCurrentStatus: "Several forms and systems collect data fields that are no longer used or required for the stated purpose.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Conduct a data mapping exercise to identify and remove unnecessary data fields from all collection points and databases.",
+        managementResponse: "Agree",
+        targetDate: "Q4 2025"
+    },
+    {
+        domainCode: "3",
+        domainName: "Data Security and Protection",
+        subDomainCode: "3.3",
+        subdomainName: "Breach Notification",
+        controlCode: "PDPL-3.3.1",
+        controlName: "Establish a procedure to notify the supervisory authority and data subjects of a data breach within the required timeframe.",
+        saudiCeramicsCurrentStatus: "An internal incident response plan exists but lacks specific steps and timelines for PDPL breach notification.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Update the incident response plan with a dedicated data breach notification playbook, including templates and contact information for the authority.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    },
+    {
+        domainCode: "3",
+        domainName: "Data Security and Protection",
+        subDomainCode: "3.4",
+        subdomainName: "Data Retention",
+        controlCode: "PDPL-3.4.1",
+        controlName: "Establish and enforce a data retention policy that defines how long personal data is kept.",
+        saudiCeramicsCurrentStatus: "Data is kept indefinitely in most systems. No formal retention policy or automated deletion process is in place.",
+        controlStatus: "Not Implemented",
+        recommendation: "Develop a data retention policy with schedules for all types of personal data. Implement automated scripts or processes to enforce the policy.",
+        managementResponse: "Agree",
+        targetDate: "Q1 2026"
+    },
+    {
+        domainCode: "3",
+        domainName: "Data Security and Protection",
+        subDomainCode: "3.5",
+        subdomainName: "Privacy by Design",
+        controlCode: "PDPL-3.5.1",
+        controlName: "Incorporate data protection principles into the design of new systems and processes.",
+        saudiCeramicsCurrentStatus: "Security is considered during development, but data privacy is not a formal requirement in the project lifecycle.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Update the SDLC to include mandatory privacy reviews and privacy by design principles at the start of every project.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    },
+    {
+        domainCode: "4",
+        domainName: "Cross-Border Data Transfers",
+        subDomainCode: "4.1",
+        subdomainName: "Transfer Mechanisms",
+        controlCode: "PDPL-4.1.1",
+        controlName: "Ensure an adequate level of protection for personal data transferred outside the Kingdom.",
+        saudiCeramicsCurrentStatus: "Data is transferred to a cloud service provider with servers in multiple regions, without a formal adequacy assessment.",
+        controlStatus: "Not Implemented",
+        recommendation: "Perform an adequacy assessment for the recipient countries and implement appropriate safeguards, such as Standard Contractual Clauses (SCCs), where necessary.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    },
+    {
+        domainCode: "5",
+        domainName: "Accountability and Governance",
+        subDomainCode: "5.1",
+        subdomainName: "Data Protection Officer",
+        controlCode: "PDPL-5.1.1",
+        controlName: "Appoint a Data Protection Officer (DPO) responsible for overseeing PDPL compliance.",
+        saudiCeramicsCurrentStatus: "The CISO is informally responsible for data protection, but a formal DPO has not been appointed or registered with the authority.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Formally appoint a DPO with the necessary authority and resources, and document their role and responsibilities.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    },
+    {
+        domainCode: "5",
+        domainName: "Accountability and Governance",
+        subDomainCode: "5.2",
+        subdomainName: "Record of Processing Activities (ROPA)",
+        controlCode: "PDPL-5.2.1",
+        controlName: "Maintain a comprehensive Record of Processing Activities (ROPA).",
+        saudiCeramicsCurrentStatus: "A ROPA has been initiated in a spreadsheet but is incomplete and not regularly updated.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Complete the ROPA for all processing activities involving personal data. Implement a process for regular review and updates.",
+        managementResponse: "Agree",
+        targetDate: "Q3 2025"
+    },
+    {
+        domainCode: "5",
+        domainName: "Accountability and Governance",
+        subDomainCode: "5.3",
+        subdomainName: "Privacy Notice",
+        controlCode: "PDPL-5.3.1",
+        controlName: "Provide a clear and accessible privacy notice to data subjects.",
+        saudiCeramicsCurrentStatus: "The website has a privacy policy, but it is outdated and does not fully align with PDPL requirements.",
+        controlStatus: "Partially Implemented",
+        recommendation: "Update the privacy notice to include all information required by PDPL, such as the lawful basis for processing, data subject rights, and contact details for the DPO.",
+        managementResponse: "Agree",
+        targetDate: "Q2 2025"
+    }
 ];

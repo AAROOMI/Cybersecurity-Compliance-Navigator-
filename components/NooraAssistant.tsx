@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, LiveSession, LiveServerMessage, Modality, Blob, Type, FunctionDeclaration } from '@google/genai';
 import type { AssessmentItem, ControlStatus } from '../types';
-import { CloseIcon, MicrophoneIcon } from './Icons';
+import { CloseIcon } from './Icons';
 
-const nooraAvatar = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230d9488'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/%3E%3C/svg%3E";
+const nooraAvatar = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAFAAUADAREAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1VXVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD+/iivOfGfj7xN4e8SXmjaJ4A1bxLY2un6TfvqNjfadaIkt/qE+nyWjLeXVvIXgMQkMgXY6yAIWbKj0avYxmDxGCp0qmIjFRqxVSFqkJS5ZNpPljJyjdp25knpokz5nAY7DY6rWpYWUnKi+WadOcFe8o2TlFRk7xeqbXVPdHFFFeG618VvHGn6rqFjp/wAF/FWqWdneXFtb38GseF44ryGF2jjuESXWI5EWVVDr5iK+GG5VbIHk4rG0MLy+35le9uWnOfS+vJGVuu9j2cFgK+Lcvq/JeNtZzhDW9vsSlftotT3KivCbb4reOLq4t7aH4L+KnkuJY4YlbWPC4BeRlRQSNYJAJYAkAk9ga91p4LGUManLC8XbTmpyhulfTmSu9H0uGZYCvheV1vZuV7ck4VLWXVRlKy1Wm1ziiiivTOAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA8/1/wz8Sp9d1K68O+PdB0rR7iSFrDTL/wAIXOqXVoqQxxyCS+j1q0jmZ5VeVT5CBUdUPzKSfQKKK9vG5hicZRpUK3Ly0Y8sOWnGDSVkuaUUpS0S3bt1Pl8Bl2GwVetXo83PWlzS5pykr3crqLaUXq9krXt0CiiivLPUCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//2Q==';
 
 // Audio utility functions
 function encode(bytes: Uint8Array) {
@@ -46,9 +45,9 @@ async function decodeAudioData(
 }
 
 
-const createUpdateFunctionDeclaration = (assessmentType: string): FunctionDeclaration => ({
+const updateAssessmentControlFunction: FunctionDeclaration = {
   name: 'update_assessment_control',
-  description: `Updates a single control in the ${assessmentType} assessment with the user's provided information.`,
+  description: "Updates a single control in the assessment with the user's provided information.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -56,7 +55,7 @@ const createUpdateFunctionDeclaration = (assessmentType: string): FunctionDeclar
         type: Type.STRING,
         description: 'The unique code of the control to update, e.g., "SAMA-1.1.1".',
       },
-      currentStatusDescription: {
+      saudiCeramicsCurrentStatus: {
         type: Type.STRING,
         description: "The user's description of the current implementation status.",
       },
@@ -79,64 +78,30 @@ const createUpdateFunctionDeclaration = (assessmentType: string): FunctionDeclar
     },
     required: ['controlCode', 'controlStatus'],
   },
-});
-
-const initiateNewAssessmentDeclaration: FunctionDeclaration = {
-  name: 'initiate_new_assessment',
-  description: 'Initiates a new assessment for the current framework, which will open a confirmation dialog to wipe all existing progress for it.',
-  parameters: {
-    type: Type.OBJECT,
-    properties: {},
-    required: [],
-  },
-};
-
-const requestEvidenceUploadDeclaration: FunctionDeclaration = {
-    name: 'request_evidence_upload',
-    description: 'Prompts the user to upload evidence for a specific control when they mention providing a file or document.',
-    parameters: {
-        type: Type.OBJECT,
-        properties: {
-            controlCode: {
-                type: Type.STRING,
-                description: 'The control code for which evidence is being requested.'
-            }
-        },
-        required: ['controlCode']
-    }
 };
 
 interface NooraAssistantProps {
-    isAssessing: boolean;
+    isOpen: boolean;
     onClose: () => void;
     assessmentData: AssessmentItem[];
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     currentControlIndex: number;
     onNextControl: () => void;
-    assessmentType: string;
-    onInitiate: () => void;
-    onActiveFieldChange: (controlCode: string | null, field: keyof AssessmentItem | null) => void;
-    onRequestEvidenceUpload: (controlCode: string) => void;
+    frameworkName: string;
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 let nextStartTime = 0;
 
-export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onClose, assessmentData, onUpdateItem, currentControlIndex, onNextControl, assessmentType, onInitiate, onActiveFieldChange, onRequestEvidenceUpload }) => {
+export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isOpen, onClose, assessmentData, onUpdateItem, currentControlIndex, onNextControl, frameworkName }) => {
     const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
     const [error, setError] = useState<string | null>(null);
-    const [conversation, setConversation] = useState<{ speaker: 'user' | 'assistant', text: string, id: string }[]>([]);
-    const conversationRef = useRef<{ speaker: 'user' | 'assistant', text: string, id: string }[]>([]);
-    const currentTurnId = useRef<string | null>(null);
-
     const sessionPromise = useRef<Promise<LiveSession> | null>(null);
     const inputAudioContextRef = useRef<AudioContext | null>(null);
     const outputAudioContextRef = useRef<AudioContext | null>(null);
     const sources = useRef(new Set<AudioBufferSourceNode>());
     const streamRef = useRef<MediaStream | null>(null);
     const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
-    
-    const updateFunctionDeclaration = useMemo(() => createUpdateFunctionDeclaration(assessmentType), [assessmentType]);
 
     const stopMicrophone = useCallback(() => {
         if (streamRef.current) {
@@ -149,293 +114,214 @@ export const NooraAssistant: React.FC<NooraAssistantProps> = ({ isAssessing, onC
         }
         if (inputAudioContextRef.current && inputAudioContextRef.current.state !== 'closed') {
             inputAudioContextRef.current.close().catch(console.error);
+            inputAudioContextRef.current = null;
+        }
+    }, []);
+
+    const stopPlayback = useCallback(() => {
+        if (sources.current.size > 0) {
+            sources.current.forEach(source => source.stop());
+            sources.current.clear();
+        }
+        nextStartTime = 0;
+        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
+            outputAudioContextRef.current.close().catch(console.error);
+            outputAudioContextRef.current = null;
         }
     }, []);
 
     const cleanup = useCallback(() => {
-        setStatus('idle');
         stopMicrophone();
-        onActiveFieldChange(null, null);
-        if (outputAudioContextRef.current && outputAudioContextRef.current.state !== 'closed') {
-            outputAudioContextRef.current.close().catch(console.error);
+        stopPlayback();
+        if (sessionPromise.current) {
+            sessionPromise.current.then(session => session.close()).catch(console.error);
+            sessionPromise.current = null;
         }
-        sessionPromise.current = null;
-    }, [stopMicrophone, onActiveFieldChange]);
-
-
-    useEffect(() => {
-        if (isAssessing) {
-            const startSession = async () => {
-                try {
-                    if (!process.env.API_KEY) {
-                        throw new Error("API key is not configured.");
-                    }
-                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                        throw new Error("Your browser does not support audio recording.");
-                    }
-                    setConversation([]);
-                    conversationRef.current = [];
-
-                    inputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-                    outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-                    
-                    streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-                    const currentControl = assessmentData[currentControlIndex];
-                    const systemInstruction = `You are Noora, an agentic AI consultant conducting a ${assessmentType} assessment. You will guide the user through each control via a voice conversation. Your primary goal is to gather feedback and immediately update the assessment sheet using the provided functions.
-
-**Your Process for Each Control:**
-1.  **Introduce:** Start by greeting the user and clearly stating the current control you are assessing. Read its code and name: "**${currentControl.controlCode}: ${currentControl.controlName}**".
-2.  **Question:** Ask the user for their assessment of this control. Prompt them for details on the current status, implementation level, recommendations, and management response.
-3.  **Listen & Narrate:** As the user speaks, listen carefully. Before you call a function to update the sheet, you **MUST** provide explicit verbal narration of the action you are about to take. This is critical for transparency.
-    *   *Example Narration:* "Okay, thank you. I'm now updating the 'Current Status Description' to reflect that 'a basic email system is in place but lacks tracking'."
-    *   *Example Narration:* "Understood. I'll set the 'Control Status' to 'Partially Implemented'."
-4.  **Function Call:** Immediately after narrating, call the \`update_assessment_control\` function to record the data. The \`controlCode\` for this control is **'${currentControl.controlCode}'**. You must infer the \`controlStatus\` from the user's language (e.g., "we're fully compliant" means 'Implemented').
-5.  **Evidence Prompt:** If the user mentions providing a document, file, or screenshot as evidence, you must verbally confirm and then call the \`request_evidence_upload\` function.
-    *   *Example Narration:* "Okay, you mentioned a policy document. I'll prompt you to upload that now." Then, call the function.
-6.  **Confirmation & Transition:** After the function call is confirmed, verbally state that the sheet has been updated. Then, smoothly transition to the next step. Say, "The sheet is updated. When you're ready for the next control, just say 'next' or click the 'Next Control' button."
-
-**Other Functions:**
-*   If the user wants to start over, use the \`initiate_new_assessment\` function.
-
-Be conversational, professional, and efficient. Your primary function is to act as a scribe, visibly and audibly recording the user's assessment in real-time.`;
-
-                    sessionPromise.current = ai.live.connect({
-                        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
-                        callbacks: {
-                            onopen: () => {
-                                setStatus('listening');
-                                const source = inputAudioContextRef.current!.createMediaStreamSource(streamRef.current!);
-                                scriptProcessorRef.current = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
-                                scriptProcessorRef.current.onaudioprocess = (audioProcessingEvent) => {
-                                    const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
-                                    const pcmBlob: Blob = {
-                                        data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
-                                        mimeType: 'audio/pcm;rate=16000',
-                                    };
-                                    if (sessionPromise.current) {
-                                       sessionPromise.current.then((session) => {
-                                            session.sendRealtimeInput({ media: pcmBlob });
-                                        });
-                                    }
-                                };
-                                source.connect(scriptProcessorRef.current);
-                                scriptProcessorRef.current.connect(inputAudioContextRef.current!.destination);
-                            },
-                            onmessage: async (message: LiveServerMessage) => {
-                                 if (message.serverContent?.inputTranscription) {
-                                    const text = message.serverContent.inputTranscription.text;
-                                    if (!currentTurnId.current || !currentTurnId.current.endsWith('user')) {
-                                        currentTurnId.current = `turn-${Date.now()}-user`;
-                                        conversationRef.current = [...conversationRef.current, { speaker: 'user', text, id: currentTurnId.current }];
-                                    } else {
-                                        conversationRef.current = conversationRef.current.map(turn => 
-                                            turn.id === currentTurnId.current ? { ...turn, text: turn.text + text } : turn
-                                        );
-                                    }
-                                    setConversation([...conversationRef.current]);
-                                }
-
-                                if (message.serverContent?.outputTranscription) {
-                                    const text = message.serverContent.outputTranscription.text;
-                                    if (!currentTurnId.current || !currentTurnId.current.endsWith('assistant')) {
-                                        currentTurnId.current = `turn-${Date.now()}-assistant`;
-                                        conversationRef.current = [...conversationRef.current, { speaker: 'assistant', text, id: currentTurnId.current }];
-                                    } else {
-                                        conversationRef.current = conversationRef.current.map(turn => 
-                                            turn.id === currentTurnId.current ? { ...turn, text: turn.text + text } : turn
-                                        );
-                                    }
-                                    setConversation([...conversationRef.current]);
-                                }
-                                
-                                if (message.serverContent?.turnComplete) {
-                                    currentTurnId.current = null;
-                                }
-
-                                if (message.toolCall?.functionCalls) {
-                                    setStatus('thinking');
-                                    for (const fc of message.toolCall.functionCalls) {
-                                        if (fc.name === 'update_assessment_control') {
-                                            const args = fc.args as Partial<AssessmentItem> & { controlCode: string };
-                                            onActiveFieldChange(args.controlCode, null);
-                                            const originalItem = assessmentData.find(item => item.controlCode === args.controlCode);
-                                            if (originalItem) {
-                                                const updatedItem: AssessmentItem = { ...originalItem };
-                                                for (const key in args) {
-                                                    if (args[key as keyof typeof args] !== undefined && args[key as keyof typeof args] !== null) {
-                                                        (updatedItem as any)[key] = args[key as keyof typeof args];
-                                                        onActiveFieldChange(args.controlCode, key as keyof AssessmentItem);
-                                                    }
-                                                }
-                                                onUpdateItem(args.controlCode, updatedItem);
-
-                                                sessionPromise.current?.then(session => {
-                                                    session.sendToolResponse({
-                                                        functionResponses: { id: fc.id, name: fc.name, response: { result: "OK" } }
-                                                    });
-                                                });
-                                            }
-                                        }
-                                        if (fc.name === 'initiate_new_assessment') {
-                                            onInitiate();
-                                            sessionPromise.current?.then(session => {
-                                                session.sendToolResponse({
-                                                    functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, the confirmation dialog has been opened for the user." } }
-                                                });
-                                            });
-                                        }
-                                        if (fc.name === 'request_evidence_upload') {
-                                            onRequestEvidenceUpload(fc.args.controlCode);
-                                            sessionPromise.current?.then(session => {
-                                                session.sendToolResponse({
-                                                    functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, I have prompted the user to upload evidence." } }
-                                                });
-                                            });
-                                        }
-                                    }
-                                }
-
-                                const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                                if (base64Audio) {
-                                    setStatus('speaking');
-                                    const audioCtx = outputAudioContextRef.current;
-                                    if(audioCtx) {
-                                        nextStartTime = Math.max(nextStartTime, audioCtx.currentTime);
-                                        const audioBuffer = await decodeAudioData(decode(base64Audio), audioCtx, 24000, 1);
-                                        const sourceNode = audioCtx.createBufferSource();
-                                        sourceNode.buffer = audioBuffer;
-                                        sourceNode.connect(audioCtx.destination);
-                                        sourceNode.addEventListener('ended', () => {
-                                            sources.current.delete(sourceNode);
-                                            if (sources.current.size === 0) {
-                                                setStatus('listening');
-                                            }
-                                        });
-                                        sourceNode.start(nextStartTime);
-                                        nextStartTime += audioBuffer.duration;
-                                        sources.current.add(sourceNode);
-                                    }
-                                } else if (status === 'speaking' && sources.current.size === 0) {
-                                    setStatus('listening');
-                                }
-
-                                if (message.serverContent?.interrupted) {
-                                    for (const source of sources.current.values()) {
-                                        source.stop();
-                                        sources.current.delete(source);
-                                    }
-                                    nextStartTime = 0;
-                                }
-
-                            },
-                            onerror: (e) => { console.error('Live session error:', e); setError('A connection error occurred.'); cleanup(); },
-                            onclose: () => { cleanup(); },
-                        },
-                        config: {
-                            responseModalities: [Modality.AUDIO],
-                            inputAudioTranscription: {},
-                            outputAudioTranscription: {},
-                            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
-                            systemInstruction: systemInstruction,
-                            tools: [{ functionDeclarations: [updateFunctionDeclaration, initiateNewAssessmentDeclaration, requestEvidenceUploadDeclaration] }],
-                            languageCodes: ['en-US', 'es-ES', 'fr-FR', 'de-DE', 'ar-SA'],
-                        },
-                    });
-                } catch (err: any) {
-                    setError(err.message || 'Failed to start the voice session.');
-                    console.error(err);
-                    cleanup();
-                }
-            };
-            startSession();
-            
-            return () => {
-                sessionPromise.current?.then(session => session.close());
-                cleanup();
-            };
-        }
-    }, [isAssessing, currentControlIndex, onUpdateItem, onInitiate, cleanup, assessmentType, assessmentData, onActiveFieldChange, updateFunctionDeclaration, onRequestEvidenceUpload]);
-
+        setStatus('idle');
+    }, [stopMicrophone, stopPlayback]);
 
     const handleClose = () => {
-        sessionPromise.current?.then(session => session.close());
         cleanup();
         onClose();
+    };
+
+    const startSession = useCallback(async () => {
+        setError(null);
+        if (!process.env.API_KEY) {
+            setError("API_KEY environment variable is not set.");
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            streamRef.current = stream;
+
+            inputAudioContextRef.current = new (window.AudioContext)({ sampleRate: 16000 });
+            outputAudioContextRef.current = new (window.AudioContext)({ sampleRate: 24000 });
+            
+            const currentControl = assessmentData[currentControlIndex];
+            const systemInstruction = `You are Noora, an AI assistant conducting a ${frameworkName} assessment. Guide the user through the controls one by one. For each control, read its title and description, then ask the user for their assessment. You must then call the 'update_assessment_control' function with the information provided by the user. Do not make up information. Ask clarifying questions if needed. Be concise and professional.
+            
+            Current Control Context:
+            - Control Code: ${currentControl.controlCode}
+            - Control Name: ${currentControl.controlName}
+            - Current Status: ${currentControl.saudiCeramicsCurrentStatus || 'Not yet assessed.'}
+            - Recommendation: ${currentControl.recommendation || 'Not yet provided.'}
+            
+            Start by saying: "Let's review control ${currentControl.controlCode}: ${currentControl.controlName}. Please provide your assessment."`;
+            
+            sessionPromise.current = ai.live.connect({
+                model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+                callbacks: {
+                    onopen: () => {
+                        setStatus('listening');
+                        const source = inputAudioContextRef.current!.createMediaStreamSource(stream);
+                        const scriptProcessor = inputAudioContextRef.current!.createScriptProcessor(4096, 1, 1);
+                        scriptProcessorRef.current = scriptProcessor;
+
+                        scriptProcessor.onaudioprocess = (audioProcessingEvent) => {
+                            const inputData = audioProcessingEvent.inputBuffer.getChannelData(0);
+                            const pcmBlob: Blob = {
+                                data: encode(new Uint8Array(new Int16Array(inputData.map(x => x * 32768)).buffer)),
+                                mimeType: 'audio/pcm;rate=16000',
+                            };
+                            sessionPromise.current?.then((session) => {
+                                session.sendRealtimeInput({ media: pcmBlob });
+                            });
+                        };
+                        source.connect(scriptProcessor);
+                        scriptProcessor.connect(inputAudioContextRef.current!.destination);
+                    },
+                    onmessage: async (message: LiveServerMessage) => {
+                        if (message.serverContent?.modelTurn?.parts[0]?.inlineData?.data) {
+                            setStatus('speaking');
+                            const base64EncodedAudioString = message.serverContent.modelTurn.parts[0].inlineData.data;
+                            nextStartTime = Math.max(nextStartTime, outputAudioContextRef.current!.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64EncodedAudioString), outputAudioContextRef.current!, 24000, 1);
+                            const source = outputAudioContextRef.current!.createBufferSource();
+                            source.buffer = audioBuffer;
+                            source.connect(outputAudioContextRef.current!.destination);
+                            source.onended = () => {
+                                sources.current.delete(source);
+                                if (sources.current.size === 0) {
+                                    setStatus('listening');
+                                }
+                            };
+                            source.start(nextStartTime);
+                            nextStartTime += audioBuffer.duration;
+                            sources.current.add(source);
+                        }
+                        
+                        if (message.toolCall?.functionCalls) {
+                           setStatus('thinking');
+                           for(const fc of message.toolCall.functionCalls) {
+                               if(fc.name === 'update_assessment_control') {
+                                   const args = fc.args;
+                                   const currentItem = assessmentData.find(item => item.controlCode === args.controlCode);
+                                   if (currentItem) {
+                                       const updated: AssessmentItem = { ...currentItem, ...args };
+                                       onUpdateItem(args.controlCode, updated);
+                                       sessionPromise.current?.then(session => {
+                                           session.sendToolResponse({
+                                               functionResponses: { id: fc.id, name: fc.name, response: { result: "OK, control updated." } }
+                                           });
+                                       });
+                                       setTimeout(() => { // Give a moment for the state to update visually
+                                           onNextControl();
+                                       }, 1000);
+                                   }
+                               }
+                           }
+                        }
+                    },
+                    onerror: (e: ErrorEvent) => {
+                        setError(`Session error: ${e.message}`);
+                        cleanup();
+                    },
+                    onclose: () => {
+                        cleanup();
+                    },
+                },
+                config: {
+                    responseModalities: [Modality.AUDIO],
+                    speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } },
+                    systemInstruction,
+                    tools: [{ functionDeclarations: [updateAssessmentControlFunction] }]
+                },
+            });
+
+        } catch (err) {
+            setError("Failed to get microphone permissions. Please enable them in your browser settings.");
+            console.error(err);
+        }
+    }, [assessmentData, currentControlIndex, onUpdateItem, onNextControl, cleanup, frameworkName]);
+
+    useEffect(() => {
+        if (isOpen) {
+            startSession();
+        } else {
+            cleanup();
+        }
+
+        return () => {
+            cleanup();
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen]);
+    
+    // Relaunch session when control index changes
+    useEffect(() => {
+        if(isOpen && currentControlIndex > 0) {
+             cleanup();
+             setTimeout(() => startSession(), 100); // Small delay to ensure resources are released
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentControlIndex]);
+
+    if (!isOpen) return null;
+
+    const getStatusText = () => {
+        switch (status) {
+            case 'listening': return 'Listening...';
+            case 'thinking': return 'Thinking...';
+            case 'speaking': return 'Speaking...';
+            default: return 'Initializing...';
+        }
     };
     
     const currentControl = assessmentData[currentControlIndex];
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-70 z-[110] flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-2xl w-full max-w-2xl flex flex-col" style={{height: '85vh', maxHeight: '800px'}}>
-                 <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                     <div className="flex items-center">
-                        <img src={nooraAvatar} alt="Noora" className="w-10 h-10 rounded-full mr-3" />
-                        <div>
-                            <h2 className="font-bold text-lg text-gray-800 dark:text-gray-100">Noora: AI Voice Assessment</h2>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Assessing: {assessmentType}</p>
-                        </div>
-                    </div>
-                    <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <CloseIcon className="w-6 h-6 text-gray-500" />
+        <div className="fixed inset-0 bg-black/80 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-sm" onClick={handleClose}>
+            <div className="bg-white/10 dark:bg-gray-800/50 rounded-2xl p-8 w-full max-w-2xl text-white text-center" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-6">
+                     <div className="text-left">
+                        <p className="text-sm text-gray-400">{frameworkName} Voice Assessment</p>
+                        <p className="font-semibold">{`Control ${currentControlIndex + 1} of ${assessmentData.length}`}</p>
+                     </div>
+                     <button onClick={handleClose} className="p-2 rounded-full hover:bg-white/20">
+                        <CloseIcon className="w-6 h-6 text-white" />
                     </button>
-                </header>
-
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-sm font-semibold text-gray-600 dark:text-gray-300">Current Control:</p>
-                    <p className="font-mono text-teal-600 dark:text-teal-400">{currentControl.controlCode}: <span className="font-sans text-gray-800 dark:text-gray-200 font-normal">{currentControl.controlName}</span></p>
                 </div>
-                 
-                 <main className="flex-1 flex flex-col p-4 overflow-y-auto">
-                    <div className="flex-grow space-y-3 overflow-y-auto pr-2">
-                        {conversation.map((turn) => (
-                             <div key={turn.id} className={`flex items-start gap-2.5 ${turn.speaker === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {turn.speaker === 'assistant' && <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full" />}
-                                <div className={`max-w-prose rounded-2xl px-4 py-2 text-sm ${turn.speaker === 'user' ? 'bg-teal-600 text-white rounded-br-none' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'}`}>
-                                    {turn.text}
-                                </div>
-                            </div>
-                        ))}
-                         {status === 'thinking' && (
-                             <div className="flex items-start gap-2.5 justify-start">
-                                 <img src={nooraAvatar} alt="Noora" className="w-8 h-8 rounded-full" />
-                                <div className="bg-gray-200 dark:bg-gray-700 rounded-2xl px-4 py-3 rounded-bl-none">
-                                    <div className="flex items-center justify-center space-x-2">
-                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.3s]"></div>
-                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse [animation-delay:-0.15s]"></div>
-                                        <div className="w-2 h-2 rounded-full bg-gray-500 dark:bg-gray-400 animate-pulse"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-                        <div className="relative inline-block mb-2">
-                             <div className={`w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center`}>
-                                <MicrophoneIcon className={`w-8 h-8 transition-colors ${status === 'listening' ? 'text-blue-500' : status === 'speaking' ? 'text-teal-500' : 'text-gray-400'}`} />
-                            </div>
-                            <div className={`absolute -inset-1 rounded-full border-2 animate-pulse
-                                ${status === 'listening' ? 'border-blue-400' : ''}
-                                ${status === 'speaking' ? 'border-teal-400' : ''}
-                                ${status === 'thinking' ? 'border-purple-400' : ''}
-                            `}></div>
-                        </div>
-                        <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 capitalize">{status}</p>
-                        {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
-                    </div>
-                </main>
                 
-                 <footer className="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-                    <button 
-                        onClick={onNextControl}
-                        disabled={currentControlIndex >= assessmentData.length - 1}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400"
-                    >
-                        Next Control &rarr;
-                    </button>
-                </footer>
+                <div className="relative w-48 h-48 mx-auto mb-6">
+                    <div className={`absolute inset-0 rounded-full border-4 transition-all duration-300 ${
+                        status === 'listening' ? 'border-blue-500 animate-pulse' :
+                        status === 'thinking' ? 'border-purple-500 animate-spin' :
+                        status === 'speaking' ? 'border-teal-400 scale-110' :
+                        'border-gray-500'
+                    }`}></div>
+                    <img src={nooraAvatar} alt="Noora AI Assistant" className="w-full h-full rounded-full object-cover p-2"/>
+                </div>
+
+                <p className="text-xl font-medium h-8">{getStatusText()}</p>
+                
+                <div className="mt-8 p-4 bg-black/20 rounded-lg text-left">
+                    <p className="font-mono text-teal-400 text-sm">{currentControl.controlCode}</p>
+                    <p className="mt-1 font-semibold">{currentControl.controlName}</p>
+                </div>
+
+                {error && <p className="mt-4 text-red-400 bg-red-900/50 p-3 rounded-md">{error}</p>}
             </div>
         </div>
     );

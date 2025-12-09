@@ -3,7 +3,7 @@ import type { AssessmentItem, ControlStatus } from '../types';
 
 declare const Chart: any;
 
-interface CMADomainComplianceBarChartProps {
+interface SaudiCeramicsComplianceBarChartProps {
     data: AssessmentItem[];
 }
 
@@ -15,7 +15,7 @@ const getStatusChartColor = (status: 'Implemented' | 'Partially Implemented' | '
     }
 };
 
-export const CMADomainComplianceBarChart: React.FC<CMADomainComplianceBarChartProps> = ({ data }) => {
+export const SaudiCeramicsComplianceBarChart: React.FC<SaudiCeramicsComplianceBarChartProps> = ({ data }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
 
@@ -94,7 +94,7 @@ export const CMADomainComplianceBarChart: React.FC<CMADomainComplianceBarChartPr
                     },
                     title: {
                         display: true,
-                        text: 'CMA Compliance Status by Domain',
+                        text: 'Saudi Ceramics ECC Compliance by Domain',
                         color: textColor,
                         font: {
                             size: 18

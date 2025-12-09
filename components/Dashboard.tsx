@@ -1,10 +1,6 @@
-
-
-
-import React, { useEffect, useRef, useMemo, useState } from 'react';
-import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole, UserTrainingProgress, AssessmentItem, Task, TaskStatus } from '../types';
-import { CheckCircleIcon, CloseIcon, DocumentIcon, FundamentalsBadgeIcon, PhishingBadgeIcon, MalwareBadgeIcon, PasswordBadgeIcon, SafeBrowsingBadgeIcon, RemoteWorkBadgeIcon, SecureCodingBadgeIcon, IncidentResponseBadgeIcon, DataPrivacyBadgeIcon } from './Icons';
-import { trainingCourses } from '../data/trainingData';
+import React, { useEffect, useRef, useMemo } from 'react';
+import type { PolicyDocument, User, SearchResult, Domain, DocumentStatus, UserRole } from '../types';
+import { CheckCircleIcon, DocumentIcon } from './Icons';
 
 declare const Chart: any;
 
@@ -13,14 +9,7 @@ interface DashboardPageProps {
     currentUser: User;
     allControls: SearchResult[];
     domains: Domain[];
-    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'training' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'cmaAssessment' | 'riskAssessment') => void;
-    trainingProgress?: UserTrainingProgress;
-    eccAssessment: AssessmentItem[];
-    pdplAssessment: AssessmentItem[];
-    samaCsfAssessment: AssessmentItem[];
-    cmaAssessment: AssessmentItem[];
-    tasks: Task[];
-    setTasks: (updater: React.SetStateAction<Task[]>) => void;
+    onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile') => void;
 }
 
 const statusToRoleMap: Record<string, UserRole> = {
@@ -241,225 +230,8 @@ const DomainComplianceChart: React.FC<{ data: { name: string, compliance: number
     );
 };
 
-const BadgeIcon: React.FC<{ badgeId: string }> = ({ badgeId }) => {
-    const props = { className: "w-12 h-12 text-teal-600 dark:text-teal-400" };
-    const course = trainingCourses.find(c => c.badgeId === badgeId);
 
-    const iconMap: Record<string, React.ReactNode> = {
-        'fundamentals-badge': <FundamentalsBadgeIcon {...props} />,
-        'phishing-badge': <PhishingBadgeIcon {...props} />,
-        'malware-badge': <MalwareBadgeIcon {...props} />,
-        'password-badge': <PasswordBadgeIcon {...props} />,
-        'browsing-badge': <SafeBrowsingBadgeIcon {...props} />,
-        'remote-work-badge': <RemoteWorkBadgeIcon {...props} />,
-        'secure-coding-badge': <SecureCodingBadgeIcon {...props} />,
-        'incident-response-badge': <IncidentResponseBadgeIcon {...props} />,
-        'data-privacy-badge': <DataPrivacyBadgeIcon {...props} />,
-    };
-
-    return (
-        <div className="text-center">
-            {iconMap[badgeId] || null}
-            <p className="text-xs mt-1 font-semibold text-gray-600 dark:text-gray-400">{course?.title.replace('Cybersecurity ', '').replace('Awareness', '').replace('Security', '')}</p>
-        </div>
-    );
-}
-
-const FrameworkMeter: React.FC<{
-    title: string;
-    percentage: number;
-    onNavigate?: () => void;
-    disabled?: boolean;
-}> = ({ title, percentage, onNavigate, disabled = false }) => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const chartRef = useRef<any>(null);
-
-    useEffect(() => {
-        if (!canvasRef.current || !Chart) return;
-
-        const isDark = document.documentElement.classList.contains('dark');
-        const trackColor = isDark ? 'rgba(75, 85, 99, 0.5)' : 'rgba(229, 231, 235, 1)';
-        
-        const getColor = (value: number) => {
-            if (disabled) return `rgba(156, 163, 175, 1)`; // gray-400
-            if (value < 50) return `rgba(239, 68, 68, 1)`; // red-500
-            if (value < 80) return `rgba(245, 158, 11, 1)`; // amber-500
-            return `rgba(16, 185, 129, 1)`; // green-500
-        };
-
-        const filledColor = getColor(percentage);
-
-        const ctx = canvasRef.current.getContext('2d');
-        if (!ctx) return;
-        
-        if (chartRef.current) {
-            chartRef.current.destroy();
-        }
-
-        chartRef.current = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [percentage, 100 - percentage],
-                    backgroundColor: [filledColor, trackColor],
-                    borderColor: 'transparent',
-                    borderWidth: 0,
-                    circumference: 270,
-                    rotation: -135,
-                    cutout: '80%',
-                    borderRadius: 8,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false },
-                },
-                animation: {
-                    animateScale: true,
-                    animateRotate: true
-                },
-            }
-        });
-        
-        return () => chartRef.current?.destroy();
-
-    }, [percentage, disabled]);
-
-    return (
-        <div className={`bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex flex-col items-center justify-between ${disabled ? 'opacity-60' : ''}`}>
-            <h3 className="text-base font-semibold text-gray-700 dark:text-gray-200 text-center">{title}</h3>
-            <div className="relative w-32 h-32 my-4">
-                <canvas ref={canvasRef}></canvas>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-3xl font-bold text-gray-900 dark:text-gray-100 ${disabled ? 'text-gray-500' : ''}`}>
-                        {disabled ? 'N/A' : `${percentage.toFixed(0)}%`}
-                    </span>
-                </div>
-            </div>
-            {onNavigate && !disabled ? (
-                 <button onClick={onNavigate} className="w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">
-                    View Details
-                </button>
-            ) : (
-                 <button disabled className="w-full text-center py-2 px-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 dark:bg-gray-600 cursor-not-allowed">
-                    {disabled ? 'Not Started' : 'View Details'}
-                </button>
-            )}
-        </div>
-    );
-};
-
-const TaskManager: React.FC<{
-    tasks: Task[];
-    setTasks: (updater: React.SetStateAction<Task[]>) => void;
-    controls: SearchResult[];
-}> = ({ tasks, setTasks, controls }) => {
-    const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [newTaskControlId, setNewTaskControlId] = useState('');
-
-    const handleAddTask = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newTaskTitle.trim()) return;
-
-        const newTask: Task = {
-            id: `task-${Date.now()}`,
-            title: newTaskTitle.trim(),
-            controlId: newTaskControlId || undefined,
-            status: 'To Do',
-            createdAt: Date.now(),
-        };
-
-        setTasks(prev => [newTask, ...prev]);
-        setNewTaskTitle('');
-        setNewTaskControlId('');
-    };
-    
-    const handleToggleStatus = (taskId: string) => {
-        setTasks(prev => prev.map(task => {
-            if (task.id === taskId) {
-                const nextStatus: Record<TaskStatus, TaskStatus> = {
-                    'To Do': 'In Progress',
-                    'In Progress': 'Done',
-                    'Done': 'To Do',
-                };
-                return { ...task, status: nextStatus[task.status] };
-            }
-            return task;
-        }));
-    };
-
-    const handleDeleteTask = (taskId: string) => {
-        setTasks(prev => prev.filter(task => task.id !== taskId));
-    };
-
-    const sortedTasks = useMemo(() => {
-        const grouped: Record<TaskStatus, Task[]> = { 'To Do': [], 'In Progress': [], 'Done': [] };
-        tasks.forEach(task => grouped[task.status].push(task));
-        // Sort within groups by creation date
-        Object.values(grouped).forEach(group => group.sort((a, b) => b.createdAt - a.createdAt));
-        return grouped;
-    }, [tasks]);
-
-    const statusConfig: Record<TaskStatus, { color: string; ringColor: string; title: string }> = {
-        'To Do': { color: 'bg-gray-400', ringColor: 'ring-gray-300', title: 'To Do' },
-        'In Progress': { color: 'bg-blue-500', ringColor: 'ring-blue-300', title: 'In Progress' },
-        'Done': { color: 'bg-green-500', ringColor: 'ring-green-300', title: 'Done' },
-    };
-
-    return (
-        <Card className="flex flex-col h-full">
-            <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">My Tasks</h3>
-            <form onSubmit={handleAddTask} className="flex items-center gap-2 mb-4">
-                <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="Add a new task..."
-                    className="flex-grow block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
-                />
-                <select
-                    value={newTaskControlId}
-                    onChange={(e) => setNewTaskControlId(e.target.value)}
-                    className="block w-48 px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm"
-                >
-                    <option value="">Link Control (Optional)</option>
-                    {controls.map(c => <option key={c.control.id} value={c.control.id}>{c.control.id}</option>)}
-                </select>
-                <button type="submit" className="px-4 py-2 text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700">Add</button>
-            </form>
-            <div className="flex-grow overflow-y-auto pr-2 min-h-[300px]">
-                {(['To Do', 'In Progress', 'Done'] as TaskStatus[]).map(status => (
-                    sortedTasks[status].length > 0 && (
-                        <div key={status} className="mb-4">
-                             <h4 className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">{status}</h4>
-                            <ul className="space-y-2">
-                                {sortedTasks[status].map(task => (
-                                    <li key={task.id} className="flex items-center gap-3 p-2 rounded-md bg-gray-50 dark:bg-gray-900/50">
-                                        <button onClick={() => handleToggleStatus(task.id)} title={`Change status from ${task.status}`}>
-                                            <div className={`w-5 h-5 rounded-full ${statusConfig[task.status].color} ring-2 ring-offset-2 ring-offset-gray-50 dark:ring-offset-gray-900/50 ${statusConfig[task.status].ringColor}`}></div>
-                                        </button>
-                                        <div className="flex-grow">
-                                            <p className="text-sm text-gray-800 dark:text-gray-200">{task.title}</p>
-                                            {task.controlId && <span className="text-xs font-mono px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">{task.controlId}</span>}
-                                        </div>
-                                        <button onClick={() => handleDeleteTask(task.id)} className="text-gray-400 hover:text-red-500">
-                                            <CloseIcon className="w-4 h-4" />
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )
-                ))}
-            </div>
-        </Card>
-    );
-};
-
-export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView, trainingProgress, eccAssessment, pdplAssessment, samaCsfAssessment, cmaAssessment, tasks, setTasks }) => {
+export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, currentUser, allControls, domains, onSetView }) => {
     const stats = useMemo(() => {
         const approvedCount = repository.filter(doc => doc.status === 'Approved').length;
         const pendingCount = repository.filter(doc => doc.status.startsWith('Pending')).length;
@@ -470,7 +242,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
         return { approvedCount, pendingCount, coverage, compliance, totalControls };
     }, [repository, allControls]);
 
-    const myApprovalTasks = useMemo(() => {
+    const myTasks = useMemo(() => {
         if (!currentUser) return [];
         return repository.filter(doc => statusToRoleMap[doc.status] === currentUser.role);
     }, [repository, currentUser]);
@@ -499,26 +271,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
             .sort((a, b) => b.updatedAt - a.updatedAt)
             .slice(0, 5);
     }, [repository]);
-    
-    const earnedBadges = useMemo(() => {
-        if (!trainingProgress) return [];
-        // FIX: Add type assertion to resolve 'unknown' type from Object.values on a potentially empty object.
-        return Object.values(trainingProgress as UserTrainingProgress)
-            .filter((p) => p.badgeEarned)
-            .map(p => p.badgeId);
-    }, [trainingProgress]);
-
-    const calculateCompliance = (data: AssessmentItem[]) => {
-        if (!data || data.length === 0) return 0;
-        const applicable = data.filter(i => i.controlStatus !== 'Not Applicable').length;
-        const implemented = data.filter(i => i.controlStatus === 'Implemented').length;
-        return applicable > 0 ? (implemented / applicable) * 100 : 0;
-    };
-
-    const eccCompliance = useMemo(() => calculateCompliance(eccAssessment), [eccAssessment]);
-    const pdplCompliance = useMemo(() => calculateCompliance(pdplAssessment), [pdplAssessment]);
-    const samaCsfCompliance = useMemo(() => calculateCompliance(samaCsfAssessment), [samaCsfAssessment]);
-    const cmaCompliance = useMemo(() => calculateCompliance(cmaAssessment), [cmaAssessment]);
 
     return (
         <div className="space-y-8">
@@ -534,46 +286,25 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                 <StatCard title="Pending Approvals" value={stats.pendingCount} description="Documents waiting for review." />
             </div>
 
-            <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Frameworks Compliance</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <FrameworkMeter 
-                        title="NCA ECC" 
-                        percentage={eccCompliance} 
-                        onNavigate={() => onSetView('assessment')}
-                    />
-                    <FrameworkMeter 
-                        title="PDPL" 
-                        percentage={pdplCompliance} 
-                        onNavigate={() => onSetView('pdplAssessment')}
-                    />
-                    <FrameworkMeter 
-                        title="SAMA CSF" 
-                        percentage={samaCsfCompliance} 
-                        onNavigate={() => onSetView('samaCsfAssessment')}
-                    />
-                    <FrameworkMeter 
-                        title="CMA" 
-                        percentage={cmaCompliance} 
-                        onNavigate={() => onSetView('cmaAssessment')}
-                        disabled={false}
-                    />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                    <DomainComplianceChart data={domainCompliance} />
+                </div>
+                <div>
+                    <StatusDistributionChart data={statusDistribution} />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                    <TaskManager tasks={tasks} setTasks={setTasks} controls={allControls} />
-                </div>
-                 <Card>
-                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">My Approval Tasks ({myApprovalTasks.length})</h3>
-                    {myApprovalTasks.length > 0 ? (
-                        <ul className="divide-y divide-gray-200 dark:divide-gray-700 max-h-[420px] overflow-y-auto">
-                           {myApprovalTasks.map(task => (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">My Tasks ({myTasks.length})</h3>
+                    {myTasks.length > 0 ? (
+                        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+                           {myTasks.map(task => (
                                 <li key={task.id} className="py-3 flex items-center justify-between">
                                    <div>
                                      <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{task.controlId}</p>
-                                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate w-60">{task.controlDescription}</p>
+                                     <p className="text-sm text-gray-500 dark:text-gray-400">{task.controlDescription}</p>
                                    </div>
                                     <button onClick={() => onSetView('documents')} className="text-sm font-semibold text-teal-600 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-200">
                                         View
@@ -582,21 +313,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                            ))}
                         </ul>
                     ) : (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No pending approvals. Great job!</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">No pending tasks. Great job!</p>
                     )}
                 </Card>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-                <div className="lg:col-span-3">
-                    <DomainComplianceChart data={domainCompliance} />
-                </div>
-                <div className="lg:col-span-2">
-                    <StatusDistributionChart data={statusDistribution} />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                     <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Recent Activity</h3>
                     <ul className="space-y-4">
@@ -614,23 +333,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ repository, curren
                             </li>
                         ))}
                     </ul>
-                </Card>
-                <Card>
-                    <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">My Achievements</h3>
-                    {earnedBadges.length > 0 ? (
-                        <div className="flex flex-wrap items-center justify-center gap-8 py-4">
-                            {earnedBadges.map(badgeId => <BadgeIcon key={badgeId} badgeId={badgeId} />)}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                Start a course in the "Training & Awareness" section to earn badges.
-                            </p>
-                             <button onClick={() => onSetView('training')} className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
-                                Go to Training
-                            </button>
-                        </div>
-                    )}
                 </Card>
             </div>
         </div>

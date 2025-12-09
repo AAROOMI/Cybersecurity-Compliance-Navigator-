@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
 import { ChevronDownIcon, SearchIcon, DownloadIcon, MicrophoneIcon } from './Icons';
-import { SamaCsfDomainComplianceBarChart } from './SamaCsfComplianceBarChart';
+import { SaudiCeramicsComplianceBarChart } from './SaudiCeramicsComplianceBarChart';
 import { NooraAssistant } from './NooraAssistant';
 
 declare const Chart: any;
@@ -100,7 +100,7 @@ const ControlRow: React.FC<{ item: AssessmentItem; isEditable: boolean; onUpdate
     
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setEditableItem(prev => ({...prev, [name]: name === 'controlStatus' ? (value as ControlStatus) : value}));
+        setEditableItem(prev => ({...prev, [name]: name === 'controlStatus' ? value as ControlStatus : value}));
     };
     
     const handleBlur = () => {
@@ -135,7 +135,7 @@ const ControlRow: React.FC<{ item: AssessmentItem; isEditable: boolean; onUpdate
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                      {isEditable ? (
                         <input
-                            type="date"
+                            type="text"
                             name="targetDate"
                             value={editableItem.targetDate}
                             onChange={handleChange}
@@ -187,7 +187,7 @@ const ControlRow: React.FC<{ item: AssessmentItem; isEditable: boolean; onUpdate
     );
 };
 
-interface SamaCsfAssessmentPageProps {
+interface SaudiCeramicsAssessmentPageProps {
     assessmentData: AssessmentItem[];
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
     status: 'idle' | 'in-progress';
@@ -196,17 +196,17 @@ interface SamaCsfAssessmentPageProps {
     permissions: Set<Permission>;
 }
 
-export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
+export const SaudiCeramicsAssessmentPage: React.FC<SaudiCeramicsAssessmentPageProps> = ({ assessmentData, onUpdateItem, status, onInitiate, onComplete, permissions }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
     const [openDomains, setOpenDomains] = useState<Record<string, boolean>>({});
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
     const [currentControlIndex, setCurrentControlIndex] = useState(0);
-
+    
     const isEditable = status === 'in-progress';
-    const canUpdate = permissions.has('samaCsfAssessment:update');
-
+    const canUpdate = permissions.has('saudiCeramicsAssessment:update');
+    
     const handleNextControl = () => {
         setCurrentControlIndex(prev => {
             const nextIndex = prev + 1;
@@ -234,9 +234,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
             'Implemented': 0, 'Partially Implemented': 0, 'Not Implemented': 0, 'Not Applicable': 0
         };
         assessmentData.forEach(item => {
-            if (dist[item.controlStatus] !== undefined) {
-                dist[item.controlStatus]++;
-            }
+            dist[item.controlStatus]++;
         });
         return dist;
     }, [assessmentData]);
@@ -333,7 +331,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
         }
         link.href = URL.createObjectURL(blob);
         const today = new Date().toISOString().slice(0, 10);
-        link.download = `sama_csf_assessment_export_${today}.csv`;
+        link.download = `saudi_ceramics_assessment_export_${today}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -343,8 +341,8 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
         <div className="space-y-8">
             <div className="flex flex-wrap justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">SAMA CSF Assessment</h1>
-                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the SAMA Cyber Security Framework.</p>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">Saudi Ceramics ECC Assessment</h1>
+                    <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Assessment against the National Cybersecurity Authority's standards for Saudi Ceramics.</p>
                 </div>
                 {canUpdate && (
                      <div className="flex-shrink-0 flex items-center gap-2">
@@ -366,8 +364,8 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
                     </div>
                 )}
             </div>
-
-             {isEditable && (
+            
+            {isEditable && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
                     <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
                     <p className="text-sm text-blue-700 dark:text-blue-300">You are in edit mode. Changes are saved automatically as you move out of a field. Click "Complete Assessment" when you are finished.</p>
@@ -427,7 +425,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
             </div>
 
             <Card>
-                <SamaCsfDomainComplianceBarChart data={assessmentData} />
+                <SaudiCeramicsComplianceBarChart data={assessmentData} />
             </Card>
 
             <div className="space-y-4">
@@ -479,7 +477,7 @@ export const SamaCsfAssessmentPage: React.FC<SamaCsfAssessmentPageProps> = ({ as
                     onUpdateItem={onUpdateItem}
                     currentControlIndex={currentControlIndex}
                     onNextControl={handleNextControl}
-                    frameworkName="SAMA CSF"
+                    frameworkName="Saudi Ceramics ECC"
                 />
             )}
         </div>

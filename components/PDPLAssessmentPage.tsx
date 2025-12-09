@@ -1,15 +1,19 @@
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { AssessmentItem, ControlStatus, Permission } from '../types';
-import { SearchIcon, DownloadIcon, UploadIcon } from './Icons';
+import { ChevronDownIcon, SearchIcon, DownloadIcon, MicrophoneIcon } from './Icons';
 import { PDPLDomainComplianceBarChart } from './PDPLComplianceBarChart';
-import { AssessmentSheet } from './AssessmentSheet';
-
+import { NooraAssistant } from './NooraAssistant';
 
 declare const Chart: any;
 
 const allStatuses: ControlStatus[] = ['Implemented', 'Partially Implemented', 'Not Implemented', 'Not Applicable'];
+
+const statusColors: Record<ControlStatus, string> = {
+    'Implemented': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    'Partially Implemented': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    'Not Implemented': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+    'Not Applicable': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+};
 
 const getStatusChartColor = (status: ControlStatus | 'Not Covered', opacity = 1) => {
     switch (status) {
@@ -85,6 +89,104 @@ const StatusDistributionChart: React.FC<{ data: Record<string, number> }> = ({ d
     );
 };
 
+
+const ControlRow: React.FC<{ item: AssessmentItem; isEditable: boolean; onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void; }> = ({ item, isEditable, onUpdateItem }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [editableItem, setEditableItem] = useState(item);
+
+    useEffect(() => {
+        setEditableItem(item);
+    }, [item]);
+    
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setEditableItem(prev => ({...prev, [name]: name === 'controlStatus' ? (value as ControlStatus) : value}));
+    };
+    
+    const handleBlur = () => {
+        if (JSON.stringify(editableItem) !== JSON.stringify(item)) {
+            onUpdateItem(item.controlCode, editableItem);
+        }
+    };
+
+    return (
+        <>
+            <tr className="hover:bg-gray-50 dark:hover:bg-gray-900/50 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-700 dark:text-gray-300">{item.controlCode}</td>
+                <td className="px-6 py-4 text-sm text-gray-800 dark:text-gray-200">{item.controlName}</td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                    {isEditable ? (
+                        <select
+                            name="controlStatus"
+                            value={editableItem.controlStatus}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`block w-full text-xs p-1 border rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500 ${statusColors[editableItem.controlStatus]} border-transparent`}
+                        >
+                            {allStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    ) : (
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[item.controlStatus]}`}>
+                            {item.controlStatus}
+                        </span>
+                    )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                     {isEditable ? (
+                        <input
+                            type="date"
+                            name="targetDate"
+                            value={editableItem.targetDate}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            onClick={(e) => e.stopPropagation()}
+                            className="block w-full text-xs p-1 border rounded-md bg-transparent dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                        />
+                    ) : (
+                        item.targetDate
+                    )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <ChevronDownIcon className={`w-5 h-5 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </td>
+            </tr>
+            {isExpanded && (
+                <tr className="bg-gray-50 dark:bg-gray-900/50">
+                    <td colSpan={5} className="p-6" onClick={(e) => e.stopPropagation()}>
+                        <div className="space-y-4">
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300">Current Status</h4>
+                                {isEditable ? (
+                                    <textarea name="saudiCeramicsCurrentStatus" value={editableItem.saudiCeramicsCurrentStatus} onChange={handleChange} onBlur={handleBlur} rows={3} className="mt-1 block w-full text-sm border rounded-md bg-transparent dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                                ) : (
+                                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">{item.saudiCeramicsCurrentStatus}</p>
+                                )}
+                            </div>
+                             <div>
+                                <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300">Recommendation</h4>
+                                {isEditable ? (
+                                    <textarea name="recommendation" value={editableItem.recommendation} onChange={handleChange} onBlur={handleBlur} rows={3} className="mt-1 block w-full text-sm border rounded-md bg-transparent dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                                ) : (
+                                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">{item.recommendation}</p>
+                                )}
+                            </div>
+                             <div>
+                                <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300">Management Response</h4>
+                                {isEditable ? (
+                                    <textarea name="managementResponse" value={editableItem.managementResponse} onChange={handleChange} onBlur={handleBlur} rows={2} className="mt-1 block w-full text-sm border rounded-md bg-transparent dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-1 focus:ring-teal-500" />
+                                ) : (
+                                    <p className="mt-1 text-sm text-gray-700 dark:text-gray-200">{item.managementResponse}</p>
+                                )}
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+};
+
 interface PDPLAssessmentPageProps {
     assessmentData: AssessmentItem[];
     onUpdateItem: (controlCode: string, updatedItem: AssessmentItem) => void;
@@ -98,10 +200,24 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<ControlStatus | 'All'>('All');
     const [domainFilter, setDomainFilter] = useState('All');
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    
+    const [openDomains, setOpenDomains] = useState<Record<string, boolean>>({});
+    const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [currentControlIndex, setCurrentControlIndex] = useState(0);
+
     const isEditable = status === 'in-progress';
     const canUpdate = permissions.has('pdplAssessment:update');
+
+    const handleNextControl = () => {
+        setCurrentControlIndex(prev => {
+            const nextIndex = prev + 1;
+            if (nextIndex >= assessmentData.length) {
+                alert("You have completed all controls in the assessment.");
+                setIsAssistantOpen(false);
+                return 0; 
+            }
+            return nextIndex;
+        });
+    };
 
     const stats = useMemo(() => {
         const totalApplicable = assessmentData.filter(d => d.controlStatus !== 'Not Applicable').length;
@@ -145,7 +261,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                     (
                         item.controlCode.toLowerCase().includes(lowerSearch) ||
                         item.controlName.toLowerCase().includes(lowerSearch) ||
-                        item.currentStatusDescription.toLowerCase().includes(lowerSearch) ||
+                        item.saudiCeramicsCurrentStatus.toLowerCase().includes(lowerSearch) ||
                         item.recommendation.toLowerCase().includes(lowerSearch)
                     )
                 );
@@ -153,6 +269,17 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
             })
             .filter(domain => domain.items.length > 0);
     }, [domains, searchTerm, statusFilter, domainFilter]);
+
+    useEffect(() => {
+        // Automatically open domains that have search results
+        const newOpenState: Record<string, boolean> = {};
+        if (searchTerm || statusFilter !== 'All' || domainFilter !== 'All') {
+            for (const domain of filteredDomains) {
+                newOpenState[domain.name] = true;
+            }
+        }
+        setOpenDomains(newOpenState);
+    }, [filteredDomains, searchTerm, statusFilter, domainFilter]);
 
     const handleExportCSV = () => {
         const dataToExport = filteredDomains.flatMap(domain => domain.items);
@@ -168,7 +295,9 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
         ];
 
         const escapeCSV = (field: string) => {
-            if (field === null || field === undefined) return '';
+            if (field === null || field === undefined) {
+                return '';
+            }
             let str = String(field);
             if (str.includes(',') || str.includes('"') || str.includes('\n')) {
                 str = `"${str.replace(/"/g, '""')}"`;
@@ -179,100 +308,34 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
         const csvRows = [headers.join(',')];
         dataToExport.forEach(item => {
             const row = [
-                escapeCSV(item.domainCode), escapeCSV(item.domainName), escapeCSV(item.subDomainCode),
-                escapeCSV(item.subdomainName), escapeCSV(item.controlCode), escapeCSV(item.controlName),
-                escapeCSV(item.currentStatusDescription), escapeCSV(item.controlStatus), escapeCSV(item.recommendation),
-                escapeCSV(item.managementResponse), escapeCSV(item.targetDate),
+                escapeCSV(item.domainCode),
+                escapeCSV(item.domainName),
+                escapeCSV(item.subDomainCode),
+                escapeCSV(item.subdomainName),
+                escapeCSV(item.controlCode),
+                escapeCSV(item.controlName),
+                escapeCSV(item.saudiCeramicsCurrentStatus),
+                escapeCSV(item.controlStatus),
+                escapeCSV(item.recommendation),
+                escapeCSV(item.managementResponse),
+                escapeCSV(item.targetDate),
             ];
             csvRows.push(row.join(','));
         });
         const csvContent = csvRows.join('\n');
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
+        if (link.href) {
+            URL.revokeObjectURL(link.href);
+        }
         link.href = URL.createObjectURL(blob);
-        link.download = `pdpl_assessment_export_${new Date().toISOString().slice(0, 10)}.csv`;
+        const today = new Date().toISOString().slice(0, 10);
+        link.download = `pdpl_assessment_export_${today}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
-
-    const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const text = e.target?.result as string;
-                const rows = text.split('\n').filter(row => row.trim() !== '');
-                if (rows.length < 2) throw new Error('CSV file must have a header and at least one data row.');
-
-                const headerRow = rows[0].trim();
-                const delimiter = headerRow.includes(';') ? ';' : ',';
-                const headers = headerRow.split(delimiter).map(h => h.trim().replace(/^#/, '').replace(/"/g, ''));
-                
-                const expectedHeaders = [ 'Control Code', 'Current Status', 'Control Status', 'Recommendation', 'Management Response', 'Target Date'];
-                if (!headers.includes('Control Code')) {
-                    throw new Error(`CSV is missing required header: 'Control Code'.`);
-                }
-
-                const indices: Record<string, number> = {};
-                headers.forEach((h, i) => indices[h] = i);
-                
-                const keyMap: Record<string, keyof AssessmentItem> = {
-                    'Current Status': 'currentStatusDescription',
-                    'Saudi Ceramics Current Status': 'currentStatusDescription',
-                    'Control Status': 'controlStatus',
-                    'Recommendation': 'recommendation',
-                    'Management Response': 'managementResponse',
-                    'Target Date': 'targetDate',
-                };
-
-                let updatedCount = 0;
-                for (let i = 1; i < rows.length; i++) {
-                    const values = rows[i].trim().split(delimiter);
-                    const controlCode = (values[indices['Control Code']] || '').trim().replace(/"/g, '');
-                    if (!controlCode) continue;
-
-                    const existingItem = assessmentData.find(item => item.controlCode === controlCode);
-
-                    if (existingItem) {
-                        const updatedItem = { ...existingItem };
-                        let hasUpdate = false;
-                        for (const header of Object.keys(keyMap)) {
-                            if (indices[header] !== undefined) {
-                                const key = keyMap[header];
-                                const value = (values[indices[header]] || '').trim().replace(/"/g, '');
-
-                                if (key === 'controlStatus' && value && !allStatuses.includes(value as ControlStatus)) {
-                                    console.warn(`Skipping update for ${controlCode}: Invalid status "${value}"`);
-                                    continue;
-                                }
-                                if ((updatedItem as any)[key] !== value) {
-                                    (updatedItem as any)[key] = value;
-                                    hasUpdate = true;
-                                }
-                            }
-                        }
-                        if (hasUpdate) {
-                            onUpdateItem(controlCode, updatedItem);
-                            updatedCount++;
-                        }
-                    }
-                }
-                alert(`${updatedCount} records updated successfully from the CSV file.`);
-            } catch (error: any) {
-                alert(`Error importing CSV: ${error.message}`);
-            }
-        };
-        reader.readAsText(file);
-        if (event.target) event.target.value = ''; // Reset file input
-    };
-    
-    const handlePdplItemUpdate = async (controlCode: string, updatedItem: AssessmentItem) => {
-        onUpdateItem(controlCode, updatedItem);
-    };
-
 
     return (
         <div className="space-y-8">
@@ -282,15 +345,22 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Analysis of the assessment against the Personal Data Protection Law (PDPL) standards.</p>
                 </div>
                  {canUpdate && (
-                     <div className="flex-shrink-0 flex items-center gap-2 flex-wrap">
-                        {status === 'in-progress' && (
+                     <div className="flex-shrink-0 flex items-center gap-2">
+                        {isEditable && (
+                             <button onClick={() => setIsAssistantOpen(true)} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                                <MicrophoneIcon className="-ml-1 mr-2 h-5 w-5" />
+                                Start Voice Assessment
+                            </button>
+                        )}
+                        {isEditable ? (
                             <button onClick={onComplete} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
                                 Complete Assessment
                             </button>
+                        ) : (
+                            <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700">
+                                Initiate New Assessment
+                            </button>
                         )}
-                        <button onClick={onInitiate} className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                            Initiate New Assessment
-                        </button>
                     </div>
                 )}
             </div>
@@ -298,7 +368,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
             {isEditable && (
                 <div className="p-4 bg-blue-50 dark:bg-blue-900/50 border-l-4 border-blue-400">
                     <h3 className="font-bold text-blue-800 dark:text-blue-200">Assessment in Progress</h3>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">You are in edit mode. Changes are saved automatically as you update fields. Click "Complete Assessment" when you are finished.</p>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">You are in edit mode. Changes are saved automatically as you move out of a field. Click "Complete Assessment" when you are finished.</p>
                 </div>
             )}
 
@@ -324,7 +394,7 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500"
                             />
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                              <div>
                                 <select value={domainFilter} onChange={e => setDomainFilter(e.target.value)} className="block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
                                     <option value="All">All Domains</option>
@@ -337,30 +407,15 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                                     {allStatuses.map(status => <option key={status} value={status}>{status}</option>)}
                                 </select>
                             </div>
-                        </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={!isEditable || !canUpdate}
-                                className="w-full h-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <UploadIcon className="w-5 h-5" />
-                                <span>Import CSV</span>
-                            </button>
-                             <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleFileImport}
-                                className="hidden"
-                                accept=".csv, text/csv"
-                            />
-                            <button
-                                onClick={handleExportCSV}
-                                className="w-full h-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800"
-                            >
-                                <DownloadIcon className="w-5 h-5" />
-                                <span>Export CSV</span>
-                            </button>
+                            <div>
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="w-full h-full inline-flex items-center justify-center gap-2 px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 dark:focus:ring-offset-gray-800"
+                                >
+                                    <DownloadIcon className="w-5 h-5" />
+                                    <span>Export CSV</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -373,12 +428,58 @@ export const PDPLAssessmentPage: React.FC<PDPLAssessmentPageProps> = ({ assessme
                 <PDPLDomainComplianceBarChart data={assessmentData} />
             </Card>
 
-            <AssessmentSheet
-                filteredDomains={filteredDomains}
-                onUpdateItem={handlePdplItemUpdate}
-                isEditable={isEditable && canUpdate}
-                canUpdate={canUpdate}
-            />
+            <div className="space-y-4">
+                {filteredDomains.map(domain => (
+                     <div key={domain.name} className="bg-white dark:bg-gray-800 shadow-sm rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <button
+                            onClick={() => setOpenDomains(prev => ({...prev, [domain.name]: !prev[domain.name]}))}
+                            className="w-full flex justify-between items-center p-5 text-left transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                        >
+                            <div className="flex items-baseline gap-4">
+                               <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-100">{domain.name}</h3>
+                               <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-full">{domain.items.length} controls</span>
+                            </div>
+                            <ChevronDownIcon className={`w-6 h-6 text-gray-500 dark:text-gray-400 transform transition-transform ${openDomains[domain.name] ? 'rotate-180' : ''}`} />
+                        </button>
+                        {openDomains[domain.name] && (
+                            <div className="border-t border-gray-200 dark:border-gray-700">
+                               <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50">
+                                            <tr>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">ID</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Control Name</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Target Date</th>
+                                                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Details</span></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                            {domain.items.map(item => <ControlRow key={item.controlCode} item={item} isEditable={isEditable && canUpdate} onUpdateItem={onUpdateItem} />)}
+                                        </tbody>
+                                    </table>
+                               </div>
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {filteredDomains.length === 0 && (
+                     <Card className="text-center">
+                        <p className="text-gray-500 dark:text-gray-400">No assessment items match your current filters.</p>
+                    </Card>
+                )}
+            </div>
+             {isAssistantOpen && (
+                <NooraAssistant
+                    isOpen={isAssistantOpen}
+                    onClose={() => setIsAssistantOpen(false)}
+                    assessmentData={assessmentData}
+                    onUpdateItem={onUpdateItem}
+                    currentControlIndex={currentControlIndex}
+                    onNextControl={handleNextControl}
+                    frameworkName="PDPL"
+                />
+            )}
         </div>
     );
 };

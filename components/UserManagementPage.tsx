@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-// FIX: Add 'password' to the User type to resolve type errors.
 import type { User, UserRole, AuditAction } from '../types';
 import { rolePermissions } from '../types';
-import { CloseIcon, EyeIcon, EyeSlashIcon } from './Icons';
+import { CloseIcon } from './Icons';
 
 const allRoles: UserRole[] = ['Administrator', 'CISO', 'CTO', 'CIO', 'CEO', 'Security Analyst', 'Employee'];
 
@@ -23,8 +22,6 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave }) 
     const [confirmPassword, setConfirmPassword] = useState('');
     const [expirationOption, setExpirationOption] = useState('permanent');
     const [customDate, setCustomDate] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
         if (user?.accessExpiresAt) {
@@ -119,21 +116,11 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave }) 
                         </div>
                          <div>
                             <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-                            <div className="relative mt-1">
-                                <input type={showPassword ? 'text' : 'password'} name="password" id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={user ? "Leave blank to keep current password" : ""} className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200 pr-10" />
-                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
-                                    {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                                </button>
-                            </div>
+                            <input type="password" name="password" id="password" value={password} onChange={e => setPassword(e.target.value)} placeholder={user ? "Leave blank to keep current password" : ""} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200" />
                         </div>
                         <div>
                             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Confirm Password</label>
-                             <div className="relative mt-1">
-                                <input type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200 pr-10" />
-                                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">
-                                    {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                                </button>
-                            </div>
+                            <input type="password" name="confirmPassword" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500 sm:text-sm text-gray-900 dark:text-gray-200" />
                         </div>
                         <div>
                             <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Role</label>
@@ -187,7 +174,7 @@ const UserFormModal: React.FC<UserFormModalProps> = ({ user, onClose, onSave }) 
 
 interface UserManagementPageProps {
     users: User[];
-    setUsers: (updater: React.SetStateAction<User[]>) => void;
+    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
     currentUser: User;
     addNotification: (message: string, type?: 'success' | 'info') => void;
     addAuditLog: (action: AuditAction, details: string, targetId?: string) => void;
@@ -225,29 +212,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
 
     const handleSaveUser = (user: User) => {
         if (editingUser) {
-            // Update
-            const changes: string[] = [];
-            if (editingUser.name !== user.name) {
-                changes.push(`Name changed from "${editingUser.name}" to "${user.name}"`);
-            }
-            if (editingUser.email !== user.email) {
-                changes.push(`Email changed from "${editingUser.email}" to "${user.email}"`);
-            }
-            if (editingUser.role !== user.role) {
-                changes.push(`Role changed from "${editingUser.role}" to "${user.role}"`);
-            }
-            if (user.password) {
-                changes.push("Password was changed");
-            }
-            const oldExpires = editingUser.accessExpiresAt ? new Date(editingUser.accessExpiresAt).toLocaleDateString() : 'Permanent';
-            const newExpires = user.accessExpiresAt ? new Date(user.accessExpiresAt).toLocaleDateString() : 'Permanent';
-            if (oldExpires !== newExpires) {
-                changes.push(`Access expiration changed from ${oldExpires} to ${newExpires}`);
-            }
-    
-            const details = changes.length > 0 ? changes.join('; ') : 'No changes were made.';
-            addAuditLog('USER_UPDATED', `Updated user ${user.name}: ${details}`, user.id);
-    
+            // Update: Preserve old password if new one isn't provided
             setUsers(prevUsers => prevUsers.map(u => {
                 if (u.id === user.id) {
                     return {
@@ -258,14 +223,13 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
                 }
                 return u;
             }));
+            addAuditLog('USER_UPDATED', `Updated user details for ${user.name} (${user.email}).`, user.id);
         } else {
             // Create a new user
             const newUser: User = { ...user };
             setUsers(prevUsers => [...prevUsers, newUser]);
-            
-            const expires = newUser.accessExpiresAt ? ` until ${new Date(newUser.accessExpiresAt).toLocaleDateString()}` : '';
-            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}) with role ${newUser.role}. Access is ${newUser.accessExpiresAt ? 'temporary' : 'permanent'}${expires}.`, newUser.id);
-    
+
+            addAuditLog('USER_CREATED', `Created new user: ${newUser.name} (${newUser.email}).`, newUser.id);
             if (!newUser.isVerified) {
                 addNotification(`Verification email sent to ${newUser.email}. User must verify account before logging in.`, 'info');
             }
@@ -278,7 +242,7 @@ export const UserManagementPage: React.FC<UserManagementPageProps> = ({ users, s
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">User Management</h1>
+                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 tracking-tight">User Management Console</h1>
                     <p className="mt-2 text-lg text-gray-500 dark:text-gray-400">Create, edit, and manage user roles and time-based permissions.</p>
                 </div>
                 {canCreate && (

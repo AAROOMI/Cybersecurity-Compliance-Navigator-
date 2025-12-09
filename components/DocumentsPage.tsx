@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import type { PolicyDocument, UserRole, DocumentStatus, Control, Subdomain, Domain, GeneratedContent, PrebuiltPolicyTemplate, User, Permission, CompanyProfile } from '../types';
 import { eccData } from '../data/controls';
 import { policyTemplates } from '../data/templates';
-import { CheckIcon, CloseIcon, SparklesIcon } from './Icons';
+import { CheckIcon, CloseIcon } from './Icons';
 
 // Use declare to get libraries from the global scope (from script tags)
 declare const jspdf: any;
@@ -79,7 +79,7 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ doc, company }) => {
     }, [identifierData]);
 
 
-    if (!identifierData && !doc.controlId.startsWith('REPORT-')) { // Allow reports to render without ECC data
+    if (!identifierData) {
         return null;
     }
 
@@ -94,14 +94,12 @@ const DocumentHeader: React.FC<DocumentHeaderProps> = ({ doc, company }) => {
                     </div>
                 </div>
             </div>
-            {controlIdentifier && (
-                <div className="border-t dark:border-gray-700 pt-4">
-                    <div>
-                        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Control Identifier</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{controlIdentifier}</p>
-                    </div>
+            <div className="border-t dark:border-gray-700 pt-4">
+                <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Control Identifier</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono break-all">{controlIdentifier}</p>
                 </div>
-            )}
+            </div>
         </div>
     );
 };
@@ -502,15 +500,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({ repository, curren
                        {docs.map(doc => (
                            <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50">
                                <td className="px-6 py-4 whitespace-nowrap">
-                                   <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">{doc.controlId}</span>
-                                    {doc.generatedBy === 'AI Agent' && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                            <SparklesIcon className="w-3 h-3" />
-                                            AI-Generated
-                                        </span>
-                                    )}
-                                   </div>
+                                   <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{doc.controlId}</div>
                                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">{doc.controlDescription}</div>
                                </td>
                                <td className="px-6 py-4 whitespace-nowrap">

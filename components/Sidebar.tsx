@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon } from './Icons';
+import { DocumentIcon, UsersIcon, BuildingOfficeIcon, DashboardIcon, ClipboardListIcon, BeakerIcon, ClipboardCheckIcon, ShieldKeyholeIcon, LandmarkIcon, IdentificationIcon, SunIcon, MoonIcon } from './Icons';
 import type { Domain, Permission } from '../types';
 
 interface SidebarProps {
@@ -9,9 +10,11 @@ interface SidebarProps {
   currentView: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup';
   onSetView: (view: 'dashboard' | 'navigator' | 'documents' | 'users' | 'companyProfile' | 'auditLog' | 'assessment' | 'pdplAssessment' | 'samaCsfAssessment' | 'userProfile' | 'mfaSetup') => void;
   permissions: Set<Permission>;
+  theme: 'light' | 'dark';
+  toggleTheme: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSelectDomain, currentView, onSetView, permissions }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSelectDomain, currentView, onSetView, permissions, theme, toggleTheme }) => {
   return (
     <aside className="w-64 bg-white dark:bg-gray-800 p-4 border-r border-gray-200 dark:border-gray-700 overflow-y-auto hidden md:flex md:flex-col">
       <nav className="mb-6">
@@ -165,6 +168,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ domains, selectedDomain, onSel
               <BeakerIcon className="w-5 h-5 mr-3" />
               <span>PDPL AI Assessment</span>
             </a>
+      </div>
+
+      <div className="mt-2">
+          <button
+              onClick={toggleTheme}
+              className="w-full text-left p-3 rounded-md text-sm transition-colors duration-200 flex items-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100"
+          >
+              {theme === 'light' ? <MoonIcon className="w-5 h-5 mr-3" /> : <SunIcon className="w-5 h-5 mr-3" />}
+              <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+          </button>
       </div>
 
       {permissions.has('navigator:read') && (

@@ -1,3 +1,4 @@
+
 export interface ControlVersion {
   version: string;
   date: string;
@@ -58,7 +59,10 @@ export type AuditAction =
   | 'LICENSE_UPDATED'
   | 'PASSWORD_CHANGED'
   | 'MFA_ENABLED'
-  | 'MFA_DISABLED';
+  | 'MFA_DISABLED'
+  | 'AGENT_AUDIT_INITIATED'
+  | 'AGENT_AUDIT_COMPLETED'
+  | 'EVIDENCE_UPLOADED';
 
 export interface AuditLogEntry {
   id: string;
@@ -84,6 +88,9 @@ export type Permission =
   | 'documents:read'
   | 'documents:approve'
   | 'documents:generate'
+  | 'documents:audit' // New permission for agentic audit
+  | 'evidence:read'
+  | 'evidence:upload'
   | 'templates:read'
   | 'templates:apply'
   | 'navigator:read'
@@ -123,6 +130,9 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'documents:read',
     'documents:approve',
     'documents:generate',
+    'documents:audit',
+    'evidence:read',
+    'evidence:upload',
     'templates:read',
     'templates:apply',
     'navigator:read',
@@ -143,6 +153,9 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'documents:read',
     'documents:approve',
     'documents:generate',
+    'documents:audit',
+    'evidence:read',
+    'evidence:upload',
     'templates:read',
     'templates:apply',
     'navigator:read',
@@ -156,12 +169,15 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
     'userProfile:read',
     'userProfile:update',
   ],
-  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
-  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
-  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
+  CTO: ['dashboard:read', 'documents:read', 'documents:approve', 'documents:audit', 'evidence:read', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
+  CIO: ['dashboard:read', 'documents:read', 'documents:approve', 'evidence:read', 'navigator:read', 'templates:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
+  CEO: ['dashboard:read', 'documents:read', 'documents:approve', 'evidence:read', 'navigator:read', 'company:read', 'assessment:read', 'pdplAssessment:read', 'samaCsfAssessment:read', 'userProfile:read', 'userProfile:update'],
   'Security Analyst': [
     'documents:read',
     'documents:generate',
+    'documents:audit', // Can view audit results
+    'evidence:read',
+    'evidence:upload', // Key permission for Analyst
     'templates:read',
     'templates:apply',
     'navigator:read',
@@ -182,6 +198,7 @@ export const rolePermissions: Record<UserRole, Permission[]> = {
 // Document Management System Types
 export type DocumentStatus =
   | 'Draft'
+  | 'AI Auditing'
   | 'Pending CISO Approval'
   | 'Pending CTO Approval'
   | 'Pending CIO Approval'
@@ -190,16 +207,27 @@ export type DocumentStatus =
   | 'Rejected';
 
 export interface ApprovalStep {
-  role: UserRole;
-  decision: 'Approved' | 'Rejected';
+  role: UserRole | 'AI_AGENT';
+  decision: 'Approved' | 'Rejected' | 'Passed' | 'Failed';
   timestamp: number;
   comments?: string;
+  signatureId?: string; // Unique hash for the signature
+  agentName?: string; // e.g., "AI CISO Agent", "AI CTO Agent"
 }
 
 export interface GeneratedContent {
   policy: string;
   procedure: string;
   guideline: string;
+}
+
+export interface ComplianceEvidence {
+  id: string;
+  name: string;
+  url: string; // Base64 encoded file
+  type: string; // MIME type
+  uploadedBy: string;
+  uploadedAt: number;
 }
 
 export interface PolicyDocument {
@@ -211,8 +239,11 @@ export interface PolicyDocument {
   status: DocumentStatus;
   content: GeneratedContent;
   approvalHistory: ApprovalStep[];
+  evidence?: ComplianceEvidence[];
   createdAt: number;
   updatedAt: number;
+  qrCodeUrl?: string;
+  barcodeId?: string;
 }
 
 export interface PrebuiltPolicyTemplate {

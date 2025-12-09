@@ -1,17 +1,21 @@
+
 import React from 'react';
 import { SubdomainAccordion } from './SubdomainAccordion';
-import type { Domain, Control, Subdomain, GeneratedContent, PolicyDocument, Permission } from '../types';
+import type { Domain, Control, Subdomain, GeneratedContent, PolicyDocument, Permission, User } from '../types';
 
 interface ContentViewProps {
   domain: Domain;
   activeControlId: string | null;
   setActiveControlId: (id: string | null) => void;
   onAddDocument: (control: Control, subdomain: Subdomain, domain: Domain, generatedContent: GeneratedContent) => void;
+  onStartAudit: (doc: PolicyDocument, control: Control) => void;
+  onUploadEvidence: (docId: string, file: File) => void;
   documentRepository: PolicyDocument[];
   permissions: Set<Permission>;
+  currentUser: User;
 }
 
-export const ContentView: React.FC<ContentViewProps> = ({ domain, activeControlId, setActiveControlId, onAddDocument, documentRepository, permissions }) => {
+export const ContentView: React.FC<ContentViewProps> = ({ domain, activeControlId, setActiveControlId, onAddDocument, onStartAudit, onUploadEvidence, documentRepository, permissions, currentUser }) => {
   return (
     <div className="space-y-8">
       <div>
@@ -27,8 +31,11 @@ export const ContentView: React.FC<ContentViewProps> = ({ domain, activeControlI
             activeControlId={activeControlId} 
             setActiveControlId={setActiveControlId} 
             onAddDocument={onAddDocument}
+            onStartAudit={onStartAudit}
+            onUploadEvidence={onUploadEvidence}
             documentRepository={documentRepository}
             permissions={permissions}
+            currentUser={currentUser}
           />
         ))}
       </div>
